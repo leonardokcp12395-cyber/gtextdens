@@ -93,27 +93,30 @@ export class Enemy extends Entity {
         this.maxHealth = this.health;
     }
 
-    update({ player, activeStaticFields, enemies, enemyProjectilePool, particlePool, waveEnemiesRemaining, gameTime, waveNumber, SoundManager }) {
+    update(gameContext) {
+        const { player, staticFields, enemies, enemyProjectilePool, particlePool, waveEnemiesRemaining, gameTime, waveNumber } = gameContext;
+
         this.x += this.knockbackVelocity.x;
         this.y += this.knockbackVelocity.y;
         this.knockbackVelocity.x *= 0.9;
         this.knockbackVelocity.y *= 0.9;
         if (Math.hypot(this.knockbackVelocity.x, this.knockbackVelocity.y) < 0.1) {
-            this.knockbackVelocity = { x: 0, y: 0 };
+            this.knockbackVelocity.x = 0;
+            this.knockbackVelocity.y = 0;
         }
 
         if (this.orbHitCooldown > 0) this.orbHitCooldown--;
 
         if (this.type === 'reaper' && Math.hypot(player.x - this.x, player.y - this.y) < this.radius + 40) {
-            this.health = 0;
-            this.isDead = true; // A lógica de `takeDamage` será chamada no loop principal
+            this.isDead = true;
+            this.takeDamage(this.health, gameContext); // Causa dano fatal para acionar a morte
             return;
         }
 
         if (Math.hypot(this.knockbackVelocity.x, this.knockbackVelocity.y) < 5) {
             const angle = Math.atan2(player.y - this.y, player.x - this.x);
             let currentSpeed = this.speed;
-            for (const field of activeStaticFields) {
+            for (const field of staticFields) {
                 if (Math.hypot(field.x - this.x, field.y - this.y) < field.radius) {
                     currentSpeed *= (1 - field.slowFactor);
                     break;
@@ -123,7 +126,6 @@ export class Enemy extends Entity {
             this.y += Math.sin(angle) * currentSpeed;
         }
 
-        // Lógicas específicas de tipo
         if (this.type === 'shooter') {
             this.attackTimer--;
             if (this.attackTimer <= 0) {
@@ -138,7 +140,7 @@ export class Enemy extends Entity {
                 enemies.forEach(otherEnemy => {
                     if (!otherEnemy.isDead && otherEnemy !== this && Math.hypot(this.x - otherEnemy.x, this.y - otherEnemy.y) < this.healRadius) {
                         otherEnemy.health = Math.min(otherEnemy.maxHealth, otherEnemy.health + this.healAmount);
-                        for (let i = 0; i < 2; i++) getFromPool(particlePool, otherEnemy.x, otherEnemy.y, 'lime', 1);
+                        if(particlePool) for (let i = 0; i < 2; i++) getFromPool(particlePool, otherEnemy.x, otherEnemy.y, 'lime', 1);
                     }
                 });
                 this.healTimer = this.healCooldown;
@@ -150,7 +152,7 @@ export class Enemy extends Entity {
                 const newEnemy = new Enemy(this.x + (Math.random()-0.5)*50, this.y + (Math.random()-0.5)*50, summonedType, false, gameTime, waveNumber);
                 enemies.push(newEnemy);
                 waveEnemiesRemaining.value++;
-                for (let i = 0; i < 3; i++) getFromPool(particlePool, this.x, this.y, 'brown', 2);
+                if(particlePool) for (let i = 0; i < 3; i++) getFromPool(particlePool, this.x, this.y, 'brown', 2);
                 this.summonTimer = this.summonCooldown;
             }
         }
@@ -162,13 +164,15 @@ export class Enemy extends Entity {
         }
     }
 
-    takeDamage(amount, { score, xpOrbPool, particlePool, activeVortexes, powerUps, showTemporaryMessage, waveEnemiesRemaining, activeDamageNumbers }) {
+    takeDamage(amount, gameContext) {
         if(this.isDead) return;
+
+        const { score, xpOrbPool, particlePool, activeVortexes, powerUps, showTemporaryMessage, waveEnemiesRemaining, damageNumberPool } = gameContext;
 
         this.health -= amount;
         this.hitTimer = 5;
 
-        getFromPool(activeDamageNumbers, this.x, this.y, amount);
+        getFromPool(damageNumberPool, this.x, this.y, amount);
         
         for (let i = 0; i < 3; i++) {
             getFromPool(particlePool, this.x, this.y, this.color, 1.8);
@@ -279,151 +283,60 @@ export class Enemy extends Entity {
     }
 }
 
-export class BossEnemy extends Entity {
-                constructor(x, y) {
-                    super(x, y, 40); // Raio grande
-                    this.maxHealth = 1000 + (waveNumber * 150);
-                    this.health = this.maxHealth;
-                    this.speed = 0.5 + (waveNumber * 0.02);
-                    this.damage = 25;
-                    this.xpValue = 500;
-                    this.color = '#8A2BE2'; // Roxo azulado
-                    this.animationFrame = 0;
-                    this.phase = 1;
-                    this.attackPatternTimer = 0;
-                    this.currentAttack = 'chase';
-                    this.hitTimer = 0; // Para feedback visual de dano
-                    this.orbHitCooldown = 0; // Para orbes orbitais
-                    this.knockbackVelocity = { x: 0, y: 0 };
-                }
+export class BossEnemy extends Enemy {
+    constructor(x, y, gameTime, waveNumber) {
+        super(x, y, 'boss', true, gameTime, waveNumber); // Boss é sempre elite
+        this.phase = 1;
+        this.attackPatternTimer = 0;
+        this.currentAttack = 'chase';
+    }
 
-                draw(ctx) {
-                    ctx.save();
-                    ctx.translate(this.x - camera.x, this.y - camera.y);
-                    
-                    const color = this.hitTimer > 0 ? 'white' : this.color;
-                    ctx.fillStyle = color;
-                    // OTIMIZAÇÃO: shadowBlur removido
-                    // ctx.shadowColor = 'magenta';
-                    // ctx.shadowBlur = 30;
+    update(gameContext) {
+        const { player, enemies, enemyProjectilePool, showTemporaryMessage, frameCount, gameTime, waveNumber } = gameContext;
+        this.animationFrame++;
+        this.attackPatternTimer--;
+        
+        this.x += this.knockbackVelocity.x;
+        this.y += this.knockbackVelocity.y;
+        this.knockbackVelocity.x *= 0.95; 
+        this.knockbackVelocity.y *= 0.95;
 
-                    // Corpo principal rotativo
-                    ctx.rotate(this.animationFrame * 0.01);
-                    ctx.beginPath();
-                    for(let i=0; i<6; i++) {
-                        const angle = i * Math.PI / 3;
-                        ctx.lineTo(Math.cos(angle) * this.radius, Math.sin(angle) * this.radius);
-                    }
-                    ctx.closePath();
-                    ctx.fill();
-                    
-                    // Núcleo pulsante
-                    const pulse = Math.sin(this.animationFrame * 0.05) * 5 + (this.radius / 2);
-                    ctx.fillStyle = 'white';
-                    ctx.beginPath();
-                    ctx.arc(0, 0, pulse, 0, Math.PI * 2);
-                    ctx.fill();
-                    
-                    // Adiciona a barra de vida para o Boss
-                    const healthBarWidth = this.radius * 3;
-                    const healthPercentage = this.health / this.maxHealth;
-                    ctx.fillStyle = '#333';
-                    ctx.fillRect(-healthBarWidth / 2, this.radius + 15, healthBarWidth, 10);
-                    ctx.fillStyle = '#FF00FF'; // Cor magenta para a vida do boss
-                    ctx.fillRect(-healthBarWidth / 2, this.radius + 15, healthBarWidth * healthPercentage, 10);
-                    
-                    ctx.restore();
-                    if (this.hitTimer > 0) this.hitTimer--;
-                }
+        if (this.health < this.maxHealth / 2 && this.phase === 1) {
+            this.phase = 2;
+            this.speed *= 1.5;
+            this.currentAttack = 'barrage';
+            this.attackPatternTimer = 0;
+            showTemporaryMessage("FÚRIA DO BOSS!", "red");
+        }
+        
+        if (this.attackPatternTimer <= 0) {
+            this.chooseNextAttack();
+        }
+        this.executeAttack(player, enemies, enemyProjectilePool, frameCount, gameTime, waveNumber);
+        if (this.orbHitCooldown > 0) this.orbHitCooldown--;
+    }
 
-                update() {
-                    this.animationFrame++;
-                    this.attackPatternTimer--;
-                    
-                    // Aplica knockback
-                    this.x += this.knockbackVelocity.x;
-                    this.y += this.knockbackVelocity.y;
-                    this.knockbackVelocity.x *= 0.95; 
-                    this.knockbackVelocity.y *= 0.95;
+    chooseNextAttack() {
+        const attacks = (this.phase === 1) ? ['chase', 'shoot_ring'] : ['chase', 'barrage', 'summon'];
+        this.currentAttack = attacks[Math.floor(Math.random() * attacks.length)];
+        this.attackPatternTimer = 180;
+    }
 
-                    if (this.health < this.maxHealth / 2 && this.phase === 1) {
-                        this.phase = 2;
-                        this.speed *= 1.5; // Fica mais rápido na segunda fase
-                        this.currentAttack = 'barrage'; // Muda para um ataque mais agressivo
-                        this.attackPatternTimer = 0;
-                        showTemporaryMessage("FÚRIA DO BOSS!", "red");
-                    }
-                    
-                    if (this.attackPatternTimer <= 0) {
-                        this.chooseNextAttack();
-                    }
-                    this.executeAttack();
-
-                    // Decrementa o cooldown de acerto por orbe
-                    if (this.orbHitCooldown > 0) {
-                        this.orbHitCooldown--;
-                    }
-                }
-
-                chooseNextAttack() {
-                    const attacks = (this.phase === 1) ? ['chase', 'shoot_ring'] : ['chase', 'barrage', 'summon'];
-                    this.currentAttack = attacks[Math.floor(Math.random() * attacks.length)];
-                    this.attackPatternTimer = 180; // Duração do padrão de ataque (3 segundos)
-                }
-
-                executeAttack() {
-                    const angleToPlayer = Math.atan2(player.y - this.y, player.x - this.x);
-                    
-                    if (this.currentAttack === 'chase') {
-                        this.x += Math.cos(angleToPlayer) * this.speed;
-                        this.y += Math.sin(angleToPlayer) * this.speed;
-                    } else if (this.currentAttack === 'shoot_ring' && frameCount % 30 === 0) {
-                        for(let i=0; i<8; i++) {
-                            const angle = i * Math.PI / 4;
-                            getFromPool(enemyProjectilePool, this.x, this.y, angle, 3, 10);
-                        }
-                    } else if (this.currentAttack === 'barrage' && frameCount % 10 === 0) {
-                        getFromPool(enemyProjectilePool, this.x, this.y, angleToPlayer + (Math.random() - 0.5) * 0.5, 5, 15);
-                    } else if (this.currentAttack === 'summon' && this.attackPatternTimer === 100) {
-                        enemies.push(new Enemy(this.x + (Math.random()-0.5)*50, this.y + (Math.random()-0.5)*50, 'speeder', true));
-                        enemies.push(new Enemy(this.x + (Math.random()-0.5)*50, this.y + (Math.random()-0.5)*50, 'chaser', true));
-                    }
-                }
-
-                takeDamage(amount) {
-                    if(this.isDead) return;
-                    this.health -= amount;
-                    this.hitTimer = 5; // Feedback visual de dano
-
-                    // Gera o número de dano
-                    activeDamageNumbers.push(getFromPool(damageNumberPool, this.x, this.y, amount));
-
-                    // Partículas de dano
-                    for (let i = 0; i < 10; i++) { 
-                        getFromPool(particlePool, this.x, this.y, this.color, 2.5); 
-                    }
-                    if (this.health <= 0) {
-                        this.isDead = true;
-                        getFromPool(xpOrbPool, this.x, this.y, this.xpValue);
-                        score.kills++;
-                        waveEnemiesRemaining--; // Conta o boss como 1 inimigo para a onda
-                        showTemporaryMessage("BOSS DERROTADO!", "gold");
-                        screenShake = { intensity: 20, duration: 60 };
-                        // Partículas de morte do boss
-                        for (let i = 0; i < 50; i++) {
-                            getFromPool(particlePool, this.x, this.y, this.color, 5); 
-                        }
-                        // Bosses largam mais gemas
-                        const gemsDropped = Math.floor(Math.random() * 10) + 5; // 5 a 14 gemas
-                        playerGems += gemsDropped;
-                        showTemporaryMessage(`+${gemsDropped} Gemas!`, 'violet');
-                        savePermanentData(); // Salva os dados permanentes
-                    }
-                }
-
-                applyKnockback(sourceX, sourceY, force) {
-                    const angle = Math.atan2(this.y - sourceY, this.x - sourceX);
-                    this.knockbackVelocity.x = Math.cos(angle) * force;
-                    this.knockbackVelocity.y = Math.sin(angle) * force;
-                }
+    executeAttack(player, enemies, enemyProjectilePool, frameCount, gameTime, waveNumber) {
+        const angleToPlayer = Math.atan2(player.y - this.y, player.x - this.x);
+        
+        if (this.currentAttack === 'chase') {
+            this.x += Math.cos(angleToPlayer) * this.speed;
+            this.y += Math.sin(angleToPlayer) * this.speed;
+        } else if (this.currentAttack === 'shoot_ring' && frameCount % 30 === 0) {
+            for(let i=0; i<8; i++) {
+                const angle = i * Math.PI / 4;
+                getFromPool(enemyProjectilePool, this.x, this.y, angle, 3, 10);
             }
+        } else if (this.currentAttack === 'barrage' && frameCount % 10 === 0) {
+            getFromPool(enemyProjectilePool, this.x, this.y, angleToPlayer + (Math.random() - 0.5) * 0.5, 5, 15);
+        } else if (this.currentAttack === 'summon' && this.attackPatternTimer === 100) {
+            enemies.push(new Enemy(this.x, this.y, 'speeder', true, gameTime, waveNumber));
+        }
+    }
+}
