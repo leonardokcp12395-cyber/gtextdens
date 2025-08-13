@@ -62,26 +62,27 @@ const gameContext = {
     setGameState,
     showTemporaryMessage,
     score,
-    xpOrbPool: () => xpOrbPool,
-    particlePool: () => particlePool,
-    enemyProjectilePool: () => enemyProjectilePool,
-    activeVortexes: () => activeVortexes,
-    powerUps: () => powerUps,
-    damageNumberPool: () => damageNumberPool,
+    xpOrbPool,
+    particlePool,
+    enemyProjectilePool,
+    activeVortexes,
+    powerUps,
+    activeDamageNumbers: damageNumberPool,
     waveEnemiesRemaining,
     screenShake,
-    enemies: () => enemies,
+    enemies,
     player: () => player,
     isMobile,
     keys,
     movementVector,
-    platforms: () => platforms,
+    platforms,
     qtree: () => qtree,
     frameCount: () => frameCount,
     gameTime: () => gameTime,
     waveNumber: () => waveNumber,
-    playerProjectiles: () => projectilePool,
-    staticFields: () => activeStaticFields
+    playerProjectiles: projectilePool,
+    staticFields: activeStaticFields,
+    ui
 };
 
 // =================================================================================
@@ -196,7 +197,8 @@ function spawnEnemies() {
 }
 
 function handleCollisions() {
-    if (!qtree) return;
+    if (!qtree || !player) return;
+
     for (const proj of projectilePool) {
         if (!proj.active) continue;
         const range = new Rectangle(proj.x - proj.radius, proj.y - proj.radius, proj.radius * 2, proj.radius * 2);
@@ -213,6 +215,7 @@ function handleCollisions() {
             }
         }
     }
+
     for (const eProj of enemyProjectilePool) {
         if (!eProj.active || player.isDead) continue;
         if (Math.hypot(player.x - eProj.x, player.y - eProj.y) < player.radius + eProj.radius) {
@@ -220,6 +223,7 @@ function handleCollisions() {
             eProj.isDead = true; releaseToPool(eProj);
         }
     }
+
     const playerRange = new Rectangle(player.x - player.radius, player.y - player.radius, player.radius * 2, player.radius * 2);
     const nearbyToPlayer = qtree.query(playerRange);
     for (const enemy of nearbyToPlayer) {
@@ -236,15 +240,16 @@ function handleCollisions() {
 // =================================================================================
 function initGame() {
     gameTime = 0; frameCount = 0;
-    score.kills = 0; score.time = 0;
-    screenShake.intensity = 0; screenShake.duration = 0;
+    score = { kills: 0, time: 0 };
+    screenShake = { intensity: 0, duration: 0 };
     platforms = []; enemies = []; activeVortexes = []; powerUps = []; activeStaticFields = [];
     
     [particlePool, projectilePool, enemyProjectilePool, xpOrbPool, damageNumberPool].forEach(pool => {
-        pool.forEach(item => releaseToPool(item));
+        if(pool) pool.forEach(item => releaseToPool(item));
     });
     
     player = new Player(canvas.width / 2, canvas.height, canvas);
+    
     const groundLevel = canvas.height * (1 - CONFIG.GROUND_HEIGHT_PERCENT);
     platforms.push(new Platform(-CONFIG.WORLD_BOUNDS.width, groundLevel, CONFIG.WORLD_BOUNDS.width * 2, CONFIG.WORLD_BOUNDS.height));
     
@@ -260,27 +265,28 @@ function updateGame(deltaTime) {
     frameCount++;
     score.time = gameTime;
 
-    // *** CORREÇÃO CRÍTICA AQUI ***
     const worldBounds = new Rectangle(-CONFIG.WORLD_BOUNDS.width / 2, -CONFIG.WORLD_BOUNDS.height / 2, CONFIG.WORLD_BOUNDS.width, CONFIG.WORLD_BOUNDS.height);
-    qtree = new Quadtree(worldBounds, 4); // Deve ser new Quadtree, não new Rectangle
+    qtree = new Quadtree(worldBounds, 4);
     enemies.forEach(e => { if (!e.isDead) qtree.insert(e); });
 
     player.update(gameContext);
     
     enemies.forEach(e => e.update(gameContext));
-    powerUps.forEach(p => p.update(gameContext));
-    activeVortexes.forEach(v => v.update(gameContext));
-    xpOrbPool.forEach(o => { if(o.active) o.update(gameContext); });
-    projectilePool.forEach(p => { if(p.active) p.update(gameContext); });
-    enemyProjectilePool.forEach(p => { if(p.active) p.update(gameContext); });
-    damageNumberPool.forEach(dn => { if(dn.active) dn.update(gameContext); });
+    powerUps.forEach(p => p.update({ ...gameContext, player, enemies, screenShake }));
+    activeVortexes.forEach(v => v.update({ ...gameContext, enemies, player, frameCount }));
+    xpOrbPool.forEach(o => { if(o.active) o.update({ player, gameContext }); });
+    projectilePool.forEach(p => { if(p.active) p.update({ frameCount }); });
+    enemyProjectilePool.forEach(p => { if(p.active) p.update({ frameCount }); });
+    damageNumberPool.forEach(dn => { if(dn.active) dn.update(); });
     
     camera.update();
     spawnEnemies();
     handleCollisions();
+
     removeDeadEntities(enemies);
     removeDeadEntities(powerUps);
     removeDeadEntities(activeVortexes);
+    removeDeadEntities(activeStaticFields);
 }
 
 function drawGame() {
@@ -314,7 +320,6 @@ function gameLoop(currentTime) {
     if (!lastFrameTime) lastFrameTime = performance.now();
     const deltaTime = (currentTime - lastFrameTime) / 1000.0;
     
-    // Loop principal robusto com try...catch
     try {
         if (gameState === 'playing') {
             updateGame(deltaTime);
@@ -324,7 +329,7 @@ function gameLoop(currentTime) {
         }
     } catch (error) {
         console.error("Erro na Lógica de Update:", error);
-        setGameState('paused'); // Pausa o jogo em caso de erro para não travar o navegador
+        setGameState('paused');
     }
 
     try {
@@ -357,7 +362,7 @@ window.onload = () => {
     loadPermanentData();
     SoundManager.init();
     
-    const gameController = { setGameState, initGame, getPlayer: () => player, keys, movementVector };
+    const gameController = { setGameState, initGame, getPlayer: () => player };
     setupEventListeners(gameController);
     
     setGameState('menu');
