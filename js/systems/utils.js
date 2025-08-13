@@ -63,6 +63,17 @@ export class Quadtree {
         this.divided = false;
     }
 
+    clear() {
+        this.points = [];
+        if (this.divided) {
+            this.northeast.clear();
+            this.northwest.clear();
+            this.southeast.clear();
+            this.southwest.clear();
+        }
+        this.divided = false;
+    }
+
     subdivide() {
         let { x, y, width, height } = this.bounds;
         let w2 = width / 2;
