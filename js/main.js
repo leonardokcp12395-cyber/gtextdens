@@ -1,8 +1,5 @@
 // js/main.js
 
-// =================================================================================
-// IMPORTS
-// =================================================================================
 import { DEBUG_MODE, CONFIG, WAVE_CONFIGS } from './config.js';
 import { Quadtree, Rectangle, removeDeadEntities, formatTime } from './systems/utils.js';
 import { loadPermanentData, savePermanentData } from './systems/save.js';
@@ -21,9 +18,6 @@ import { PowerUp } from './entities/powerup.js';
 import { Vortex } from './entities/vortex.js';
 import { StaticField } from './entities/staticfield.js';
 
-// =================================================================================
-// ESTADO GLOBAL DO JOGO
-// =================================================================================
 let gameState = 'loading';
 let lastFrameTime = 0;
 let gameTime = 0;
@@ -67,7 +61,7 @@ const gameContext = {
     enemyProjectilePool,
     activeVortexes,
     powerUps,
-    activeDamageNumbers: damageNumberPool,
+    damageNumberPool,
     waveEnemiesRemaining,
     screenShake,
     enemies,
@@ -85,9 +79,6 @@ const gameContext = {
     ui
 };
 
-// =================================================================================
-// LÓGICA PRINCIPAL DO JOGO
-// =================================================================================
 function setGameState(newState) {
     const oldState = gameState;
     gameState = newState;
@@ -102,7 +93,7 @@ function setGameState(newState) {
 
     const isMenuState = ['menu', 'levelUp', 'gameOver', 'guide', 'rank', 'upgrades'].includes(newState);
     ui.layer.classList.toggle('active-menu', isMenuState || newState === 'paused');
-    ui.hud.classList.toggle('hidden', newState !== 'playing');
+    ui.hud.classList.toggle('hidden', newState !== 'playing' && newState !== 'paused');
     ui.dashButtonMobile.classList.toggle('hidden', !isMobile || newState !== 'playing');
 
     Object.values(ui).forEach(element => {
@@ -235,9 +226,6 @@ function handleCollisions() {
     }
 }
 
-// =================================================================================
-// INICIALIZAÇÃO E LOOP
-// =================================================================================
 function initGame() {
     gameTime = 0; frameCount = 0;
     score = { kills: 0, time: 0 };
@@ -272,8 +260,8 @@ function updateGame(deltaTime) {
     player.update(gameContext);
     
     enemies.forEach(e => e.update(gameContext));
-    powerUps.forEach(p => p.update({ ...gameContext, player, enemies, screenShake }));
-    activeVortexes.forEach(v => v.update({ ...gameContext, enemies, player, frameCount }));
+    powerUps.forEach(p => p.update({ player, enemies, screenShake, gameContext }));
+    activeVortexes.forEach(v => v.update({ enemies, player, frameCount: () => frameCount, gameContext }));
     xpOrbPool.forEach(o => { if(o.active) o.update({ player, gameContext }); });
     projectilePool.forEach(p => { if(p.active) p.update({ frameCount }); });
     enemyProjectilePool.forEach(p => { if(p.active) p.update({ frameCount }); });
