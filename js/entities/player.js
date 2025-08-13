@@ -26,9 +26,9 @@ export class Player extends Entity {
     constructor(x, y, canvas) {
         super(x, y, 15);
 
-        const healthUpgradeLevel = playerUpgrades.max_health || 0;
-        const damageUpgradeLevel = playerUpgrades.damage_boost || 0;
-        const xpUpgradeLevel = playerUpgrades.xp_gain || 0;
+        const healthUpgradeLevel = playerUpgrades.max_health;
+        const damageUpgradeLevel = playerUpgrades.damage_boost;
+        const xpUpgradeLevel = playerUpgrades.xp_gain;
 
         this.baseHealth = CONFIG.PLAYER_HEALTH + (healthUpgradeLevel > 0 ? PERMANENT_UPGRADES.max_health.levels[healthUpgradeLevel - 1].effect : 0);
         this.damageModifier = 1 + (damageUpgradeLevel > 0 ? PERMANENT_UPGRADES.damage_boost.levels[damageUpgradeLevel - 1].effect : 0);
@@ -66,7 +66,7 @@ export class Player extends Entity {
         this.updateSkills(gameContext);
     }
     
-    handleMovement({ keys, movementVector, isMobile }) {
+    handleMovement({ keys, movementVector, isMobile, ui }) {
         if (this.isDashing) {
             this.x += this.dashDirection.x * CONFIG.PLAYER_DASH_FORCE;
             this.y += this.dashDirection.y * CONFIG.PLAYER_DASH_FORCE;
@@ -76,12 +76,13 @@ export class Player extends Entity {
         }
 
         let dx = 0; let dy_input = 0;
+        
         if (isMobile) {
             dx = movementVector.x;
             dy_input = movementVector.y;
         } else {
             dx = (keys['d'] || keys['ArrowRight']) ? 1 : ((keys['a'] || keys['ArrowLeft']) ? -1 : 0);
-            dy_input = (keys['w'] || keys['ArrowUp']) ? -1 : ((keys['s'] || keys['ArrowDown']) ? 1 : 0);
+            dy_input = (keys['s'] || keys['ArrowDown']) ? 1 : ((keys['w'] || keys['ArrowUp']) ? -1 : 0);
         }
 
         if (dx !== 0 || dy_input !== 0) {
@@ -94,15 +95,21 @@ export class Player extends Entity {
 
         const jumpPressed = isMobile ? (movementVector.y < -0.5) : (keys['w'] || keys['ArrowUp'] || keys[' ']);
         if (jumpPressed && this.jumpsAvailable > 0) {
-            this.velocityY = (this.onGround || this.jumpsAvailable === (this.skills['double_jump'] ? 2 : 1)) ? CONFIG.PLAYER_JUMP_FORCE : CONFIG.PLAYER_DOUBLE_JUMP_FORCE;
+            const isFirstJump = this.onGround || this.jumpsAvailable === (this.skills['double_jump'] ? 2 : 1);
+            this.velocityY = isFirstJump ? CONFIG.PLAYER_JUMP_FORCE : CONFIG.PLAYER_DOUBLE_JUMP_FORCE;
             this.jumpsAvailable--;
             this.onGround = false;
-            if (!isMobile) keys['w'] = keys['ArrowUp'] = keys[' '] = false; // Evita saltos repetidos
+            if (!isMobile) keys['w'] = keys['ArrowUp'] = keys[' '] = false;
         }
 
         if (!isMobile && keys.shift) { this.dash(); keys.shift = false; }
 
-        if (this.dashCooldown > 0) this.dashCooldown--;
+        if (this.dashCooldown > 0) {
+            this.dashCooldown--;
+            if (isMobile) ui.dashButtonMobile.classList.add('on-cooldown');
+        } else {
+            if (isMobile) ui.dashButtonMobile.classList.remove('on-cooldown');
+        }
     }
 
     dash() {
@@ -117,13 +124,14 @@ export class Player extends Entity {
         SoundManager.play('uiClick', 'F5');
     }
 
-    applyGravity({ platforms }) {
+    applyGravity(gameContext) {
+        const { platforms } = gameContext;
         const wasOnGround = this.onGround;
         this.velocityY += CONFIG.GRAVITY;
         this.y += this.velocityY;
         this.onGround = false;
 
-        for (const p of platforms()) {
+        for (const p of platforms) {
             if (this.x > p.x && this.x < p.x + p.width && (this.y - this.velocityY) <= p.y - this.radius && this.y >= p.y - this.radius) {
                 this.y = p.y - this.radius;
                 this.velocityY = 0;
@@ -136,13 +144,29 @@ export class Player extends Entity {
                 break;
             }
         }
+        
+        if (platforms.length > 0) {
+            const groundPlatform = platforms[0];
+            const groundTopY = groundPlatform.y;
+            if (this.y > groundTopY - this.radius) {
+                this.y = groundTopY - this.radius;
+                if (this.velocityY > 0) this.velocityY = 0;
+                if (!this.onGround) {
+                   this.onGround = true;
+                   this.jumpsAvailable = (this.skills['double_jump'] ? 2 : 1);
+                }
+            }
+            if (this.y > groundTopY + 200) { 
+                this.takeDamage(9999, gameContext);
+            }
+        }
     }
 
     takeDamage(amount, gameContext) {
         const { screenShake, setGameState, particlePool } = gameContext;
         if (this.shielded) {
             this.shielded = false;
-            if (particlePool) for(let i=0; i<15; i++) getFromPool(particlePool(), this.x, this.y, 'cyan', 3);
+            if (particlePool) for(let i=0; i<15; i++) getFromPool(particlePool, this.x, this.y, 'cyan', 3);
             return;
         }
         this.health -= amount;
@@ -161,7 +185,7 @@ export class Player extends Entity {
         const { setGameState, particlePool } = gameContext;
         this.xp += amount * this.xpModifier;
         SoundManager.play('xp', 'C5');
-        if (particlePool) for (let i = 0; i < 2; i++) getFromPool(particlePool(), this.x, this.y, 'cyan', 2);
+        if (particlePool) for (let i = 0; i < 2; i++) getFromPool(particlePool, this.x, this.y, 'cyan', 2);
         while (this.xp >= this.xpToNextLevel) {
             this.level++;
             this.xp -= this.xpToNextLevel;
@@ -179,7 +203,7 @@ export class Player extends Entity {
             if (skillId === 'black_hole') {
                 SoundManager.play('nuke', '8n');
                 screenShake.intensity = 15; screenShake.duration = 30;
-                enemies().forEach(e => e.takeDamage(99999, gameContext));
+                enemies.forEach(e => e.takeDamage(99999, gameContext));
                 showTemporaryMessage("BURACO NEGRO!", "gold");
             }
             return;
@@ -194,7 +218,7 @@ export class Player extends Entity {
     findNearestEnemy(qtree) {
         let nearest = null;
         let nearestDistSq = Infinity;
-        const searchRadius = 1000;
+        const searchRadius = 2000;
         const searchArea = new Rectangle(this.x - searchRadius, this.y - searchRadius, searchRadius * 2, searchRadius * 2);
         const candidates = qtree.query(searchArea);
         for (const enemy of candidates) {
@@ -210,40 +234,70 @@ export class Player extends Entity {
 
     updateSkills(gameContext) {
         const { qtree, frameCount, playerProjectiles, activeVortexes, staticFields, particlePool } = gameContext;
-
         for (const skillId in this.skills) {
             const skillState = this.skills[skillId];
             const skillData = SKILL_DATABASE[skillId];
             if (skillState.level > skillData.levels.length) continue;
             const levelData = skillData.levels[skillState.level - 1];
+
             if (skillData.cooldown > 0) {
                 if (skillState.timer > 0) skillState.timer--;
                 if (skillState.timer > 0) continue;
             }
 
             if (skillData.type === 'projectile') {
-                const target = this.findNearestEnemy(qtree());
+                const target = this.findNearestEnemy(qtree);
                 if (target) {
                     if (skillId === 'divine_lance') {
                         const angle = Math.atan2(target.y - this.y, target.x - this.x);
                         for (let i = 0; i < levelData.count; i++) {
                             const spread = (i - (levelData.count - 1) / 2) * 0.1;
-                            getFromPool(playerProjectiles(), this.x, this.y, angle + spread, { ...levelData, damage: levelData.damage * this.damageModifier });
+                            getFromPool(playerProjectiles, this.x, this.y, angle + spread, { ...levelData, damage: levelData.damage * this.damageModifier });
                         }
                     } else if (skillId === 'chain_lightning') {
-                        // Lógica do raio
+                        let currentTarget = target;
+                        let lastPos = {x: this.x, y: this.y};
+                        for(let i=0; i<levelData.chains; i++) {
+                            if (!currentTarget) break;
+                            currentTarget.takeDamage(levelData.damage * this.damageModifier, gameContext);
+                            createLightningBolt(lastPos, currentTarget, particlePool);
+                            //... (lógica de encontrar o próximo alvo)
+                        }
                     }
                     skillState.timer = skillData.cooldown;
                 }
             } else if (skillData.type === 'aura') {
-                if(skillId === 'vortex') activeVortexes().push(new Vortex(this.x, this.y, { ...levelData, damage: levelData.damage * this.damageModifier }));
-                if(skillId === 'static_field') staticFields().push(new StaticField(this.x, this.y, levelData));
+                if(skillId === 'vortex') activeVortexes.push(new Vortex(this.x, this.y, { ...levelData, damage: levelData.damage * this.damageModifier }));
+                if(skillId === 'static_field') staticFields.push(new StaticField(this.x, this.y, levelData));
                 skillState.timer = skillData.cooldown;
             }
         }
         
         if (this.skills['orbital_shield']) {
-             // Lógica dos orbes...
+            const skillState = this.skills['orbital_shield'];
+            const levelData = SKILL_DATABASE['orbital_shield'].levels[skillState.level - 1];
+            if (skillState.orbs.length !== levelData.count) {
+                skillState.orbs = Array.from({ length: levelData.count }, (_, i) => ({ angle: (Math.PI * 2 / levelData.count) * i, lastHitFrame: 0 }));
+            }
+            const searchRadius = levelData.radius + 50;
+            const searchArea = new Rectangle(this.x - searchRadius, this.y - searchRadius, searchRadius * 2, searchRadius * 2);
+            const nearbyEnemies = qtree.query(searchArea);
+            skillState.orbs.forEach(orb => {
+                orb.angle += levelData.speed;
+                const orbX = this.x + Math.cos(orb.angle) * levelData.radius;
+                const orbY = this.y + Math.sin(orb.angle) * levelData.radius;
+                nearbyEnemies.forEach(enemy => {
+                    if (enemy.isDead) return;
+                    if (frameCount - orb.lastHitFrame > CONFIG.ORB_HIT_COOLDOWN_FRAMES && enemy.orbHitCooldown <= 0) {
+                         if (Math.hypot(orbX - enemy.x, orbY - enemy.y) < 10 + enemy.radius) {
+                            enemy.takeDamage(levelData.damage * this.damageModifier, gameContext);
+                            enemy.applyKnockback(orbX, orbY, CONFIG.ENEMY_KNOCKBACK_FORCE * 0.5);
+                            orb.lastHitFrame = frameCount;
+                            enemy.orbHitCooldown = CONFIG.ORB_HIT_COOLDOWN_FRAMES;
+                        }
+                    }
+                });
+            });
         }
     }
 
@@ -266,6 +320,21 @@ export class Player extends Entity {
         ctx.moveTo(0, -this.radius * 1.5); ctx.lineTo(this.radius * 1.2, this.radius * 0.8); ctx.lineTo(-this.radius * 1.2, this.radius * 0.8);
         ctx.closePath();
         ctx.fill(); ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(this.radius * 0.8, -this.radius * 0.5); ctx.quadraticCurveTo(this.radius * 2, -this.radius * 1.5, this.radius * 1.5, this.radius * 0.5); ctx.lineTo(this.radius * 0.8, this.radius * 0.8);
+        ctx.closePath();
+        ctx.fill(); ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(-this.radius * 0.8, -this.radius * 0.5); ctx.quadraticCurveTo(-this.radius * 2, -this.radius * 1.5, -this.radius * 1.5, this.radius * 0.5); ctx.lineTo(-this.radius * 0.8, this.radius * 0.8);
+        ctx.closePath();
+        ctx.fill(); ctx.stroke();
+        if (this.shielded) {
+            ctx.beginPath();
+            ctx.arc(0, 0, this.radius * 1.5, 0, Math.PI * 2);
+            ctx.strokeStyle = `rgba(0, 255, 255, ${0.5 + 0.5 * Math.sin(this.animationFrame * 0.1)})`;
+            ctx.lineWidth = 3;
+            ctx.stroke();
+        }
         ctx.restore();
         this.animationFrame++;
     }
