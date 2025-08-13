@@ -19,7 +19,6 @@ export function removeDeadEntities(array) {
     array.length = writeIndex;
 }
 
-// Função auxiliar para o Quadtree. Não precisa ser exportada.
 function clamp(value, min, max) {
     return Math.max(min, Math.min(value, max));
 }
@@ -46,7 +45,6 @@ export class Rectangle {
                  range.y + range.height < this.y);
     }
     
-    // MÉTODO QUE ESTAVA FALTANDO
     intersectsCircle(cx, cy, cr) {
         const closestX = clamp(cx, this.x, this.x + this.width);
         const closestY = clamp(cy, this.y, this.y + this.height);
@@ -57,12 +55,11 @@ export class Rectangle {
     }
 }
 
-// CLASSE QUE ESTAVA FALTANDO
 export class Quadtree {
     constructor(bounds, capacity = 4) {
-        this.bounds = bounds; // { x, y, width, height }
-        this.capacity = capacity; // Quantos objetos antes de subdividir
-        this.points = []; // Objetos neste nó
+        this.bounds = bounds;
+        this.capacity = capacity;
+        this.points = [];
         this.divided = false;
     }
 
@@ -106,7 +103,6 @@ export class Quadtree {
         }
         
         for (let p of this.points) {
-            // Verifica se o retângulo de busca contém o ponto OU se ele intersecta o raio da entidade
             if (range.contains(p) || range.intersectsCircle(p.x, p.y, p.radius || 0)) {
                 found.push(p);
             }
