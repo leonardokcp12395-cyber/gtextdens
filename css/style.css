@@ -452,3 +452,18 @@
             60% { clip-path: inset(15% 0 80% 0); }
             80% { clip-path: inset(70% 0 20% 0); }
         }
+/* Adicione isto ao seu ficheiro style.css */
+
+.skill-hud-icon.on-cooldown::after {
+    content: '';
+    position: absolute;
+    bottom: 0; /* Começa de baixo */
+    left: 0;
+    width: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    border-radius: 8px;
+    
+    /* A altura é controlada pela variável CSS */
+    height: var(--cooldown-percent, 0%);
+    transition: height 0.1s linear; /* Animação suave */
+}
