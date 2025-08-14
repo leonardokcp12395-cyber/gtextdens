@@ -15,8 +15,9 @@ export class XPOrb extends Entity {
         this.value = value;
     }
 
-    update({ player, gameContext }) {
-        if (!this.active) return;
+    update(gameContext) {
+        const { player } = gameContext;
+        if (!this.active || !player) return;
 
         const dist = Math.hypot(player.x - this.x, player.y - this.y);
 
@@ -27,7 +28,7 @@ export class XPOrb extends Entity {
         }
 
         if (dist < player.radius + this.radius) {
-            // CORREÇÃO: Chamada correta para adicionar XP ao jogador
+            // CORREÇÃO: Passando o gameContext para a função addXp
             player.addXp(this.value, gameContext);
             this.isDead = true;
             releaseToPool(this);
