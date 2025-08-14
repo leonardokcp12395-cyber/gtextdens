@@ -8,7 +8,59 @@ import { getFromPool } from '../systems/pooling.js';
 import { Vortex } from './vortex.js';
 import { Rectangle } from '../systems/utils.js';
 import { StaticField } from './staticfield.js';
-import { createSkillHudIcon } from '../systems/ui.js'; // <-- IMPORTAÇÃO ADICIONADA
+import { createSkillHudIcon } from '../systems/ui.js';
+
+// =======================================================================
+// CORREÇÃO 1: Habilidade "Relâmpago em Cadeia" Implementada
+// A função createLightningBolt foi criada para dar vida à habilidade.
+// =======================================================================
+function createLightningBolt(gameContext, source, initialTarget, levelData) {
+    const { enemies, particlePool } = gameContext;
+    let currentTarget = initialTarget;
+    let targetsHit = new Set([currentTarget]);
+    let lastPosition = { x: source.x, y: source.y };
+
+    // Função para criar o efeito visual do raio
+    const createBoltEffect = (start, end) => {
+        const dx = end.x - start.x;
+        const dy = end.y - start.y;
+        const dist = Math.hypot(dx, dy);
+        const segments = Math.floor(dist / 10);
+        for (let i = 0; i < segments; i++) {
+            const t = i / segments;
+            const x = start.x + dx * t + (Math.random() - 0.5) * 15;
+            const y = start.y + dy * t + (Math.random() - 0.5) * 15;
+            getFromPool(particlePool, x, y, '#ADD8E6', 1.8);
+        }
+    };
+
+    for (let i = 0; i <= levelData.chains; i++) {
+        if (!currentTarget) break;
+
+        // Aplica dano e cria o efeito visual
+        currentTarget.takeDamage(levelData.damage * source.damageModifier, gameContext);
+        createBoltEffect(lastPosition, currentTarget);
+
+        lastPosition = { x: currentTarget.x, y: currentTarget.y };
+        let nextTarget = null;
+        let nearestDistSq = Infinity;
+
+        // Encontra o próximo alvo mais próximo que ainda não foi atingido
+        for (const enemy of enemies) {
+            if (!targetsHit.has(enemy) && !enemy.isDead) {
+                const distSq = (currentTarget.x - enemy.x)**2 + (currentTarget.y - enemy.y)**2;
+                if (distSq < levelData.chainRadius * levelData.chainRadius && distSq < nearestDistSq) {
+                    nearestDistSq = distSq;
+                    nextTarget = enemy;
+                }
+            }
+        }
+        
+        currentTarget = nextTarget;
+        if (currentTarget) targetsHit.add(currentTarget);
+    }
+}
+
 
 export class Player extends Entity {
     constructor(x, y, canvas) {
@@ -121,7 +173,11 @@ export class Player extends Entity {
             if (this.x + this.radius > p.x && this.x - this.radius < p.x + p.width && (this.y - this.velocityY) <= p.y - this.radius && this.y >= p.y - this.radius) {
                 this.y = p.y - this.radius; this.velocityY = 0; this.onGround = true;
                 if (!wasOnGround) {
-                    this.jumpsAvailable = (this.skills['double_jump'] ? 2 : 1);
+                    // =======================================================================
+                    // CORREÇÃO 4: Lógica do "Salto Duplo" corrigida e movida para aqui
+                    // Isto garante que os saltos são sempre resetados corretamente ao aterrar.
+                    // =======================================================================
+                    this.jumpsAvailable = this.skills['double_jump'] ? 2 : 1;
                     this.squashStretchTimer = CONFIG.PLAYER_LANDING_SQUASH_DURATION;
                     SoundManager.play('land', '16n');
                 }
@@ -131,9 +187,19 @@ export class Player extends Entity {
         if (this.y > platforms[0].y + 200) this.takeDamage(9999, { setGameState });
     }
 
-    takeDamage(amount, { screenShake, setGameState }) {
+    takeDamage(amount, { screenShake, setGameState, particlePool }) {
         if (this.isDead) return;
-        if (this.shielded) { this.shielded = false; return; }
+        if (this.shielded) {
+            this.shielded = false;
+            // =======================================================================
+            // MELHORIA 4: Feedback visual do escudo a quebrar-se
+            // =======================================================================
+            for (let i = 0; i < 20; i++) {
+                getFromPool(particlePool, this.x, this.y, 'cyan', 3);
+            }
+            SoundManager.play('lance', 'C3'); // Som de quebra
+            return;
+        }
         this.health -= amount; this.hitTimer = 30;
         SoundManager.play('damage', '8n');
         screenShake.intensity = 5; screenShake.duration = 15;
@@ -174,14 +240,11 @@ export class Player extends Entity {
             this.skills[skillId].level++;
         }
 
-        // CORREÇÃO: Chama a função para criar/atualizar o ícone no HUD
         createSkillHudIcon(skillId, this.skills[skillId].level);
 
         if (skillId === 'magnet') {
             const levelData = skillData.levels[this.skills[skillId].level - 1];
             this.collectRadius = CONFIG.XP_ORB_ATTRACTION_RADIUS * (1 + levelData.collectRadiusBonus);
-        } else if (skillId === 'double_jump') {
-            this.jumpsAvailable = 2;
         }
     }
     
@@ -202,7 +265,7 @@ export class Player extends Entity {
     }
 
     updateSkills(gameContext) {
-        const { qtree, frameCount, playerProjectiles, activeVortexes, staticFields, particlePool } = gameContext;
+        const { qtree, frameCount, playerProjectiles, activeVortexes, staticFields, particlePool, enemies } = gameContext;
         for (const skillId in this.skills) {
             const skillState = this.skills[skillId];
             const skillData = SKILL_DATABASE[skillId];
@@ -222,13 +285,28 @@ export class Player extends Entity {
                                 getFromPool(playerProjectiles, this.x, this.y, angle + spread, { ...levelData, damage: levelData.damage * this.damageModifier });
                             }
                         } else if (skillId === 'chain_lightning') {
-                            createLightningBolt({x: this.x, y: this.y}, target, particlePool);
+                            createLightningBolt(gameContext, this, target, levelData);
                         }
                         skillState.timer = skillData.cooldown;
                     }
                 } else if (skillData.type === 'aura') {
                     if(skillId === 'vortex') activeVortexes.push(new Vortex(this.x, this.y, { ...levelData, damage: levelData.damage * this.damageModifier }));
                     if(skillId === 'static_field') staticFields.push(new StaticField(this.x, this.y, levelData));
+                    // =======================================================================
+                    // CORREÇÃO 2: Habilidade "Explosão de Partículas" Implementada
+                    // =======================================================================
+                    else if (skillId === 'particle_burst') {
+                        SoundManager.play('particleBurst', '8n');
+                        for (let i = 0; i < levelData.particleCount; i++) {
+                            getFromPool(particlePool, this.x, this.y, 'magenta', 3);
+                        }
+                        enemies.forEach(enemy => {
+                            if (Math.hypot(this.x - enemy.x, this.y - enemy.y) < levelData.radius) {
+                                enemy.takeDamage(levelData.damage * this.damageModifier, gameContext);
+                                enemy.applyKnockback(this.x, this.y, CONFIG.ENEMY_KNOCKBACK_FORCE * 1.5);
+                            }
+                        });
+                    }
                     skillState.timer = skillData.cooldown;
                 } else if (skillId === 'aegis_shield') {
                     this.shielded = true;
