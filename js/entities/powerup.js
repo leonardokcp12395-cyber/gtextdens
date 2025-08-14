@@ -36,9 +36,6 @@ export class PowerUp extends Entity {
         ctx.restore();
     }
 
-    // =======================================================================
-    // CORREÇÃO 1: Lógica para aplicar diferentes efeitos de power-up
-    // =======================================================================
     applyEffect(gameContext) {
         const { enemies, screenShake, player } = gameContext;
         
@@ -55,7 +52,7 @@ export class PowerUp extends Entity {
             
             case 'heal_orb':
                 if (player) {
-                    player.health = Math.min(player.maxHealth, player.health + player.maxHealth * 0.25); // Cura 25% da vida máxima
+                    player.health = Math.min(player.maxHealth, player.health + player.maxHealth * 0.25);
                     SoundManager.play('levelUp', 'C5');
                 }
                 break;
