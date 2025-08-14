@@ -37,7 +37,7 @@ let qtree;
 let score = { kills: 0, time: 0 };
 let screenShake = { intensity: 0, duration: 0 };
 let keys = {};
-let movementVector = { x: 0, y: 0 };
+let movementVector = { x: 0, y: 0, startX: 0, startY: 0 };
 let waveNumber = 0;
 let waveEnemiesRemaining = { value: 0 };
 let waveCooldownTimer = 0;
@@ -56,7 +56,7 @@ let camera = {
     }
 };
 
-// O 'gameContext' será inicializado dentro de 'onload' para garantir que todas as variáveis estejam prontas.
+// O 'gameContext' será inicializado dentro de 'onload'.
 let gameContext;
 
 function setGameState(newState) {
@@ -78,7 +78,6 @@ function setGameState(newState) {
     ui.hud.classList.toggle('hidden', newState !== 'playing' && newState !== 'paused');
     ui.dashButtonMobile.classList.toggle('hidden', !isMobile || newState !== 'playing');
 
-    // Esconde todos os painéis e mostra apenas o correto
     Object.values(ui).forEach(element => {
         if (element && element.classList && element.classList.contains('ui-panel')) {
             element.classList.add('hidden');
@@ -92,7 +91,7 @@ function setGameState(newState) {
             document.getElementById('final-time').innerText = formatTime(score.time);
             document.getElementById('final-kills').innerText = score.kills;
             ui.gameOverScreen.classList.remove('hidden');
-            saveScore(score); // Usa a função importada
+            saveScore(score);
             break;
         case 'levelUp':
             populateLevelUpOptions(player, gameContext);
@@ -108,7 +107,9 @@ function startNextWave() {
     waveNumber++;
     if (waveNumber > 0 && waveNumber % 5 === 0) {
         showTemporaryMessage(`BOSS - ONDA ${waveNumber}`, "red");
-        enemies.push(new BossEnemy(player.x + canvas.width / 2 + 100, player.y - 100, gameTime, waveNumber));
+        const spawnX = player ? player.x + (Math.random() < 0.5 ? -canvas.width / 2 : canvas.width / 2) : canvas.width;
+        const spawnY = player ? player.y - 150 : canvas.height / 2;
+        enemies.push(new BossEnemy(spawnX, spawnY, gameTime, waveNumber));
         waveEnemiesRemaining.value = 1;
         currentWaveConfig = { enemies: [], eliteChance: 0.1 };
         return;
@@ -133,7 +134,7 @@ function startNextWave() {
 
     waveEnemiesRemaining.value = currentWaveConfig.enemies.reduce((sum, cfg) => sum + cfg.count, 0);
     enemySpawnTimer = 0;
-    if (waveNumber > 1) showTemporaryMessage(`ONDA ${waveNumber}!`, "gold");
+    if (waveNumber > 0) showTemporaryMessage(`ONDA ${waveNumber}!`, "gold");
 }
 
 function spawnEnemies() {
@@ -171,7 +172,6 @@ function spawnEnemies() {
 function handleCollisions() {
     if (!qtree || !player || player.isDead) return;
 
-    // Projéteis do jogador vs Inimigos
     for (const proj of projectilePool) {
         if (!proj.active) continue;
         const range = new Rectangle(proj.x - proj.radius, proj.y - proj.radius, proj.radius * 2, proj.radius * 2);
@@ -189,7 +189,6 @@ function handleCollisions() {
         }
     }
 
-    // Projéteis de Inimigos vs Jogador
     for (const eProj of enemyProjectilePool) {
         if (!eProj.active) continue;
         if (Math.hypot(player.x - eProj.x, player.y - eProj.y) < player.radius + eProj.radius) {
@@ -198,7 +197,6 @@ function handleCollisions() {
         }
     }
 
-    // Colisão do Jogador com Inimigos
     const playerRange = new Rectangle(player.x - player.radius, player.y - player.radius, player.radius * 2, player.radius * 2);
     const nearbyToPlayer = qtree.query(playerRange);
     for (const enemy of nearbyToPlayer) {
@@ -211,7 +209,6 @@ function handleCollisions() {
 }
 
 function initGame() {
-    // Reset de estado
     gameTime = 0;
     frameCount = 0;
     score = { kills: 0, time: 0 };
@@ -226,11 +223,10 @@ function initGame() {
         if (pool) pool.forEach(item => releaseToPool(item));
     });
     
-    // Geração do mapa
     const groundLevel = canvas.height * (1 - CONFIG.GROUND_HEIGHT_PERCENT);
     platforms.push(new Platform(-CONFIG.WORLD_BOUNDS.width * 2, groundLevel, CONFIG.WORLD_BOUNDS.width * 4, CONFIG.WORLD_BOUNDS.height));
 
-    const platformCount = 40; // Aumentar para preencher o mundo
+    const platformCount = 40;
     for (let i = 0; i < platformCount; i++) {
         const pWidth = Math.random() * 200 + 150;
         const pHeight = 20;
@@ -239,11 +235,9 @@ function initGame() {
         platforms.push(new Platform(pX, pY, pWidth, pHeight));
     }
 
-    // Setup do jogador
     player = new Player(canvas.width / 2, groundLevel - 50, canvas);
     gameContext.player = player;
 
-    // Reset do sistema de ondas
     waveNumber = 0;
     waveEnemiesRemaining.value = 0;
     waveCooldownTimer = 0;
@@ -258,28 +252,23 @@ function updateGame(deltaTime) {
     frameCount++;
     score.time = gameTime;
 
-    // Atualiza o Quadtree
     const worldBounds = new Rectangle(-CONFIG.WORLD_BOUNDS.width / 2, -CONFIG.WORLD_BOUNDS.height / 2, CONFIG.WORLD_BOUNDS.width, CONFIG.WORLD_BOUNDS.height);
     qtree = new Quadtree(worldBounds, 4);
     enemies.forEach(e => { if (!e.isDead) qtree.insert(e); });
     gameContext.qtree = qtree;
 
-    // Atualiza o contexto com valores dinâmicos
     gameContext.frameCount = frameCount;
 
-    // Atualiza entidades
     player.update(gameContext);
     [...enemies, ...powerUps, ...activeVortexes, ...activeStaticFields].forEach(e => e.update(gameContext));
-    xpOrbPool.forEach(o => { if (o.active) o.update(gameContext); });
-    projectilePool.forEach(p => { if (p.active) p.update(gameContext); });
-    enemyProjectilePool.forEach(p => { if (p.active) p.update(gameContext); });
-    damageNumberPool.forEach(dn => { if (dn.active) dn.update(gameContext); });
+    [xpOrbPool, projectilePool, enemyProjectilePool, damageNumberPool].forEach(pool => {
+        pool.forEach(e => { if (e.active) e.update(gameContext); });
+    });
     
     camera.update();
     spawnEnemies();
     handleCollisions();
 
-    // Limpa entidades mortas
     removeDeadEntities(enemies);
     removeDeadEntities(powerUps);
     removeDeadEntities(activeVortexes);
@@ -299,13 +288,10 @@ function drawGame() {
     }
 
     platforms.forEach(p => p.draw(ctx, camera));
-    xpOrbPool.forEach(o => { if(o.active) o.draw(ctx, camera); });
-    powerUps.forEach(p => p.draw(ctx, camera));
-    activeVortexes.forEach(v => v.draw(ctx, camera));
-    activeStaticFields.forEach(sf => sf.draw(ctx, camera));
-    enemies.forEach(e => e.draw(ctx, camera, player));
-    projectilePool.forEach(p => { if(p.active) p.draw(ctx, camera); });
-    enemyProjectilePool.forEach(p => { if(p.active) p.draw(ctx, camera); });
+    [...xpOrbPool, ...powerUps, ...activeVortexes, ...activeStaticFields, ...enemies, ...projectilePool, ...enemyProjectilePool].forEach(e => {
+        if(e.active !== false) e.draw(ctx, camera, player);
+    });
+
     if (player) player.draw(ctx, camera);
     damageNumberPool.forEach(dn => { if(dn.active) dn.draw(ctx, camera); });
     
@@ -315,12 +301,9 @@ function drawGame() {
 
 function gameLoop(currentTime) {
     requestAnimationFrame(gameLoop);
-    if (gameState === 'loading' || !lastFrameTime) {
-        lastFrameTime = currentTime;
-        return;
-    }
+    if (gameState === 'loading') return;
 
-    const deltaTime = (currentTime - lastFrameTime) / 1000.0;
+    const deltaTime = (currentTime - (lastFrameTime || currentTime)) / 1000.0;
     
     if (gameState === 'playing') {
         updateGame(deltaTime);
@@ -340,7 +323,6 @@ function gameLoop(currentTime) {
 }
 
 window.onload = () => {
-    // Inicialização dos elementos do DOM
     canvas = document.getElementById('gameCanvas');
     ctx = canvas.getContext('2d');
     isMobile = /Mobi|Android/i.test(navigator.userAgent);
@@ -352,14 +334,12 @@ window.onload = () => {
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
 
-    // Criação dos pools
     particlePool = createPool(Particle, 200);
     projectilePool = createPool(Projectile, 50);
     enemyProjectilePool = createPool(EnemyProjectile, 50);
     xpOrbPool = createPool(XPOrb, 100);
     damageNumberPool = createPool(DamageNumber, 50);
 
-    // CORREÇÃO: Inicializa o gameContext aqui, depois que tudo foi definido
     gameContext = {
         setGameState,
         showTemporaryMessage,
@@ -374,7 +354,7 @@ window.onload = () => {
         screenShake,
         get enemies() { return enemies; },
         get platforms() { return platforms; },
-        get player() { return player; },
+        player, // Será atualizado em initGame
         get qtree() { return qtree; },
         get frameCount() { return frameCount; },
         get gameTime() { return gameTime; },
@@ -388,15 +368,14 @@ window.onload = () => {
         initGame
     };
 
-    // Carrega dados salvos e inicializa sistemas
     loadPermanentData();
     SoundManager.init();
     
     setupEventListeners(gameContext);
     
-    // Inicia o jogo
     setGameState('menu');
     requestAnimationFrame(gameLoop);
     
-    document.getElementById('debug-status').style.display = 'none';
+    const debugStatus = document.getElementById('debug-status');
+    if (debugStatus) debugStatus.style.display = 'none';
 };
