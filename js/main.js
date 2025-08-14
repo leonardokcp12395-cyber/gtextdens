@@ -261,7 +261,7 @@ function updateGame(deltaTime) {
     
     enemies.forEach(e => e.update(gameContext));
     powerUps.forEach(p => p.update({ player, enemies, screenShake, gameContext }));
-    activeVortexes.forEach(v => v.update({ enemies, player, frameCount: () => frameCount, gameContext }));
+    activeVortexes.forEach(v => v.update({ enemies: () => enemies, player, frameCount: () => frameCount, gameContext }));
     xpOrbPool.forEach(o => { if(o.active) o.update({ player, gameContext }); });
     projectilePool.forEach(p => { if(p.active) p.update({ frameCount }); });
     enemyProjectilePool.forEach(p => { if(p.active) p.update({ frameCount }); });
