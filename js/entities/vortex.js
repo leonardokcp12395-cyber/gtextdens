@@ -14,20 +14,24 @@ export class Vortex extends Entity {
         this.enemiesHitByExplosion = new Set();
     }
 
-    update({ enemies, player, frameCount, gameContext }) {
+    update(gameContext) {
+        // CORREÇÃO: Acessa as variáveis pelo gameContext
+        const { enemies, frameCount } = gameContext;
+
         this.duration--;
         if (this.duration <= 0) {
             this.isDead = true;
             return;
         }
 
-        enemies().forEach(enemy => {
+        // CORREÇÃO: 'enemies' agora é o array diretamente
+        enemies.forEach(enemy => {
             if(enemy.isDead) return;
             const dist = Math.hypot(this.x - enemy.x, this.y - enemy.y);
             if(dist < this.radius){
                 if(this.isExplosion){
                     if(!this.enemiesHitByExplosion.has(enemy)){ 
-                        enemy.takeDamage(this.damage, gameContext); // Passando o contexto
+                        enemy.takeDamage(this.damage, gameContext);
                         enemy.applyKnockback(this.x, this.y, CONFIG.ENEMY_KNOCKBACK_FORCE * 2);
                         this.enemiesHitByExplosion.add(enemy);
                     }
@@ -35,8 +39,9 @@ export class Vortex extends Entity {
                     const angle = Math.atan2(this.y - enemy.y, this.x - enemy.x);
                     enemy.x += Math.cos(angle) * this.force;
                     enemy.y += Math.sin(angle) * this.force;
-                    if(frameCount() % 60 === 0) {
-                        enemy.takeDamage(this.damage, gameContext); // Passando o contexto
+                    // CORREÇÃO: 'frameCount' agora é um número
+                    if(frameCount % 60 === 0) {
+                        enemy.takeDamage(this.damage, gameContext);
                     }
                 }
             }
