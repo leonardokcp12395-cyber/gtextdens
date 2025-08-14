@@ -82,35 +82,25 @@ export const SKILL_DATABASE = {
         { desc: "Aumenta o raio e o dano da explosão.", radius: 100, damage: 15, particleCount: 40 },
         { desc: "Aumenta ainda mais o dano e as partículas.", radius: 120, damage: 25, particleCount: 50 },
     ]},
-    'dash': { name: "Carga Astral", icon: "»", type: 'utility', cooldown: CONFIG.PLAYER_DASH_COOLDOWN, levels: [
-        { desc: `Realiza uma esquiva rápida na direção do movimento (cooldown: ${CONFIG.PLAYER_DASH_COOLDOWN/60}s).`, duration: CONFIG.PLAYER_DASH_DURATION, force: CONFIG.PLAYER_DASH_FORCE }
-    ]},
-    'double_jump': { name: "Salto Duplo", icon: "▲", type: 'passive', levels: [
-        { desc: "Permite um segundo salto no ar.", jumps: 2 }
-    ]},
-    'celestial_ray': { name: "Raio Celestial", icon: "→", type: 'projectile', cooldown: 90, levels: [
-        { desc: "Dispara um raio poderoso na última direção de movimento.", damage: 30, speed: 10, width: 10, length: 150, pierce: 5 }
-    ]},
     'static_field': { name: "Campo Estático", icon: "⚡", type: 'aura', cooldown: 300, levels: [
         { desc: "Cria um campo que abranda inimigos em 50%.", radius: 100, duration: 180, slowFactor: 0.5 }
     ]},
-    'black_hole': { name: "Buraco Negro", icon: "⚫", type: 'utility', cooldown: 900, levels: [ // 15 segundos de cooldown
+    'black_hole': { name: "Buraco Negro", icon: "⚫", type: 'utility', cooldown: 900, levels: [
         { desc: "Invoca um buraco negro que destrói todos os inimigos no ecrã.", damage: 99999 }
+    ], instant: true },
+    'aegis_shield': { name: "Égide Divina", icon: "🛡️", type: 'utility', cooldown: 600, levels: [
+        { desc: "Cria um escudo temporário que absorve um golpe.", duration: 300 }
     ]},
-    'aegis_shield': { name: "Égide Divina", icon: "🛡️", type: 'utility', cooldown: 600, levels: [ // 10s cooldown
-        { desc: "Cria um escudo temporário que absorve um golpe.", duration: 300 } // 5 segundos de duração
-    ]},
-    'scorched_earth': { name: "Rastro Ardente", icon: "🔥", type: 'passive', levels: [
-        { desc: "Deixa um rasto de chamas enquanto dá um dash, causando dano.", damagePerFrame: 0.5 }
-    ]}
-};
+    'double_jump': { name: "Salto Duplo", icon: "▲", type: 'passive', levels: [{ desc: "Permite um segundo salto no ar." }] },
+];
 
+// CORREÇÃO: WAVE_CONFIGS agora é um array
 export const WAVE_CONFIGS = [
-    { duration: 30, enemies: [{ type: 'chaser', count: 5, spawnInterval: 60 }], eliteChance: 0 },
-    { duration: 45, enemies: [{ type: 'chaser', count: 8, spawnInterval: 50 }, { type: 'speeder', count: 4, spawnInterval: 70 }], eliteChance: 0.01 },
-    { duration: 60, enemies: [{ type: 'chaser', count: 10, spawnInterval: 45 }, { type: 'speeder', count: 6, spawnInterval: 60 }, { type: 'tank', count: 3, spawnInterval: 100 }], eliteChance: 0.02 },
-    { duration: 75, enemies: [{ type: 'chaser', count: 12, spawnInterval: 40 }, { type: 'speeder', count: 8, spawnInterval: 50 }, { type: 'tank', count: 4, spawnInterval: 90 }, { type: 'shooter', count: 2, spawnInterval: 120 }], eliteChance: 0.03 },
-    { duration: 90, enemies: [{ type: 'chaser', count: 15, spawnInterval: 35 }, { type: 'speeder', count: 10, spawnInterval: 45 }, { type: 'tank', count: 5, spawnInterval: 80 }, { type: 'shooter', count: 3, spawnInterval: 100 }, { type: 'bomber', count: 2, spawnInterval: 150 }], eliteChance: 0.04 },
-    { duration: 100, enemies: [{ type: 'chaser', count: 15, spawnInterval: 30 }, { type: 'healer', count: 1, spawnInterval: 200 }, { type: 'tank', count: 5, spawnInterval: 90 }], eliteChance: 0.05 },
-    { duration: 110, enemies: [{ type: 'speeder', count: 15, spawnInterval: 30 }, { type: 'summoner', count: 1, spawnInterval: 250 }, { type: 'shooter', count: 4, spawnInterval: 100 }], eliteChance: 0.06 },
+    { enemies: [{ type: 'chaser', count: 5, spawnInterval: 60 }], eliteChance: 0 },
+    { enemies: [{ type: 'chaser', count: 8, spawnInterval: 50 }, { type: 'speeder', count: 4, spawnInterval: 70 }], eliteChance: 0.01 },
+    { enemies: [{ type: 'chaser', count: 10, spawnInterval: 45 }, { type: 'speeder', count: 6, spawnInterval: 60 }, { type: 'tank', count: 3, spawnInterval: 100 }], eliteChance: 0.02 },
+    { enemies: [{ type: 'chaser', count: 12, spawnInterval: 40 }, { type: 'speeder', count: 8, spawnInterval: 50 }, { type: 'tank', count: 4, spawnInterval: 90 }, { type: 'shooter', count: 2, spawnInterval: 120 }], eliteChance: 0.03 },
+    { enemies: [{ type: 'chaser', count: 15, spawnInterval: 35 }, { type: 'speeder', count: 10, spawnInterval: 45 }, { type: 'tank', count: 5, spawnInterval: 80 }, { type: 'shooter', count: 3, spawnInterval: 100 }, { type: 'bomber', count: 2, spawnInterval: 150 }], eliteChance: 0.04 },
+    { enemies: [{ type: 'chaser', count: 15, spawnInterval: 30 }, { type: 'healer', count: 1, spawnInterval: 200 }, { type: 'tank', count: 5, spawnInterval: 90 }], eliteChance: 0.05 },
+    { enemies: [{ type: 'speeder', count: 15, spawnInterval: 30 }, { type: 'summoner', count: 1, spawnInterval: 250 }, { type: 'shooter', count: 4, spawnInterval: 100 }], eliteChance: 0.06 },
 ];
