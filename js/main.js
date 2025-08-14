@@ -5,7 +5,7 @@ import { Quadtree, Rectangle, removeDeadEntities, formatTime } from './systems/u
 import { loadPermanentData, saveScore } from './systems/save.js';
 import SoundManager from './systems/sound.js';
 import { createPool, getFromPool, releaseToPool } from './systems/pooling.js';
-import { ui, setupEventListeners, showTemporaryMessage, populateLevelUpOptions, updateHUD } from './systems/ui.js';
+import { ui, initUI, setupEventListeners, showTemporaryMessage, populateLevelUpOptions, updateHUD } from './systems/ui.js';
 import { Player } from './entities/player.js';
 import { Enemy, BossEnemy } from './entities/enemy.js';
 import { Platform } from './entities/platform.js';
@@ -25,14 +25,8 @@ let gameTime = 0;
 let frameCount = 0;
 let isMobile, canvas, ctx;
 let player, demoPlayer;
-
-// Arrays de entidades do jogo
 let platforms = [], enemies = [], activeVortexes = [], powerUps = [], activeStaticFields = [];
-
-// Pools de objetos
 let particlePool, projectilePool, enemyProjectilePool, xpOrbPool, damageNumberPool;
-
-// Outras variáveis de estado
 let qtree;
 let score = { kills: 0, time: 0 };
 let screenShake = { intensity: 0, duration: 0 };
@@ -44,7 +38,6 @@ let waveCooldownTimer = 0;
 let currentWaveConfig = {};
 let enemySpawnTimer = 0;
 
-// Objeto da câmera
 let camera = {
     x: 0, y: 0, targetX: 0, targetY: 0,
     update() {
@@ -56,13 +49,11 @@ let camera = {
     }
 };
 
-// O 'gameContext' será inicializado dentro de 'onload' para garantir que todas as variáveis estejam prontas.
 let gameContext;
 
 function setGameState(newState) {
     const oldState = gameState;
     if (oldState === newState) return;
-    
     gameState = newState;
     
     if (['menu', 'paused', 'levelUp', 'gameOver', 'guide', 'rank', 'upgrades'].includes(newState)) {
@@ -70,7 +61,7 @@ function setGameState(newState) {
     }
 
     if (newState === 'playing' && (oldState === 'paused' || oldState === 'levelUp')) {
-        lastFrameTime = performance.now(); // Reseta o delta time ao despausar
+        lastFrameTime = performance.now();
     }
 
     const isMenuState = ['menu', 'levelUp', 'gameOver', 'guide', 'rank', 'upgrades'].includes(newState);
@@ -78,7 +69,6 @@ function setGameState(newState) {
     ui.hud.classList.toggle('hidden', newState !== 'playing' && newState !== 'paused');
     ui.dashButtonMobile.classList.toggle('hidden', !isMobile || newState !== 'playing');
 
-    // Esconde todos os painéis e mostra apenas o correto
     Object.values(ui).forEach(element => {
         if (element && element.classList && element.classList.contains('ui-panel')) {
             element.classList.add('hidden');
@@ -92,7 +82,7 @@ function setGameState(newState) {
             document.getElementById('final-time').innerText = formatTime(score.time);
             document.getElementById('final-kills').innerText = score.kills;
             ui.gameOverScreen.classList.remove('hidden');
-            saveScore(score); // Usa a função importada
+            saveScore(score);
             break;
         case 'levelUp':
             populateLevelUpOptions(player, gameContext);
@@ -117,7 +107,7 @@ function startNextWave() {
     const waveIndex = waveNumber - 1;
     if (waveIndex < WAVE_CONFIGS.length) {
         currentWaveConfig = JSON.parse(JSON.stringify(WAVE_CONFIGS[waveIndex]));
-    } else { // Ondas Infinitas
+    } else {
         showTemporaryMessage(`ONDA ${waveNumber} (Infinita)`, "cyan");
         const enemyTypes = ['chaser', 'speeder', 'tank', 'shooter', 'bomber', 'healer', 'summoner', 'reaper'];
         const typesInWave = Math.min(2 + Math.floor(waveNumber / 7), 5);
@@ -138,7 +128,7 @@ function startNextWave() {
 function spawnEnemies() {
     if (waveEnemiesRemaining.value <= 0 && enemies.length === 0) {
         if (waveCooldownTimer <= 0) {
-            waveCooldownTimer = 180; // 3 segundos de pausa
+            waveCooldownTimer = 180;
             if (waveNumber > 0) showTemporaryMessage("PAUSA ENTRE ONDAS", "white");
         } else {
             waveCooldownTimer--;
@@ -269,6 +259,9 @@ window.onload = () => {
     canvas = document.getElementById('gameCanvas');
     ctx = canvas.getContext('2d');
     isMobile = /Mobi|Android/i.test(navigator.userAgent);
+    
+    initUI(); // <-- CORREÇÃO CRÍTICA: INICIALIZA A UI AQUI
+
     const resizeCanvas = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
@@ -288,7 +281,7 @@ window.onload = () => {
         get frameCount() { return frameCount; }, get gameTime() { return gameTime; },
         get waveNumber() { return waveNumber; }, get playerProjectiles() { return projectilePool; },
         get staticFields() { return activeStaticFields; },
-        isMobile, keys, movementVector, ui, initGame
+        isMobile, keys, movementVector, ui, initGame, get gameState() { return gameState; }
     };
 
     loadPermanentData();
