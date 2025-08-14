@@ -62,7 +62,7 @@ export class Quadtree {
         this.points = [];
         this.divided = false;
     }
-
+    
     clear() {
         this.points = [];
         if (this.divided) {
