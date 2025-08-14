@@ -5,10 +5,10 @@ import { playerGems, playerUpgrades, savePermanentData, spendGems, upgradeSkill 
 import SoundManager from './sound.js';
 import { formatTime } from './utils.js';
 
-// Objeto UI será populado depois que a página carregar
+// O objeto UI será populado depois que a página carregar para evitar erros
 export const ui = {};
 
-// Função para inicializar o objeto UI
+// Função para inicializar o objeto UI depois do DOM estar pronto
 export function initUI() {
     const uiElements = {
         layer: 'ui-layer',
@@ -28,11 +28,11 @@ export function initUI() {
     }
 }
 
-
 export function updateHUD(player, gameTime, frameCount) {
     if (!player) return;
 
-    if (frameCount % 6 === 0) { 
+    // Otimização para não atualizar a DOM a cada frame
+    if (frameCount % 6 === 0) {
         const healthPercent = (player.health / player.maxHealth) * 100;
         const xpPercent = (player.xp / player.xpToNextLevel) * 100;
         document.getElementById('health-bar').style.width = `${healthPercent > 0 ? healthPercent : 0}%`;
@@ -67,6 +67,9 @@ function updateSkillsHUD(player) {
 
         if (skillData.cooldown > 0 && skillState.timer > 0) {
             hudElement.classList.add('on-cooldown');
+            // MELHORIA: Feedback visual do cooldown
+            const cooldownPercent = (skillState.timer / skillData.cooldown);
+            hudElement.style.setProperty('--cooldown-percent', `${cooldownPercent * 100}%`);
         } else {
             hudElement.classList.remove('on-cooldown');
         }
@@ -189,8 +192,17 @@ export function setupEventListeners(gameContext) {
     document.getElementById('restart-button-pause').onclick = initGame;
     document.getElementById('restart-button-gameover').onclick = initGame;
     document.getElementById('resume-button').onclick = () => setGameState('playing');
-    document.getElementById('back-to-menu-button-pause').onclick = () => setGameState('menu');
-    document.getElementById('back-to-menu-button-gameover').onclick = () => setGameState('menu');
+    
+    // MELHORIA: Salvamento de dados otimizado
+    document.getElementById('back-to-menu-button-pause').onclick = () => {
+        savePermanentData();
+        setGameState('menu');
+    };
+    document.getElementById('back-to-menu-button-gameover').onclick = () => {
+        savePermanentData();
+        setGameState('menu');
+    };
+    
     document.getElementById('guide-button').onclick = () => setGameState('guide');
     document.getElementById('back-from-guide-button').onclick = () => setGameState('menu');
     document.getElementById('rank-button').onclick = () => { showRank(); setGameState('rank'); };
