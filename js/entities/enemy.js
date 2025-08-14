@@ -32,7 +32,37 @@ export class Enemy extends Entity {
                 this.health = 70 + Math.floor(gameTime / 10) * 7 + (waveNumber * 3); this.color = '#FFA500';
                 this.shape = 'square'; this.damage = 12; this.xpValue = 40;
                 break;
-            // ... (outros casos de inimigos permanecem iguais)
+            case 'speeder':
+                this.radius = 8; this.speed = 2.2 + (gameTime / 100) + (waveNumber * 0.015);
+                this.health = 12 + Math.floor(gameTime / 15) * 2 + waveNumber; this.color = '#FFFF00';
+                this.shape = 'triangle'; this.damage = 7; this.xpValue = 12;
+                break;
+            case 'bomber':
+                this.radius = 12; this.speed = 0.9 + (gameTime / 220) + (waveNumber * 0.008);
+                this.health = 45 + Math.floor(gameTime / 10) * 4 + (waveNumber * 2); this.color = '#9400D3';
+                this.shape = 'pentagon'; this.damage = 9; this.xpValue = 25;
+                this.explodesOnDeath = true;
+                break;
+            case 'shooter': 
+                this.radius = 15; this.speed = 0.4 + (gameTime / 280) + (waveNumber * 0.004);
+                this.health = 35 + Math.floor(gameTime / 10) * 4 + (waveNumber * 2); this.color = '#FF00FF';
+                this.shape = 'star'; this.damage = 4; this.xpValue = 35;
+                this.attackCooldown = 150; this.attackTimer = this.attackCooldown;
+                this.projectileSpeed = 3.5; this.projectileDamage = 8;
+                break;
+            case 'healer': 
+                this.radius = 14; this.speed = 0.3 + (gameTime / 300) + (waveNumber * 0.003);
+                this.health = 60 + Math.floor(gameTime / 10) * 6 + (waveNumber * 3); this.color = '#00FF00';
+                this.shape = 'cross'; this.damage = 0; this.xpValue = 50;
+                this.healCooldown = 180; this.healTimer = this.healCooldown;
+                this.healAmount = 5 + Math.floor(gameTime / 20); this.healRadius = 100;
+                break;
+            case 'summoner':
+                this.radius = 20; this.speed = 0.2 + (gameTime / 350) + (waveNumber * 0.002);
+                this.health = 80 + Math.floor(gameTime / 10) * 8 + (waveNumber * 4); this.color = '#8B4513';
+                this.shape = 'pyramid'; this.damage = 0; this.xpValue = 70;
+                this.summonCooldown = 240; this.summonTimer = this.summonCooldown;
+                break;
             default: // chaser
                 this.radius = 12; this.speed = 1.3 + (gameTime / 150) + (waveNumber * 0.01);
                 this.health = 25 + Math.floor(gameTime / 10) * 3 + (waveNumber * 1.5); this.color = '#FF4D4D';
@@ -49,13 +79,35 @@ export class Enemy extends Entity {
 
     update(gameContext) {
         const { player, staticFields, enemies, enemyProjectilePool, particlePool, waveEnemiesRemaining, gameTime, waveNumber } = gameContext;
-
-        if (this.type === 'reaper' && Math.hypot(player.x - this.x, player.y - this.y) < this.radius + 40) {
-            this.takeDamage(this.health, gameContext); // Aciona a lógica de morte completa
+        
+        if (this.type === 'reaper' && player && Math.hypot(player.x - this.x, player.y - this.y) < this.radius + 40) {
+            this.takeDamage(this.health, gameContext);
             return;
         }
         
-        // O resto da lógica de update permanece a mesma...
+        this.x += this.knockbackVelocity.x; this.y += this.knockbackVelocity.y;
+        this.knockbackVelocity.x *= 0.9; this.knockbackVelocity.y *= 0.9;
+
+        if (this.orbHitCooldown > 0) this.orbHitCooldown--;
+
+        if (Math.hypot(this.knockbackVelocity.x, this.knockbackVelocity.y) < 5 && player) {
+            const angle = Math.atan2(player.y - this.y, player.x - this.x);
+            let currentSpeed = this.speed;
+            for (const field of staticFields) {
+                if (Math.hypot(field.x - this.x, field.y - this.y) < field.radius) {
+                    currentSpeed *= (1 - field.slowFactor); break;
+                }
+            }
+            this.x += Math.cos(angle) * currentSpeed;
+            this.y += Math.sin(angle) * currentSpeed;
+        }
+
+        if (this.type === 'shooter' && --this.attackTimer <= 0) {
+            const angle = Math.atan2(player.y - this.y, player.x - this.x);
+            getFromPool(enemyProjectilePool, this.x, this.y, angle, this.projectileSpeed, this.projectileDamage);
+            SoundManager.play('enemyShot', 'D4');
+            this.attackTimer = this.attackCooldown;
+        }
     }
 
     takeDamage(amount, gameContext) {
@@ -75,9 +127,6 @@ export class Enemy extends Entity {
                 activeVortexes.push(new Vortex(this.x, this.y, {radius: explosionRadius, duration: 30, damage: this.damage, isExplosion:true, force: 0}));
             }
             
-            // =======================================================================
-            // CORREÇÃO 1: Lógica de drop de Power-Up aleatório
-            // =======================================================================
             if (Math.random() < CONFIG.POWERUP_DROP_CHANCE) {
                 const powerUpKeys = Object.keys(POWERUP_TYPES);
                 const randomType = powerUpKeys[Math.floor(Math.random() * powerUpKeys.length)];
@@ -86,12 +135,8 @@ export class Enemy extends Entity {
             }
 
             if (this.isElite) {
-                const gemsDropped = Math.floor(Math.random() * 3) + 1;
-                addGems(gemsDropped);
-                showTemporaryMessage(`+${gemsDropped} Gemas!`, 'violet');
-                // =======================================================================
-                // MELHORIA 1: Chamada a savePermanentData() removida daqui
-                // =======================================================================
+                addGems(Math.floor(Math.random() * 3) + 1);
+                showTemporaryMessage(`+Gemas!`, 'violet');
             }
         }
     }
@@ -103,20 +148,22 @@ export class Enemy extends Entity {
     }
 
     draw(ctx, camera, player) {
-        // ... (lógica de desenho da forma do inimigo permanece a mesma)
+        ctx.save();
+        ctx.translate((this.x - camera.x) | 0, (this.y - camera.y) | 0);
+        const color = this.hitTimer > 0 ? 'white' : this.color;
+        ctx.fillStyle = color;
+        if(this.hitTimer > 0) this.hitTimer--;
 
-        // =======================================================================
-        // MELHORIA 2: Barra de vida para TODOS os inimigos (quando danificados)
-        // =======================================================================
+        // ... (lógica de desenhar formas)
+        
         if (this.health < this.maxHealth) {
-            const healthBarWidth = this.radius * 2;
-            const healthPercentage = this.health / this.maxHealth;
-            const barYOffset = this.isElite ? this.radius + 10 : this.radius + 5;
-            
+            const barWidth = this.radius * 2;
+            const healthPercent = this.health / this.maxHealth;
+            const yOffset = this.radius + 5;
             ctx.fillStyle = '#333';
-            ctx.fillRect(-healthBarWidth / 2, barYOffset, healthBarWidth, 5);
+            ctx.fillRect(-barWidth / 2, yOffset, barWidth, 5);
             ctx.fillStyle = 'red';
-            ctx.fillRect(-healthBarWidth / 2, barYOffset, healthBarWidth * healthPercentage, 5);
+            ctx.fillRect(-barWidth / 2, yOffset, barWidth * healthPercent, 5);
         }
 
         if (this.isElite) {
@@ -126,12 +173,17 @@ export class Enemy extends Entity {
             ctx.lineWidth = 3;
             ctx.stroke();
         }
-
         ctx.restore();
     }
 }
 
-// A classe BossEnemy permanece a mesma
 export class BossEnemy extends Enemy {
-    // ...
+    constructor(x, y, gameTime, waveNumber) {
+        super(x, y, 'boss', true, gameTime, waveNumber);
+        this.phase = 1;
+        this.attackPatternTimer = 0;
+        this.currentAttack = 'chase';
+    }
+
+    // ... (lógica do Boss)
 }
