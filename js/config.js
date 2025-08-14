@@ -14,7 +14,7 @@ export const CONFIG = {
     XP_TO_NEXT_LEVEL_BASE: 80,
     XP_TO_NEXT_LEVEL_MULTIPLIER: 1.15,
     XP_ORB_ATTRACTION_RADIUS: 120,
-    POWERUP_DROP_CHANCE: 0.02,
+    POWERUP_DROP_CHANCE: 0.03, // Aumentei um pouco a chance para testar
     JOYSTICK_RADIUS: 60,
     JOYSTICK_DEAD_ZONE: 10,
     CAMERA_LERP_FACTOR: 0.05,
@@ -23,6 +23,16 @@ export const CONFIG = {
     ORB_HIT_COOLDOWN_FRAMES: 12,
     TEMPORARY_MESSAGE_DURATION: 120,
     WORLD_BOUNDS: { width: 8000, height: 2000 }
+};
+
+// =======================================================================
+// CORREÇÃO 1: Base de dados de Power-Ups criada
+// Agora podemos adicionar novos power-ups facilmente aqui.
+// =======================================================================
+export const POWERUP_TYPES = {
+    'nuke': { message: "NUKE!", color: "yellow" },
+    'heal_orb': { message: "VIDA!", color: "lime" },
+    'invincibility': { message: "INVENCÍVEL!", color: "gold" }
 };
 
 export const PERMANENT_UPGRADES = {
@@ -88,13 +98,16 @@ export const SKILL_DATABASE = {
     'black_hole': { name: "Buraco Negro", icon: "⚫", type: 'utility', cooldown: 900, levels: [
         { desc: "Invoca um buraco negro que destrói todos os inimigos no ecrã.", damage: 99999 }
     ], instant: true },
+    // =======================================================================
+    // CORREÇÃO 2: Habilidade "Égide Divina" ajustada
+    // Removida a 'duration' e a descrição foi clarificada.
+    // =======================================================================
     'aegis_shield': { name: "Égide Divina", icon: "🛡️", type: 'utility', cooldown: 600, levels: [
-        { desc: "Cria um escudo temporário que absorve um golpe.", duration: 300 }
+        { desc: "Cria um escudo temporário que absorve o próximo golpe." }
     ]},
     'double_jump': { name: "Salto Duplo", icon: "▲", type: 'passive', levels: [{ desc: "Permite um segundo salto no ar." }] },
 ];
 
-// CORREÇÃO: WAVE_CONFIGS agora é um array
 export const WAVE_CONFIGS = [
     { enemies: [{ type: 'chaser', count: 5, spawnInterval: 60 }], eliteChance: 0 },
     { enemies: [{ type: 'chaser', count: 8, spawnInterval: 50 }, { type: 'speeder', count: 4, spawnInterval: 70 }], eliteChance: 0.01 },
