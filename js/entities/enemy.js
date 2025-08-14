@@ -109,7 +109,7 @@ export class Enemy extends Entity {
 
         if (this.type === 'reaper' && Math.hypot(player.x - this.x, player.y - this.y) < this.radius + 40) {
             this.isDead = true;
-            this.takeDamage(this.health, gameContext); // Causa dano fatal para acionar a morte
+            this.takeDamage(this.health, gameContext);
             return;
         }
 
@@ -285,7 +285,7 @@ export class Enemy extends Entity {
 
 export class BossEnemy extends Enemy {
     constructor(x, y, gameTime, waveNumber) {
-        super(x, y, 'boss', true, gameTime, waveNumber); // Boss é sempre elite
+        super(x, y, 'boss', true, gameTime, waveNumber);
         this.phase = 1;
         this.attackPatternTimer = 0;
         this.currentAttack = 'chase';
