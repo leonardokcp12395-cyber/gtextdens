@@ -1,6 +1,6 @@
 // js/systems/ui.js
 
-import { SKILL_DATABASE, PERMANENT_UPGRADES } from '../config.js';
+import { SKILL_DATABASE, PERMANENT_UPGRADES, CONFIG } from '../config.js';
 import { playerGems, playerUpgrades, savePermanentData, spendGems, upgradeSkill } from './save.js';
 import SoundManager from './sound.js';
 import { formatTime } from './utils.js';
@@ -201,7 +201,8 @@ export function setupEventListeners(gameContext) {
 
         const handleTouchStart = (e) => {
             if (e.target.closest('.ui-button')) return;
-            if (gameContext.gameState !== 'playing' || touchIdentifier !== null) return;
+            const gameState = gameContext.gameState;
+            if (gameState !== 'playing' || touchIdentifier !== null) return;
             e.preventDefault();
             const touch = e.changedTouches[0];
             touchIdentifier = touch.identifier;
@@ -213,7 +214,8 @@ export function setupEventListeners(gameContext) {
         };
 
         const handleTouchMove = (e) => {
-            if (gameContext.gameState !== 'playing' || touchIdentifier === null) return;
+            const gameState = gameContext.gameState;
+            if (gameState !== 'playing' || touchIdentifier === null) return;
             e.preventDefault();
             for (let touch of e.touches) {
                 if (touch.identifier === touchIdentifier) {
@@ -256,8 +258,9 @@ export function setupEventListeners(gameContext) {
         window.addEventListener('keydown', (e) => {
             keys[e.key.toLowerCase()] = true;
             if (e.key === 'Escape') {
-                if (gameContext.gameState === 'playing') setGameState('paused');
-                else if (gameContext.gameState === 'paused') setGameState('playing');
+                const gameState = gameContext.gameState;
+                if (gameState === 'playing') setGameState('paused');
+                else if (gameState === 'paused') setGameState('playing');
             }
         });
         window.addEventListener('keyup', (e) => {
