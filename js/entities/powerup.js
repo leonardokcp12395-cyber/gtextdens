@@ -10,10 +10,11 @@ export class PowerUp extends Entity {
         this.animationFrame = 0;
     }
 
-    update({ player, enemies, screenShake, gameContext }) {
+    update(gameContext) {
+        const { player } = gameContext;
         this.animationFrame++;
-        if (Math.hypot(player.x - this.x, player.y - this.y) < player.radius + this.radius) {
-            this.applyEffect({ enemies, screenShake, gameContext });
+        if (player && Math.hypot(player.x - this.x, player.y - this.y) < player.radius + this.radius) {
+            this.applyEffect(gameContext);
             this.isDead = true;
         }
     }
@@ -36,7 +37,8 @@ export class PowerUp extends Entity {
         ctx.restore();
     }
 
-    applyEffect({ enemies, screenShake, gameContext}) {
+    applyEffect(gameContext) {
+        const { enemies, screenShake } = gameContext;
         if(this.type === 'nuke'){
             enemies.forEach(e => {
                 // CORREÇÃO: Passando o gameContext para o takeDamage
