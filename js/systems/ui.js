@@ -5,24 +5,34 @@ import { playerGems, playerUpgrades, savePermanentData, spendGems, upgradeSkill 
 import SoundManager from './sound.js';
 import { formatTime } from './utils.js';
 
-export const ui = {
-    layer: document.getElementById('ui-layer'),
-    mainMenu: document.getElementById('main-menu'),
-    pauseMenu: document.getElementById('pause-menu'),
-    gameOverScreen: document.getElementById('game-over-screen'),
-    levelUpScreen: document.getElementById('level-up-screen'),
-    guideScreen: document.getElementById('guide-screen'),
-    rankScreen: document.getElementById('rank-screen'),
-    upgradesMenu: document.getElementById('upgrades-menu'),
-    hud: document.getElementById('hud'),
-    temporaryMessage: document.getElementById('temporary-message'),
-    dashButtonMobile: document.getElementById('dash-button-mobile')
-};
+// Objeto UI será populado depois que a página carregar
+export const ui = {};
+
+// Função para inicializar o objeto UI
+export function initUI() {
+    const uiElements = {
+        layer: 'ui-layer',
+        mainMenu: 'main-menu',
+        pauseMenu: 'pause-menu',
+        gameOverScreen: 'game-over-screen',
+        levelUpScreen: 'level-up-screen',
+        guideScreen: 'guide-screen',
+        rankScreen: 'rank-screen',
+        upgradesMenu: 'upgrades-menu',
+        hud: 'hud',
+        temporaryMessage: 'temporary-message',
+        dashButtonMobile: 'dash-button-mobile'
+    };
+    for (const key in uiElements) {
+        ui[key] = document.getElementById(uiElements[key]);
+    }
+}
+
 
 export function updateHUD(player, gameTime, frameCount) {
     if (!player) return;
 
-    if (frameCount % 6 === 0) {
+    if (frameCount % 6 === 0) { 
         const healthPercent = (player.health / player.maxHealth) * 100;
         const xpPercent = (player.xp / player.xpToNextLevel) * 100;
         document.getElementById('health-bar').style.width = `${healthPercent > 0 ? healthPercent : 0}%`;
@@ -32,7 +42,6 @@ export function updateHUD(player, gameTime, frameCount) {
     updateSkillsHUD(player);
 }
 
-// CORREÇÃO: Função para criar o ícone da habilidade no HUD
 export function createSkillHudIcon(skillId, level) {
     const skillData = SKILL_DATABASE[skillId];
     if (!skillData || skillData.type === 'passive') return;
@@ -65,12 +74,14 @@ function updateSkillsHUD(player) {
 }
 
 export function showTemporaryMessage(message, color = "white") {
-    ui.temporaryMessage.textContent = message;
-    ui.temporaryMessage.style.color = color;
-    ui.temporaryMessage.classList.add('show');
-    setTimeout(() => {
-        ui.temporaryMessage.classList.remove('show');
-    }, 2000);
+    if (ui.temporaryMessage) {
+        ui.temporaryMessage.textContent = message;
+        ui.temporaryMessage.style.color = color;
+        ui.temporaryMessage.classList.add('show');
+        setTimeout(() => {
+            ui.temporaryMessage.classList.remove('show');
+        }, 2000);
+    }
 }
 
 export function populateLevelUpOptions(player, gameContext) {
@@ -85,7 +96,7 @@ export function populateLevelUpOptions(player, gameContext) {
         }
     }
     
-    let availableSkills = Object.keys(SKILL_DATABASE).filter(id => !player.skills[id] && SKILL_DATABASE[id].type !== 'utility');
+    let availableSkills = Object.keys(SKILL_DATABASE).filter(id => !player.skills[id] && !SKILL_DATABASE[id].instant);
     options.push(...availableSkills);
     
     let finalOptions = [...new Set(options)].sort(() => 0.5 - Math.random()).slice(0, 3);
@@ -191,13 +202,7 @@ export function setupEventListeners(gameContext) {
 
     if (isMobile) {
         let touchIdentifier = null;
-        const joystickBase = document.createElement('div');
-        joystickBase.className = 'joystick-base';
-        joystickBase.style.display = 'none';
-        const joystickHandle = document.createElement('div');
-        joystickHandle.className = 'joystick-handle';
-        joystickBase.appendChild(joystickHandle);
-        document.body.appendChild(joystickBase);
+        let joystickBase;
 
         const handleTouchStart = (e) => {
             if (e.target.closest('.ui-button')) return;
@@ -206,6 +211,16 @@ export function setupEventListeners(gameContext) {
             e.preventDefault();
             const touch = e.changedTouches[0];
             touchIdentifier = touch.identifier;
+
+            if (!joystickBase) {
+                joystickBase = document.createElement('div');
+                joystickBase.className = 'joystick-base';
+                const joystickHandle = document.createElement('div');
+                joystickHandle.className = 'joystick-handle';
+                joystickBase.appendChild(joystickHandle);
+                document.body.appendChild(joystickBase);
+            }
+            
             joystickBase.style.left = `${touch.clientX - 70}px`;
             joystickBase.style.top = `${touch.clientY - 70}px`;
             joystickBase.style.display = 'flex';
@@ -223,7 +238,7 @@ export function setupEventListeners(gameContext) {
                     const dy = touch.clientY - movementVector.startY;
                     const dist = Math.min(Math.hypot(dx, dy), CONFIG.JOYSTICK_RADIUS);
                     const angle = Math.atan2(dy, dx);
-                    joystickHandle.style.transform = `translate(${Math.cos(angle) * dist}px, ${Math.sin(angle) * dist}px)`;
+                    joystickBase.firstChild.style.transform = `translate(${Math.cos(angle) * dist}px, ${Math.sin(angle) * dist}px)`;
                     movementVector.x = dist > CONFIG.JOYSTICK_DEAD_ZONE ? Math.cos(angle) : 0;
                     movementVector.y = dist > CONFIG.JOYSTICK_DEAD_ZONE ? Math.sin(angle) : 0;
                     break;
@@ -235,7 +250,7 @@ export function setupEventListeners(gameContext) {
             for (let touch of e.changedTouches) {
                 if (touch.identifier === touchIdentifier) {
                     touchIdentifier = null;
-                    joystickHandle.style.transform = 'translate(0,0)';
+                    joystickBase.firstChild.style.transform = 'translate(0,0)';
                     joystickBase.style.display = 'none';
                     movementVector.x = 0;
                     movementVector.y = 0;
