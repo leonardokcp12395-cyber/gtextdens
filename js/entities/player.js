@@ -110,11 +110,8 @@ export class Player extends Entity {
             this.health = Math.min(this.maxHealth, this.health + regenData.regenPerSecond / 60);
         }
 
-        if (this.shieldTimer > 0) {
-            this.shieldTimer--;
-        } else {
-            this.shielded = false;
-        }
+        // O temporizador do escudo foi removido para corrigir a lógica da Égide Divina,
+        // que deve persistir até que um golpe seja sofrido, não por uma duração.
     }
     
     handleMovement({ keys, movementVector, isMobile, ui }) {
@@ -310,7 +307,7 @@ export class Player extends Entity {
                     skillState.timer = skillData.cooldown;
                 } else if (skillId === 'aegis_shield') {
                     this.shielded = true;
-                    this.shieldTimer = levelData.duration;
+                    // A atribuição da duração foi removida; levelData.duration era indefinido para esta habilidade.
                     skillState.timer = skillData.cooldown;
                 }
             }

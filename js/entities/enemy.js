@@ -63,6 +63,20 @@ export class Enemy extends Entity {
                 this.shape = 'pyramid'; this.damage = 0; this.xpValue = 70;
                 this.summonCooldown = 240; this.summonTimer = this.summonCooldown;
                 break;
+            case 'mimic':
+                this.radius = 5;
+                this.speed = 0; // Começa parado
+                this.health = 30 + Math.floor(gameTime / 15) * 3 + (waveNumber * 1.5);
+                this.dormantColor = '#00E0E0'; // Ciano para disfarce
+                this.activeColor = '#FF69B4'; // Rosa choque quando ativo
+                this.color = this.dormantColor;
+                this.shape = 'circle';
+                this.damage = 15;
+                this.xpValue = 30;
+                this.isDormant = true;
+                this.activationRadius = 100;
+                this.realSpeed = 1.5 + (gameTime / 120) + (waveNumber * 0.01);
+                break;
             default: // chaser
                 this.radius = 12; this.speed = 1.3 + (gameTime / 150) + (waveNumber * 0.01);
                 this.health = 25 + Math.floor(gameTime / 10) * 3 + (waveNumber * 1.5); this.color = '#FF4D4D';
@@ -78,7 +92,20 @@ export class Enemy extends Entity {
     }
 
     update(gameContext) {
-        const { player, staticFields, enemies, enemyProjectilePool, particlePool, waveEnemiesRemaining, gameTime, waveNumber } = gameContext;
+        const { player, staticFields, enemies, enemyProjectilePool, particlePool, waveEnemiesRemaining, gameTime, waveNumber, showTemporaryMessage } = gameContext;
+
+        if (this.type === 'mimic' && this.isDormant) {
+            if (player && Math.hypot(player.x - this.x, player.y - this.y) < this.activationRadius) {
+                this.isDormant = false;
+                this.speed = this.realSpeed;
+                this.color = this.activeColor;
+                if (showTemporaryMessage) showTemporaryMessage("MÍMICO!", "hotpink");
+                SoundManager.play('levelUp', ['C4', 'E4', 'G4']);
+            } else {
+                // Fica parado e não faz nada se estiver dormente
+                return;
+            }
+        }
         
         if (this.type === 'reaper' && player && Math.hypot(player.x - this.x, player.y - this.y) < this.radius + 40) {
             this.takeDamage(this.health, gameContext);
