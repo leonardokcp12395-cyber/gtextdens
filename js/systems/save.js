@@ -7,12 +7,20 @@ export let playerUpgrades = {};
 
 export function loadPermanentData() {
     playerGems = parseInt(localStorage.getItem('playerGems') || '0');
-    playerUpgrades = JSON.parse(localStorage.getItem('playerUpgrades') || '{}');
+    try {
+        const savedUpgrades = JSON.parse(localStorage.getItem('playerUpgrades'));
+        if (savedUpgrades && typeof savedUpgrades === 'object') {
+            playerUpgrades = savedUpgrades;
+        } else {
+            playerUpgrades = {};
+        }
+    } catch (e) {
+        playerUpgrades = {};
+    }
     
-    // Inicializa o objeto de upgrades se ele não existir no save
     for(const key in PERMANENT_UPGRADES) {
         if (playerUpgrades[key] === undefined || playerUpgrades[key] === null) {
-            playerUpgrades[key] = 0; // Nível 0
+            playerUpgrades[key] = 0;
         }
     }
 }
@@ -22,17 +30,36 @@ export function savePermanentData() {
     localStorage.setItem('playerUpgrades', JSON.stringify(playerUpgrades));
 }
 
-// Funções para modificar os valores (melhor do que acessá-los globalmente)
+// Função para salvar a pontuação da partida
+export function saveScore(score) {
+    const currentTimeInSeconds = Math.floor(score.time);
+    const bestTime = parseInt(localStorage.getItem('bestTime') || '0');
+    const totalKills = parseInt(localStorage.getItem('totalKills') || '0');
+
+    if (currentTimeInSeconds > bestTime) {
+        localStorage.setItem('bestTime', currentTimeInSeconds);
+    }
+    localStorage.setItem('totalKills', totalKills + score.kills);
+}
+
+
 export function addGems(amount) {
     playerGems += amount;
 }
 
 export function spendGems(amount) {
-    playerGems -= amount;
+    if (playerGems >= amount) {
+        playerGems -= amount;
+        return true;
+    }
+    return false;
 }
 
 export function upgradeSkill(skillKey) {
     if (playerUpgrades[skillKey] !== undefined) {
-        playerUpgrades[skillKey]++;
+        const upgradeData = PERMANENT_UPGRADES[skillKey];
+        if (upgradeData && playerUpgrades[skillKey] < upgradeData.levels.length) {
+             playerUpgrades[skillKey]++;
+        }
     }
 }
