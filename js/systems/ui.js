@@ -22,23 +22,39 @@ export const ui = {
 export function updateHUD(player, gameTime, frameCount) {
     if (!player) return;
 
-    if (frameCount % 6 === 0) { // Otimização para não atualizar a cada frame
-        document.getElementById('health-bar').style.width = `${(player.health / player.maxHealth) * 100}%`;
-        document.getElementById('xp-bar').style.width = `${(player.xp / player.xpToNextLevel) * 100}%`;
+    if (frameCount % 6 === 0) {
+        const healthPercent = (player.health / player.maxHealth) * 100;
+        const xpPercent = (player.xp / player.xpToNextLevel) * 100;
+        document.getElementById('health-bar').style.width = `${healthPercent > 0 ? healthPercent : 0}%`;
+        document.getElementById('xp-bar').style.width = `${xpPercent > 0 ? xpPercent : 0}%`;
     }
     document.getElementById('timer').innerText = formatTime(gameTime);
     updateSkillsHUD(player);
 }
 
+// CORREÇÃO: Função para criar o ícone da habilidade no HUD
+export function createSkillHudIcon(skillId, level) {
+    const skillData = SKILL_DATABASE[skillId];
+    if (!skillData || skillData.type === 'passive') return;
+
+    const container = document.getElementById('skills-hud');
+    let hudIcon = document.getElementById(`hud-skill-${skillId}`);
+    if (!hudIcon) {
+        hudIcon = document.createElement('div');
+        hudIcon.className = 'skill-hud-icon';
+        hudIcon.id = `hud-skill-${skillId}`;
+        container.appendChild(hudIcon);
+    }
+    hudIcon.innerHTML = `${skillData.icon}<sub>${level}</sub>`;
+}
+
 function updateSkillsHUD(player) {
     if (!player || !player.skills) return;
-
     for (const skillId in player.skills) {
         const skillState = player.skills[skillId];
         const skillData = SKILL_DATABASE[skillId];
         const hudElement = document.getElementById(`hud-skill-${skillId}`);
-
-        if (!hudElement) continue; 
+        if (!hudElement) continue;
 
         if (skillData.cooldown > 0 && skillState.timer > 0) {
             hudElement.classList.add('on-cooldown');
@@ -54,7 +70,7 @@ export function showTemporaryMessage(message, color = "white") {
     ui.temporaryMessage.classList.add('show');
     setTimeout(() => {
         ui.temporaryMessage.classList.remove('show');
-    }, 2000); // 2 segundos
+    }, 2000);
 }
 
 export function populateLevelUpOptions(player, gameContext) {
@@ -62,7 +78,6 @@ export function populateLevelUpOptions(player, gameContext) {
     container.innerHTML = '';
     
     let options = [];
-    // Adiciona habilidades que podem ser melhoradas
     for(const skillId in player.skills){
         const skillData = SKILL_DATABASE[skillId];
         if(skillData && player.skills[skillId].level < skillData.levels.length) {
@@ -70,16 +85,12 @@ export function populateLevelUpOptions(player, gameContext) {
         }
     }
     
-    // Adiciona novas habilidades disponíveis
     let availableSkills = Object.keys(SKILL_DATABASE).filter(id => !player.skills[id] && SKILL_DATABASE[id].type !== 'utility');
-    availableSkills.sort(() => 0.5 - Math.random());
     options.push(...availableSkills);
     
-    // Garante que opções não se repitam e pega 3 aleatórias
     let finalOptions = [...new Set(options)].sort(() => 0.5 - Math.random()).slice(0, 3);
     
-    // Adiciona cura se houver espaço
-    if (finalOptions.length < 3 && !finalOptions.includes('heal')) {
+    if (finalOptions.length < 3 && player.health < player.maxHealth) {
         finalOptions.push('heal');
     }
     
@@ -88,7 +99,7 @@ export function populateLevelUpOptions(player, gameContext) {
         const card = document.createElement('div');
         card.className = 'skill-card';
         const currentLevel = player.skills[skillId]?.level || 0;
-        let levelText = skill.type !== 'utility' || (skill.levels && skill.levels.length > 1) ? ` (Nível ${currentLevel + 1})` : '';
+        let levelText = skill.instant ? '' : ` (Nível ${currentLevel + 1})`;
         let descText = skill.desc || (skill.levels && skill.levels[currentLevel] ? skill.levels[currentLevel].desc : 'Nova Habilidade!');
 
         card.innerHTML = `<h3>${skill.name}${levelText}</h3><p>${descText}</p>`;
@@ -126,10 +137,11 @@ function populateUpgradesMenu() {
         
         if (currentLevel < maxLevel) {
             const nextLevelData = upgrade.levels[currentLevel];
-            card.innerHTML = `<h3>${upgrade.name} (Nível ${currentLevel}/${maxLevel})</h3>
+            card.innerHTML = `<h3>${upgrade.name} (Nível ${currentLevel + 1}/${maxLevel})</h3>
                               <p>${upgrade.desc(nextLevelData.effect)}</p>
                               <p>Custo: <strong>${nextLevelData.cost} Gemas</strong></p>`;
             if (playerGems >= nextLevelData.cost) {
+                card.style.cursor = 'pointer';
                 card.onclick = () => {
                     if (spendGems(nextLevelData.cost)) {
                         upgradeSkill(key);
@@ -153,92 +165,76 @@ function populateUpgradesMenu() {
 
 function toggleFullscreen() {
     if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch(err => {
-            console.error(`Erro: ${err.message}`);
-        });
+        document.documentElement.requestFullscreen().catch(err => console.error(`Erro: ${err.message}`));
     } else {
         document.exitFullscreen();
     }
 }
 
 export function setupEventListeners(gameContext) {
-    const { setGameState, initGame, player, isMobile, keys, movementVector } = gameContext;
+    const { setGameState, initGame, isMobile, keys, movementVector } = gameContext;
 
     document.getElementById('play-button').onclick = initGame;
     document.getElementById('restart-button-pause').onclick = initGame;
     document.getElementById('restart-button-gameover').onclick = initGame;
-
     document.getElementById('resume-button').onclick = () => setGameState('playing');
     document.getElementById('back-to-menu-button-pause').onclick = () => setGameState('menu');
     document.getElementById('back-to-menu-button-gameover').onclick = () => setGameState('menu');
-    
     document.getElementById('guide-button').onclick = () => setGameState('guide');
     document.getElementById('back-from-guide-button').onclick = () => setGameState('menu');
-    
-    document.getElementById('rank-button').onclick = () => {
-        showRank();
-        setGameState('rank');
-    };
+    document.getElementById('rank-button').onclick = () => { showRank(); setGameState('rank'); };
     document.getElementById('back-from-rank-button').onclick = () => setGameState('menu');
-    
-    document.getElementById('upgrades-button').onclick = () => {
-        populateUpgradesMenu();
-        setGameState('upgrades');
-    };
+    document.getElementById('upgrades-button').onclick = () => { populateUpgradesMenu(); setGameState('upgrades'); };
     document.getElementById('back-from-upgrades-button').onclick = () => setGameState('menu');
-    
-    document.getElementById('pause-button').onclick = () => {
-        if (gameContext.player) setGameState('paused');
-    };
+    document.getElementById('pause-button').onclick = () => { if (gameContext.player) setGameState('paused'); };
     document.getElementById('fullscreen-button').onclick = toggleFullscreen;
 
-    // Controles
     if (isMobile) {
         let touchIdentifier = null;
         const joystickBase = document.createElement('div');
         joystickBase.className = 'joystick-base';
+        joystickBase.style.display = 'none';
         const joystickHandle = document.createElement('div');
         joystickHandle.className = 'joystick-handle';
         joystickBase.appendChild(joystickHandle);
+        document.body.appendChild(joystickBase);
 
-        const touchStart = (e) => {
+        const handleTouchStart = (e) => {
             if (e.target.closest('.ui-button')) return;
-            if (gameState !== 'playing' || touchIdentifier !== null) return;
+            if (gameContext.gameState !== 'playing' || touchIdentifier !== null) return;
             e.preventDefault();
             const touch = e.changedTouches[0];
             touchIdentifier = touch.identifier;
             joystickBase.style.left = `${touch.clientX - 70}px`;
             joystickBase.style.top = `${touch.clientY - 70}px`;
-            document.body.appendChild(joystickBase);
+            joystickBase.style.display = 'flex';
             movementVector.startX = touch.clientX;
             movementVector.startY = touch.clientY;
         };
 
-        const touchMove = (e) => {
-            if (gameState !== 'playing' || touchIdentifier === null) return;
+        const handleTouchMove = (e) => {
+            if (gameContext.gameState !== 'playing' || touchIdentifier === null) return;
             e.preventDefault();
             for (let touch of e.touches) {
                 if (touch.identifier === touchIdentifier) {
                     const dx = touch.clientX - movementVector.startX;
                     const dy = touch.clientY - movementVector.startY;
-                    const dist = Math.min(Math.hypot(dx, dy), 70);
+                    const dist = Math.min(Math.hypot(dx, dy), CONFIG.JOYSTICK_RADIUS);
                     const angle = Math.atan2(dy, dx);
                     joystickHandle.style.transform = `translate(${Math.cos(angle) * dist}px, ${Math.sin(angle) * dist}px)`;
-                    
-                    const deadZone = 10;
-                    movementVector.x = dist > deadZone ? Math.cos(angle) : 0;
-                    movementVector.y = dist > deadZone ? Math.sin(angle) : 0;
+                    movementVector.x = dist > CONFIG.JOYSTICK_DEAD_ZONE ? Math.cos(angle) : 0;
+                    movementVector.y = dist > CONFIG.JOYSTICK_DEAD_ZONE ? Math.sin(angle) : 0;
                     break;
                 }
             }
         };
 
-        const touchEnd = (e) => {
+        const handleTouchEnd = (e) => {
             for (let touch of e.changedTouches) {
                 if (touch.identifier === touchIdentifier) {
                     touchIdentifier = null;
                     joystickHandle.style.transform = 'translate(0,0)';
-                    if (joystickBase.parentNode) joystickBase.parentNode.removeChild(joystickBase);
+                    joystickBase.style.display = 'none';
                     movementVector.x = 0;
                     movementVector.y = 0;
                     break;
@@ -246,32 +242,30 @@ export function setupEventListeners(gameContext) {
             }
         };
 
-        window.addEventListener('touchstart', touchStart, { passive: false });
-        window.addEventListener('touchmove', touchMove, { passive: false });
-        window.addEventListener('touchend', touchEnd);
-        window.addEventListener('touchcancel', touchEnd);
+        window.addEventListener('touchstart', handleTouchStart, { passive: false });
+        window.addEventListener('touchmove', handleTouchMove, { passive: false });
+        window.addEventListener('touchend', handleTouchEnd);
+        window.addEventListener('touchcancel', handleTouchEnd);
 
         ui.dashButtonMobile.addEventListener('touchstart', (e) => {
             e.preventDefault();
             if (gameContext.player) gameContext.player.dash();
         }, { passive: false });
 
-    } else { // Controles PC
+    } else {
         window.addEventListener('keydown', (e) => {
             keys[e.key.toLowerCase()] = true;
-            keys[e.code] = true;
             if (e.key === 'Escape') {
-                if (gameState === 'playing') setGameState('paused');
-                else if (gameState === 'paused') setGameState('playing');
+                if (gameContext.gameState === 'playing') setGameState('paused');
+                else if (gameContext.gameState === 'paused') setGameState('playing');
             }
         });
         window.addEventListener('keyup', (e) => {
             keys[e.key.toLowerCase()] = false;
-            keys[e.code] = false;
         });
     }
 
     window.addEventListener('blur', () => {
-        if (gameState === 'playing') setGameState('paused');
+        if (gameContext.gameState === 'playing') setGameState('paused');
     });
 }
