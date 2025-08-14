@@ -8,19 +8,7 @@ import { getFromPool } from '../systems/pooling.js';
 import { Vortex } from './vortex.js';
 import { Rectangle } from '../systems/utils.js';
 import { StaticField } from './staticfield.js';
-
-function createLightningBolt(startPos, endPos, particlePool) {
-    const dx = endPos.x - startPos.x;
-    const dy = endPos.y - startPos.y;
-    const dist = Math.hypot(dx, dy);
-    const segments = Math.floor(dist / 10);
-    for (let i = 0; i < segments; i++) {
-        const t = i / segments;
-        const x = startPos.x + dx * t + (Math.random() - 0.5) * 10;
-        const y = startPos.y + dy * t + (Math.random() - 0.5) * 10;
-        getFromPool(particlePool, x, y, '#ADD8E6', 1.5);
-    }
-}
+import { createSkillHudIcon } from '../systems/ui.js'; // <-- IMPORTAÇÃO ADICIONADA
 
 export class Player extends Entity {
     constructor(x, y, canvas) {
@@ -105,7 +93,7 @@ export class Player extends Entity {
             this.velocityY = isFirstJump ? CONFIG.PLAYER_JUMP_FORCE : CONFIG.PLAYER_DOUBLE_JUMP_FORCE;
             this.jumpsAvailable--;
             this.onGround = false;
-            if (!isMobile) keys['w'] = keys['arrowup'] = keys[' '] = false; // Consumir o input
+            if (!isMobile) keys['w'] = keys['arrowup'] = keys[' '] = false;
         }
 
         if (!isMobile && (keys.shift || keys.shiftleft)) { this.dash(); keys.shift = keys.shiftleft = false; }
@@ -137,13 +125,13 @@ export class Player extends Entity {
                     this.squashStretchTimer = CONFIG.PLAYER_LANDING_SQUASH_DURATION;
                     SoundManager.play('land', '16n');
                 }
-                return; // Encontrou chão, sai da função
+                return;
             }
         }
         if (this.y > platforms[0].y + 200) this.takeDamage(9999, { setGameState });
     }
 
-    takeDamage(amount, { screenShake, setGameState, particlePool }) {
+    takeDamage(amount, { screenShake, setGameState }) {
         if (this.isDead) return;
         if (this.shielded) { this.shielded = false; return; }
         this.health -= amount; this.hitTimer = 30;
@@ -182,20 +170,12 @@ export class Player extends Entity {
 
         if (!this.skills[skillId]) {
             this.skills[skillId] = { level: 1, timer: 0, orbs: [] };
-            // CORREÇÃO: Adiciona o ícone na HUD ao pegar a habilidade
-            if (skillData.type !== 'passive') {
-                const hudContainer = document.getElementById('skills-hud');
-                const div = document.createElement('div');
-                div.className = 'skill-hud-icon';
-                div.id = `hud-skill-${skillId}`;
-                div.innerHTML = `${skillData.icon}<sub>1</sub>`;
-                hudContainer.appendChild(div);
-            }
         } else {
             this.skills[skillId].level++;
-             const hudIcon = document.querySelector(`#hud-skill-${skillId} > sub`);
-             if(hudIcon) hudIcon.textContent = this.skills[skillId].level;
         }
+
+        // CORREÇÃO: Chama a função para criar/atualizar o ícone no HUD
+        createSkillHudIcon(skillId, this.skills[skillId].level);
 
         if (skillId === 'magnet') {
             const levelData = skillData.levels[this.skills[skillId].level - 1];
