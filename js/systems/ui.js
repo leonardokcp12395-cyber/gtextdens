@@ -20,14 +20,13 @@ export const ui = {
 };
 
 export function updateHUD(player, gameTime, frameCount) {
-    if (frameCount % 6 !== 0) return;
+    if (!player) return;
 
-    if (player) {
+    if (frameCount % 6 === 0) { // Otimização para não atualizar a cada frame
         document.getElementById('health-bar').style.width = `${(player.health / player.maxHealth) * 100}%`;
         document.getElementById('xp-bar').style.width = `${(player.xp / player.xpToNextLevel) * 100}%`;
     }
-    document.getElementById('timer').innerText = formatTime(Math.floor(gameTime));
-    
+    document.getElementById('timer').innerText = formatTime(gameTime);
     updateSkillsHUD(player);
 }
 
@@ -37,13 +36,14 @@ function updateSkillsHUD(player) {
     for (const skillId in player.skills) {
         const skillState = player.skills[skillId];
         const skillData = SKILL_DATABASE[skillId];
+        const hudElement = document.getElementById(`hud-skill-${skillId}`);
 
-        if (!skillState.hudElement) continue; 
+        if (!hudElement) continue; 
 
         if (skillData.cooldown > 0 && skillState.timer > 0) {
-            skillState.hudElement.classList.add('on-cooldown');
+            hudElement.classList.add('on-cooldown');
         } else {
-            skillState.hudElement.classList.remove('on-cooldown');
+            hudElement.classList.remove('on-cooldown');
         }
     }
 }
@@ -62,27 +62,34 @@ export function populateLevelUpOptions(player, gameContext) {
     container.innerHTML = '';
     
     let options = [];
+    // Adiciona habilidades que podem ser melhoradas
     for(const skillId in player.skills){
         const skillData = SKILL_DATABASE[skillId];
-        if(player.skills[skillId].level < skillData.levels.length) options.push(skillId);
-    }
-    for(const skillId in SKILL_DATABASE){
-        if(!player.skills[skillId] && SKILL_DATABASE[skillId].type !== 'utility' && !options.includes(skillId)) {
+        if(skillData && player.skills[skillId].level < skillData.levels.length) {
             options.push(skillId);
         }
     }
-    options.sort(() => 0.5 - Math.random());
-    if (options.length > 0 && options.length < 3 && !options.includes('heal')) {
-        options.push('heal');
+    
+    // Adiciona novas habilidades disponíveis
+    let availableSkills = Object.keys(SKILL_DATABASE).filter(id => !player.skills[id] && SKILL_DATABASE[id].type !== 'utility');
+    availableSkills.sort(() => 0.5 - Math.random());
+    options.push(...availableSkills);
+    
+    // Garante que opções não se repitam e pega 3 aleatórias
+    let finalOptions = [...new Set(options)].sort(() => 0.5 - Math.random()).slice(0, 3);
+    
+    // Adiciona cura se houver espaço
+    if (finalOptions.length < 3 && !finalOptions.includes('heal')) {
+        finalOptions.push('heal');
     }
     
-    options.slice(0, 3).forEach(skillId => {
+    finalOptions.forEach(skillId => {
         const skill = SKILL_DATABASE[skillId]; 
         const card = document.createElement('div');
         card.className = 'skill-card';
         const currentLevel = player.skills[skillId]?.level || 0;
         let levelText = skill.type !== 'utility' || (skill.levels && skill.levels.length > 1) ? ` (Nível ${currentLevel + 1})` : '';
-        let descText = skill.desc || (skill.levels && skill.levels[currentLevel] ? skill.levels[currentLevel].desc : '');
+        let descText = skill.desc || (skill.levels && skill.levels[currentLevel] ? skill.levels[currentLevel].desc : 'Nova Habilidade!');
 
         card.innerHTML = `<h3>${skill.name}${levelText}</h3><p>${descText}</p>`;
         card.onclick = (event) => {
@@ -96,6 +103,7 @@ export function populateLevelUpOptions(player, gameContext) {
 
 function updateGemDisplay() {
     document.getElementById('gem-counter').textContent = playerGems;
+    document.getElementById('gem-counter-upgrades').textContent = playerGems;
 }
 
 function showRank() {
@@ -106,7 +114,7 @@ function showRank() {
 function populateUpgradesMenu() {
     const container = document.getElementById('upgrades-options');
     container.innerHTML = '';
-    document.getElementById('gem-counter-upgrades').textContent = playerGems;
+    updateGemDisplay();
 
     for (const key in PERMANENT_UPGRADES) {
         const upgrade = PERMANENT_UPGRADES[key];
@@ -123,20 +131,21 @@ function populateUpgradesMenu() {
                               <p>Custo: <strong>${nextLevelData.cost} Gemas</strong></p>`;
             if (playerGems >= nextLevelData.cost) {
                 card.onclick = () => {
-                    spendGems(nextLevelData.cost);
-                    upgradeSkill(key);
-                    savePermanentData();
-                    SoundManager.play('levelUp', ['C5', 'G5']);
-                    populateUpgradesMenu();
-                    updateGemDisplay();
+                    if (spendGems(nextLevelData.cost)) {
+                        upgradeSkill(key);
+                        savePermanentData();
+                        SoundManager.play('levelUp', ['C5', 'G5']);
+                        populateUpgradesMenu();
+                    }
                 };
             } else {
                 card.style.opacity = 0.5;
                 card.style.cursor = 'not-allowed';
             }
         } else {
-            card.innerHTML = `<h3>${upgrade.name} (Nível MÁXIMO)</h3>`;
+            card.innerHTML = `<h3>${upgrade.name} (Nível MÁXIMO)</h3><p>${upgrade.desc(upgrade.levels[maxLevel-1].effect)}</p>`;
             card.style.opacity = 0.7;
+            card.style.cursor = 'default';
         }
         container.appendChild(card);
     }
@@ -145,15 +154,15 @@ function populateUpgradesMenu() {
 function toggleFullscreen() {
     if (!document.fullscreenElement) {
         document.documentElement.requestFullscreen().catch(err => {
-            console.error(`Erro ao tentar ativar tela cheia: ${err.message} (${err.name})`);
+            console.error(`Erro: ${err.message}`);
         });
     } else {
         document.exitFullscreen();
     }
 }
 
-export function setupEventListeners(gameController) {
-    const { setGameState, initGame, getPlayer } = gameController;
+export function setupEventListeners(gameContext) {
+    const { setGameState, initGame, player, isMobile, keys, movementVector } = gameContext;
 
     document.getElementById('play-button').onclick = initGame;
     document.getElementById('restart-button-pause').onclick = initGame;
@@ -173,18 +182,96 @@ export function setupEventListeners(gameController) {
     document.getElementById('back-from-rank-button').onclick = () => setGameState('menu');
     
     document.getElementById('upgrades-button').onclick = () => {
-        updateGemDisplay();
         populateUpgradesMenu();
         setGameState('upgrades');
     };
     document.getElementById('back-from-upgrades-button').onclick = () => setGameState('menu');
     
-    document.getElementById('pause-button').onclick = () => setGameState('paused');
+    document.getElementById('pause-button').onclick = () => {
+        if (gameContext.player) setGameState('paused');
+    };
     document.getElementById('fullscreen-button').onclick = toggleFullscreen;
 
-    ui.dashButtonMobile.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        const player = getPlayer();
-        if (player) player.dash();
+    // Controles
+    if (isMobile) {
+        let touchIdentifier = null;
+        const joystickBase = document.createElement('div');
+        joystickBase.className = 'joystick-base';
+        const joystickHandle = document.createElement('div');
+        joystickHandle.className = 'joystick-handle';
+        joystickBase.appendChild(joystickHandle);
+
+        const touchStart = (e) => {
+            if (e.target.closest('.ui-button')) return;
+            if (gameState !== 'playing' || touchIdentifier !== null) return;
+            e.preventDefault();
+            const touch = e.changedTouches[0];
+            touchIdentifier = touch.identifier;
+            joystickBase.style.left = `${touch.clientX - 70}px`;
+            joystickBase.style.top = `${touch.clientY - 70}px`;
+            document.body.appendChild(joystickBase);
+            movementVector.startX = touch.clientX;
+            movementVector.startY = touch.clientY;
+        };
+
+        const touchMove = (e) => {
+            if (gameState !== 'playing' || touchIdentifier === null) return;
+            e.preventDefault();
+            for (let touch of e.touches) {
+                if (touch.identifier === touchIdentifier) {
+                    const dx = touch.clientX - movementVector.startX;
+                    const dy = touch.clientY - movementVector.startY;
+                    const dist = Math.min(Math.hypot(dx, dy), 70);
+                    const angle = Math.atan2(dy, dx);
+                    joystickHandle.style.transform = `translate(${Math.cos(angle) * dist}px, ${Math.sin(angle) * dist}px)`;
+                    
+                    const deadZone = 10;
+                    movementVector.x = dist > deadZone ? Math.cos(angle) : 0;
+                    movementVector.y = dist > deadZone ? Math.sin(angle) : 0;
+                    break;
+                }
+            }
+        };
+
+        const touchEnd = (e) => {
+            for (let touch of e.changedTouches) {
+                if (touch.identifier === touchIdentifier) {
+                    touchIdentifier = null;
+                    joystickHandle.style.transform = 'translate(0,0)';
+                    if (joystickBase.parentNode) joystickBase.parentNode.removeChild(joystickBase);
+                    movementVector.x = 0;
+                    movementVector.y = 0;
+                    break;
+                }
+            }
+        };
+
+        window.addEventListener('touchstart', touchStart, { passive: false });
+        window.addEventListener('touchmove', touchMove, { passive: false });
+        window.addEventListener('touchend', touchEnd);
+        window.addEventListener('touchcancel', touchEnd);
+
+        ui.dashButtonMobile.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (gameContext.player) gameContext.player.dash();
+        }, { passive: false });
+
+    } else { // Controles PC
+        window.addEventListener('keydown', (e) => {
+            keys[e.key.toLowerCase()] = true;
+            keys[e.code] = true;
+            if (e.key === 'Escape') {
+                if (gameState === 'playing') setGameState('paused');
+                else if (gameState === 'paused') setGameState('playing');
+            }
+        });
+        window.addEventListener('keyup', (e) => {
+            keys[e.key.toLowerCase()] = false;
+            keys[e.code] = false;
+        });
+    }
+
+    window.addEventListener('blur', () => {
+        if (gameState === 'playing') setGameState('paused');
     });
 }
