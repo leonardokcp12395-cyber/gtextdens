@@ -1,8 +1,8 @@
 // js/main.js
 
-import { DEBUG_MODE, CONFIG, WAVE_CONFIGS } from './config.js';
+import { CONFIG, WAVE_CONFIGS } from './config.js';
 import { Quadtree, Rectangle, removeDeadEntities, formatTime } from './systems/utils.js';
-import { loadPermanentData, savePermanentData, saveScore as saveScoreData } from './systems/save.js';
+import { loadPermanentData, saveScore } from './systems/save.js';
 import SoundManager from './systems/sound.js';
 import { createPool, getFromPool, releaseToPool } from './systems/pooling.js';
 import { ui, setupEventListeners, showTemporaryMessage, populateLevelUpOptions, updateHUD } from './systems/ui.js';
@@ -18,33 +18,37 @@ import { PowerUp } from './entities/powerup.js';
 import { Vortex } from './entities/vortex.js';
 import { StaticField } from './entities/staticfield.js';
 
+// Variáveis de estado globais
 let gameState = 'loading';
 let lastFrameTime = 0;
 let gameTime = 0;
 let frameCount = 0;
-
-let canvas, ctx, gameContainer;
+let isMobile, canvas, ctx;
 let player, demoPlayer;
-let platforms = [], enemies = [], activeVortexes = [], powerUps = [], activeStaticFields = [];
-let particlePool, projectilePool, enemyProjectilePool, xpOrbPool, damageNumberPool;
-let qtree;
 
+// Arrays de entidades do jogo
+let platforms = [], enemies = [], activeVortexes = [], powerUps = [], activeStaticFields = [];
+
+// Pools de objetos
+let particlePool, projectilePool, enemyProjectilePool, xpOrbPool, damageNumberPool;
+
+// Outras variáveis de estado
+let qtree;
 let score = { kills: 0, time: 0 };
 let screenShake = { intensity: 0, duration: 0 };
-const isMobile = /Mobi|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 let keys = {};
 let movementVector = { x: 0, y: 0 };
-
 let waveNumber = 0;
 let waveEnemiesRemaining = { value: 0 };
 let waveCooldownTimer = 0;
 let currentWaveConfig = {};
 let enemySpawnTimer = 0;
 
+// Objeto da câmera
 let camera = {
     x: 0, y: 0, targetX: 0, targetY: 0,
     update() {
-        if (!player) return;
+        if (!player || player.isDead) return;
         this.targetX = player.x - canvas.width / 2;
         this.targetY = player.y - canvas.height / 2;
         this.x += (this.targetX - this.x) * CONFIG.CAMERA_LERP_FACTOR;
@@ -52,44 +56,21 @@ let camera = {
     }
 };
 
-const gameContext = {
-    setGameState,
-    showTemporaryMessage,
-    score,
-    xpOrbPool,
-    particlePool,
-    enemyProjectilePool,
-    activeVortexes,
-    powerUps,
-    damageNumberPool,
-    waveEnemiesRemaining,
-    screenShake,
-    enemies,
-    player,
-    isMobile,
-    keys,
-    movementVector,
-    platforms,
-    qtree,
-    frameCount,
-    gameTime,
-    get playerProjectiles() { return projectilePool; }, // Usar getter para garantir que o valor está atualizado
-    staticFields: activeStaticFields,
-    ui,
-    get gameTime() { return gameTime; },
-    get waveNumber() { return waveNumber; },
-};
+// O 'gameContext' será inicializado dentro de 'onload' para garantir que todas as variáveis estejam prontas.
+let gameContext;
 
 function setGameState(newState) {
     const oldState = gameState;
+    if (oldState === newState) return;
+    
     gameState = newState;
     
-    if (['menu', 'paused', 'levelUp', 'gameOver', 'guide', 'rank', 'upgrades'].includes(newState) && oldState !== newState) {
+    if (['menu', 'paused', 'levelUp', 'gameOver', 'guide', 'rank', 'upgrades'].includes(newState)) {
         SoundManager.play('uiClick', 'C6');
     }
 
     if(newState === 'playing' && (oldState === 'paused' || oldState === 'levelUp')) {
-        lastFrameTime = performance.now();
+        lastFrameTime = performance.now(); // Reseta o delta time ao despausar
     }
 
     const isMenuState = ['menu', 'levelUp', 'gameOver', 'guide', 'rank', 'upgrades'].includes(newState);
@@ -97,6 +78,7 @@ function setGameState(newState) {
     ui.hud.classList.toggle('hidden', newState !== 'playing' && newState !== 'paused');
     ui.dashButtonMobile.classList.toggle('hidden', !isMobile || newState !== 'playing');
 
+    // Esconde todos os painéis e mostra apenas o correto
     Object.values(ui).forEach(element => {
         if (element && element.classList && element.classList.contains('ui-panel')) {
             element.classList.add('hidden');
@@ -107,10 +89,10 @@ function setGameState(newState) {
         case 'menu': ui.mainMenu.classList.remove('hidden'); break;
         case 'paused': ui.pauseMenu.classList.remove('hidden'); break;
         case 'gameOver':
-            document.getElementById('final-time').innerText = formatTime(Math.floor(score.time));
+            document.getElementById('final-time').innerText = formatTime(score.time);
             document.getElementById('final-kills').innerText = score.kills;
             ui.gameOverScreen.classList.remove('hidden');
-            saveScoreData(score);
+            saveScore(score); // Usa a função importada
             break;
         case 'levelUp':
             populateLevelUpOptions(player, gameContext);
@@ -122,23 +104,24 @@ function setGameState(newState) {
     }
 }
 
-
 function startNextWave() {
     waveNumber++;
     if (waveNumber > 0 && waveNumber % 5 === 0) {
         showTemporaryMessage(`BOSS - ONDA ${waveNumber}`, "red");
-        enemies.push(new BossEnemy(player.x + canvas.width / 2, player.y - 100, gameTime, waveNumber));
+        enemies.push(new BossEnemy(player.x + canvas.width / 2 + 100, player.y - 100, gameTime, waveNumber));
         waveEnemiesRemaining.value = 1;
-        currentWaveConfig = { enemies: [], eliteChance: 0 };
+        currentWaveConfig = { enemies: [], eliteChance: 0.1 };
         return;
     }
-    if (waveNumber <= WAVE_CONFIGS.length) {
-        currentWaveConfig = JSON.parse(JSON.stringify(WAVE_CONFIGS[waveNumber - 1]));
-    } else {
-        showTemporaryMessage(`ONDA ${waveNumber}! (Infinita)`, "cyan");
+
+    const waveKey = `wave${waveNumber}`;
+    if (WAVE_CONFIGS[waveKey]) {
+        currentWaveConfig = JSON.parse(JSON.stringify(WAVE_CONFIGS[waveKey]));
+    } else { // Ondas Infinitas
+        showTemporaryMessage(`ONDA ${waveNumber} (Infinita)`, "cyan");
         const enemyTypes = ['chaser', 'speeder', 'tank', 'shooter', 'bomber', 'healer', 'summoner', 'reaper'];
         const typesInWave = Math.min(2 + Math.floor(waveNumber / 7), 5);
-        currentWaveConfig = { enemies: [], eliteChance: Math.min(0.05 + (waveNumber - WAVE_CONFIGS.length) * 0.01, 0.25) };
+        currentWaveConfig = { enemies: [], eliteChance: Math.min(0.05 + (waveNumber - Object.keys(WAVE_CONFIGS).length) * 0.01, 0.25) };
         let typesAdded = new Set();
         for(let i = 0; i < typesInWave; i++) {
             let type;
@@ -147,6 +130,7 @@ function startNextWave() {
             currentWaveConfig.enemies.push({ type, count: 5 + Math.floor(waveNumber * 0.8), spawnInterval: Math.max(20, 100 - waveNumber * 2) });
         }
     }
+
     waveEnemiesRemaining.value = currentWaveConfig.enemies.reduce((sum, cfg) => sum + cfg.count, 0);
     enemySpawnTimer = 0;
     if (waveNumber > 1) showTemporaryMessage(`ONDA ${waveNumber}!`, "gold");
@@ -163,18 +147,21 @@ function spawnEnemies() {
         }
         return;
     }
-    enemySpawnTimer--;
-    if (enemySpawnTimer <= 0 && waveEnemiesRemaining.value > 0) {
+
+    if (waveEnemiesRemaining.value > 0 && --enemySpawnTimer <= 0) {
+        const availableTypes = currentWaveConfig.enemies.filter(e => e.count > 0);
+        if (availableTypes.length === 0) return;
+        
+        const config = availableTypes[Math.floor(Math.random() * availableTypes.length)];
+        const isElite = Math.random() < (currentWaveConfig.eliteChance || 0);
+
         let x, y;
         const side = Math.floor(Math.random() * 4), margin = 50;
         if (side === 0) { x = camera.x - margin; y = camera.y + Math.random() * canvas.height; }
         else if (side === 1) { x = camera.x + canvas.width + margin; y = camera.y + Math.random() * canvas.height; }
         else if (side === 2) { x = camera.x + Math.random() * canvas.width; y = camera.y - margin; }
         else { x = camera.x + Math.random() * canvas.width; y = camera.y + canvas.height + margin; }
-        const availableTypes = currentWaveConfig.enemies.filter(e => e.count > 0);
-        if (availableTypes.length === 0) return;
-        const config = availableTypes[Math.floor(Math.random() * availableTypes.length)];
-        const isElite = Math.random() < currentWaveConfig.eliteChance;
+        
         enemies.push(new Enemy(x, y, config.type, isElite, gameTime, waveNumber));
         config.count--;
         enemySpawnTimer = config.spawnInterval;
@@ -195,7 +182,7 @@ function handleCollisions() {
                 enemy.takeDamage(proj.damage, gameContext);
                 enemy.applyKnockback(proj.x, proj.y, CONFIG.ENEMY_KNOCKBACK_FORCE);
                 proj.piercedEnemies.add(enemy);
-                if (proj.piercedEnemies.size >= proj.pierce + 1) { // CORREÇÃO: Lógica de perfuração
+                if (proj.piercedEnemies.size >= proj.pierce + 1) {
                     proj.isDead = true; releaseToPool(proj); break;
                 }
             }
@@ -218,12 +205,13 @@ function handleCollisions() {
         if (enemy.isDead) continue;
         if (Math.hypot(player.x - enemy.x, player.y - enemy.y) < player.radius + enemy.radius) {
             player.takeDamage(enemy.damage, gameContext);
-            enemy.applyKnockback(player.x, player.y, 15); // Empurra o inimigo para longe do jogador
+            enemy.applyKnockback(player.x, player.y, 15);
         }
     }
 }
 
 function initGame() {
+    // Reset de estado
     gameTime = 0;
     frameCount = 0;
     score = { kills: 0, time: 0 };
@@ -238,43 +226,24 @@ function initGame() {
         if (pool) pool.forEach(item => releaseToPool(item));
     });
     
-    // --- LÓGICA DE GERAÇÃO DO MAPA RESTAURADA ---
+    // Geração do mapa
     const groundLevel = canvas.height * (1 - CONFIG.GROUND_HEIGHT_PERCENT);
-    platforms.push(new Platform(-CONFIG.WORLD_BOUNDS.width, groundLevel, CONFIG.WORLD_BOUNDS.width * 2, CONFIG.WORLD_BOUNDS.height));
+    platforms.push(new Platform(-CONFIG.WORLD_BOUNDS.width * 2, groundLevel, CONFIG.WORLD_BOUNDS.width * 4, CONFIG.WORLD_BOUNDS.height));
 
-    const platformCount = 35;
-    const minGapX = 50;
-    const minGapY = 40;
-    let attempts = 0;
-    for (let i = 0; i < platformCount && attempts < 1000; i++) {
-        const pWidth = Math.random() * 150 + 100;
+    const platformCount = 40; // Aumentar para preencher o mundo
+    for (let i = 0; i < platformCount; i++) {
+        const pWidth = Math.random() * 200 + 150;
         const pHeight = 20;
         const pX = (Math.random() - 0.5) * (CONFIG.WORLD_BOUNDS.width - pWidth);
-        const pY = groundLevel - (Math.random() * 400 + 80);
-
-        let overlaps = false;
-        for (const existingPlatform of platforms) {
-            if (pX < existingPlatform.x + existingPlatform.width + minGapX &&
-                pX + pWidth > existingPlatform.x - minGapX &&
-                pY < existingPlatform.y + existingPlatform.height + minGapY &&
-                pY + pHeight > existingPlatform.y - minGapY) {
-                overlaps = true;
-                break;
-            }
-        }
-        if (!overlaps) {
-            platforms.push(new Platform(pX, pY, pWidth, pHeight));
-            attempts = 0;
-        } else {
-            i--;
-            attempts++;
-        }
+        const pY = groundLevel - (Math.random() * 500 + 80); 
+        platforms.push(new Platform(pX, pY, pWidth, pHeight));
     }
 
-    // --- POSICIONAMENTO CORRETO DO JOGADOR ---
+    // Setup do jogador
     player = new Player(canvas.width / 2, groundLevel - 50, canvas);
     gameContext.player = player;
 
+    // Reset do sistema de ondas
     waveNumber = 0;
     waveEnemiesRemaining.value = 0;
     waveCooldownTimer = 0;
@@ -283,32 +252,34 @@ function initGame() {
 }
 
 function updateGame(deltaTime) {
+    if (!player) return;
+    
     gameTime += deltaTime;
     frameCount++;
     score.time = gameTime;
 
+    // Atualiza o Quadtree
     const worldBounds = new Rectangle(-CONFIG.WORLD_BOUNDS.width / 2, -CONFIG.WORLD_BOUNDS.height / 2, CONFIG.WORLD_BOUNDS.width, CONFIG.WORLD_BOUNDS.height);
     qtree = new Quadtree(worldBounds, 4);
-    qtree.clear();
     enemies.forEach(e => { if (!e.isDead) qtree.insert(e); });
-
     gameContext.qtree = qtree;
+
+    // Atualiza o contexto com valores dinâmicos
     gameContext.frameCount = frameCount;
 
+    // Atualiza entidades
     player.update(gameContext);
-
-    // Atualiza todas as entidades
     [...enemies, ...powerUps, ...activeVortexes, ...activeStaticFields].forEach(e => e.update(gameContext));
-    xpOrbPool.forEach(o => { if(o.active) o.update(gameContext); });
-    projectilePool.forEach(p => { if(p.active) p.update(gameContext); });
-    enemyProjectilePool.forEach(p => { if(p.active) p.update(gameContext); });
-    damageNumberPool.forEach(dn => { if(dn.active) dn.update(gameContext); });
+    xpOrbPool.forEach(o => { if (o.active) o.update(gameContext); });
+    projectilePool.forEach(p => { if (p.active) p.update(gameContext); });
+    enemyProjectilePool.forEach(p => { if (p.active) p.update(gameContext); });
+    damageNumberPool.forEach(dn => { if (dn.active) dn.update(gameContext); });
     
     camera.update();
     spawnEnemies();
     handleCollisions();
 
-    // Remove entidades mortas
+    // Limpa entidades mortas
     removeDeadEntities(enemies);
     removeDeadEntities(powerUps);
     removeDeadEntities(activeVortexes);
@@ -344,9 +315,12 @@ function drawGame() {
 
 function gameLoop(currentTime) {
     requestAnimationFrame(gameLoop);
-    if (gameState === 'loading') return;
+    if (gameState === 'loading' || !lastFrameTime) {
+        lastFrameTime = currentTime;
+        return;
+    }
 
-    const deltaTime = (performance.now() - lastFrameTime) / 1000.0;
+    const deltaTime = (currentTime - lastFrameTime) / 1000.0;
     
     if (gameState === 'playing') {
         updateGame(deltaTime);
@@ -358,47 +332,70 @@ function gameLoop(currentTime) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     if (gameState === 'menu') {
         if (demoPlayer) demoPlayer.draw(ctx);
-    } else {
+    } else if (gameState !== 'loading') {
         drawGame();
     }
     
-    lastFrameTime = performance.now();
+    lastFrameTime = currentTime;
 }
 
 window.onload = () => {
+    // Inicialização dos elementos do DOM
     canvas = document.getElementById('gameCanvas');
     ctx = canvas.getContext('2d');
-    gameContainer = document.getElementById('game-container');
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
-    window.addEventListener('resize', () => {
+    isMobile = /Mobi|Android/i.test(navigator.userAgent);
+    
+    const resizeCanvas = () => {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
-    });
+    };
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
 
+    // Criação dos pools
     particlePool = createPool(Particle, 200);
     projectilePool = createPool(Projectile, 50);
     enemyProjectilePool = createPool(EnemyProjectile, 50);
     xpOrbPool = createPool(XPOrb, 100);
     damageNumberPool = createPool(DamageNumber, 50);
 
+    // CORREÇÃO: Inicializa o gameContext aqui, depois que tudo foi definido
+    gameContext = {
+        setGameState,
+        showTemporaryMessage,
+        score,
+        xpOrbPool,
+        particlePool,
+        enemyProjectilePool,
+        activeVortexes,
+        powerUps,
+        damageNumberPool,
+        waveEnemiesRemaining,
+        screenShake,
+        get enemies() { return enemies; },
+        get platforms() { return platforms; },
+        get player() { return player; },
+        get qtree() { return qtree; },
+        get frameCount() { return frameCount; },
+        get gameTime() { return gameTime; },
+        get waveNumber() { return waveNumber; },
+        get playerProjectiles() { return projectilePool; },
+        get staticFields() { return activeStaticFields; },
+        isMobile,
+        keys,
+        movementVector,
+        ui,
+        initGame
+    };
+
+    // Carrega dados salvos e inicializa sistemas
     loadPermanentData();
     SoundManager.init();
     
-    const gameController = { 
-        setGameState, 
-        initGame, 
-        getPlayer: () => player,
-        getGameState: () => gameState,
-        keys,
-        movementVector,
-        isMobile,
-    };
-    setupEventListeners(gameController);
+    setupEventListeners(gameContext);
     
+    // Inicia o jogo
     setGameState('menu');
-    lastFrameTime = performance.now();
     requestAnimationFrame(gameLoop);
     
     document.getElementById('debug-status').style.display = 'none';
