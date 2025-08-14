@@ -18,33 +18,25 @@ import { PowerUp } from './entities/powerup.js';
 import { Vortex } from './entities/vortex.js';
 import { StaticField } from './entities/staticfield.js';
 
-// Variáveis de estado globais
 let gameState = 'loading';
 let lastFrameTime = 0;
 let gameTime = 0;
 let frameCount = 0;
 let isMobile, canvas, ctx;
 let player, demoPlayer;
-
-// Arrays de entidades do jogo
 let platforms = [], enemies = [], activeVortexes = [], powerUps = [], activeStaticFields = [];
-
-// Pools de objetos
 let particlePool, projectilePool, enemyProjectilePool, xpOrbPool, damageNumberPool;
-
-// Outras variáveis de estado
 let qtree;
 let score = { kills: 0, time: 0 };
 let screenShake = { intensity: 0, duration: 0 };
 let keys = {};
-let movementVector = { x: 0, y: 0, startX: 0, startY: 0 };
+let movementVector = { x: 0, y: 0 };
 let waveNumber = 0;
 let waveEnemiesRemaining = { value: 0 };
 let waveCooldownTimer = 0;
 let currentWaveConfig = {};
 let enemySpawnTimer = 0;
 
-// Objeto da câmera
 let camera = {
     x: 0, y: 0, targetX: 0, targetY: 0,
     update() {
@@ -56,21 +48,19 @@ let camera = {
     }
 };
 
-// O 'gameContext' será inicializado dentro de 'onload'.
 let gameContext;
 
 function setGameState(newState) {
     const oldState = gameState;
     if (oldState === newState) return;
-    
     gameState = newState;
     
     if (['menu', 'paused', 'levelUp', 'gameOver', 'guide', 'rank', 'upgrades'].includes(newState)) {
         SoundManager.play('uiClick', 'C6');
     }
 
-    if(newState === 'playing' && (oldState === 'paused' || oldState === 'levelUp')) {
-        lastFrameTime = performance.now(); // Reseta o delta time ao despausar
+    if (newState === 'playing' && (oldState === 'paused' || oldState === 'levelUp')) {
+        lastFrameTime = performance.now();
     }
 
     const isMenuState = ['menu', 'levelUp', 'gameOver', 'guide', 'rank', 'upgrades'].includes(newState);
@@ -107,22 +97,20 @@ function startNextWave() {
     waveNumber++;
     if (waveNumber > 0 && waveNumber % 5 === 0) {
         showTemporaryMessage(`BOSS - ONDA ${waveNumber}`, "red");
-        const spawnX = player ? player.x + (Math.random() < 0.5 ? -canvas.width / 2 : canvas.width / 2) : canvas.width;
-        const spawnY = player ? player.y - 150 : canvas.height / 2;
-        enemies.push(new BossEnemy(spawnX, spawnY, gameTime, waveNumber));
+        enemies.push(new BossEnemy(player.x + canvas.width, player.y - 100, gameTime, waveNumber));
         waveEnemiesRemaining.value = 1;
         currentWaveConfig = { enemies: [], eliteChance: 0.1 };
         return;
     }
 
-    const waveKey = `wave${waveNumber}`;
-    if (WAVE_CONFIGS[waveKey]) {
-        currentWaveConfig = JSON.parse(JSON.stringify(WAVE_CONFIGS[waveKey]));
-    } else { // Ondas Infinitas
+    const waveIndex = waveNumber - 1;
+    if (waveIndex < WAVE_CONFIGS.length) {
+        currentWaveConfig = JSON.parse(JSON.stringify(WAVE_CONFIGS[waveIndex]));
+    } else {
         showTemporaryMessage(`ONDA ${waveNumber} (Infinita)`, "cyan");
         const enemyTypes = ['chaser', 'speeder', 'tank', 'shooter', 'bomber', 'healer', 'summoner', 'reaper'];
         const typesInWave = Math.min(2 + Math.floor(waveNumber / 7), 5);
-        currentWaveConfig = { enemies: [], eliteChance: Math.min(0.05 + (waveNumber - Object.keys(WAVE_CONFIGS).length) * 0.01, 0.25) };
+        currentWaveConfig = { enemies: [], eliteChance: Math.min(0.05 + (waveNumber - WAVE_CONFIGS.length) * 0.01, 0.25) };
         let typesAdded = new Set();
         for(let i = 0; i < typesInWave; i++) {
             let type;
@@ -131,16 +119,15 @@ function startNextWave() {
             currentWaveConfig.enemies.push({ type, count: 5 + Math.floor(waveNumber * 0.8), spawnInterval: Math.max(20, 100 - waveNumber * 2) });
         }
     }
-
     waveEnemiesRemaining.value = currentWaveConfig.enemies.reduce((sum, cfg) => sum + cfg.count, 0);
     enemySpawnTimer = 0;
-    if (waveNumber > 0) showTemporaryMessage(`ONDA ${waveNumber}!`, "gold");
+    showTemporaryMessage(`ONDA ${waveNumber}!`, "gold");
 }
 
 function spawnEnemies() {
     if (waveEnemiesRemaining.value <= 0 && enemies.length === 0) {
         if (waveCooldownTimer <= 0) {
-            waveCooldownTimer = 180; // 3 segundos de pausa
+            waveCooldownTimer = 180;
             if (waveNumber > 0) showTemporaryMessage("PAUSA ENTRE ONDAS", "white");
         } else {
             waveCooldownTimer--;
@@ -155,7 +142,6 @@ function spawnEnemies() {
         
         const config = availableTypes[Math.floor(Math.random() * availableTypes.length)];
         const isElite = Math.random() < (currentWaveConfig.eliteChance || 0);
-
         let x, y;
         const side = Math.floor(Math.random() * 4), margin = 50;
         if (side === 0) { x = camera.x - margin; y = camera.y + Math.random() * canvas.height; }
@@ -171,7 +157,6 @@ function spawnEnemies() {
 
 function handleCollisions() {
     if (!qtree || !player || player.isDead) return;
-
     for (const proj of projectilePool) {
         if (!proj.active) continue;
         const range = new Rectangle(proj.x - proj.radius, proj.y - proj.radius, proj.radius * 2, proj.radius * 2);
@@ -188,7 +173,6 @@ function handleCollisions() {
             }
         }
     }
-
     for (const eProj of enemyProjectilePool) {
         if (!eProj.active) continue;
         if (Math.hypot(player.x - eProj.x, player.y - eProj.y) < player.radius + eProj.radius) {
@@ -196,7 +180,6 @@ function handleCollisions() {
             eProj.isDead = true; releaseToPool(eProj);
         }
     }
-
     const playerRange = new Rectangle(player.x - player.radius, player.y - player.radius, player.radius * 2, player.radius * 2);
     const nearbyToPlayer = qtree.query(playerRange);
     for (const enemy of nearbyToPlayer) {
@@ -209,23 +192,14 @@ function handleCollisions() {
 }
 
 function initGame() {
-    gameTime = 0;
-    frameCount = 0;
-    score = { kills: 0, time: 0 };
+    gameTime = 0; frameCount = 0; score = { kills: 0, time: 0 };
     screenShake = { intensity: 0, duration: 0 };
-    platforms = [];
-    enemies = [];
-    activeVortexes = [];
-    powerUps = [];
-    activeStaticFields = [];
+    platforms = []; enemies = []; activeVortexes = []; powerUps = []; activeStaticFields = [];
+    [projectilePool, xpOrbPool, damageNumberPool, particlePool].forEach(pool => pool && pool.forEach(releaseToPool));
+    document.getElementById('skills-hud').innerHTML = '';
 
-    [projectilePool, xpOrbPool, damageNumberPool, particlePool].forEach(pool => {
-        if (pool) pool.forEach(item => releaseToPool(item));
-    });
-    
     const groundLevel = canvas.height * (1 - CONFIG.GROUND_HEIGHT_PERCENT);
     platforms.push(new Platform(-CONFIG.WORLD_BOUNDS.width * 2, groundLevel, CONFIG.WORLD_BOUNDS.width * 4, CONFIG.WORLD_BOUNDS.height));
-
     const platformCount = 40;
     for (let i = 0; i < platformCount; i++) {
         const pWidth = Math.random() * 200 + 150;
@@ -234,91 +208,49 @@ function initGame() {
         const pY = groundLevel - (Math.random() * 500 + 80); 
         platforms.push(new Platform(pX, pY, pWidth, pHeight));
     }
-
     player = new Player(canvas.width / 2, groundLevel - 50, canvas);
     gameContext.player = player;
-
-    waveNumber = 0;
-    waveEnemiesRemaining.value = 0;
-    waveCooldownTimer = 0;
+    waveNumber = 0; waveEnemiesRemaining.value = 0; waveCooldownTimer = 0;
     startNextWave();
     setGameState('playing');
 }
 
 function updateGame(deltaTime) {
     if (!player) return;
-    
-    gameTime += deltaTime;
-    frameCount++;
-    score.time = gameTime;
-
+    gameTime += deltaTime; frameCount++; score.time = gameTime;
     const worldBounds = new Rectangle(-CONFIG.WORLD_BOUNDS.width / 2, -CONFIG.WORLD_BOUNDS.height / 2, CONFIG.WORLD_BOUNDS.width, CONFIG.WORLD_BOUNDS.height);
     qtree = new Quadtree(worldBounds, 4);
     enemies.forEach(e => { if (!e.isDead) qtree.insert(e); });
     gameContext.qtree = qtree;
-
-    gameContext.frameCount = frameCount;
-
     player.update(gameContext);
-    [...enemies, ...powerUps, ...activeVortexes, ...activeStaticFields].forEach(e => e.update(gameContext));
-    [xpOrbPool, projectilePool, enemyProjectilePool, damageNumberPool].forEach(pool => {
-        pool.forEach(e => { if (e.active) e.update(gameContext); });
-    });
-    
+    [...enemies, ...powerUps, ...activeVortexes, ...activeStaticFields, ...projectilePool, ...enemyProjectilePool, ...damageNumberPool, ...xpOrbPool].forEach(e => e.active && e.update(gameContext));
     camera.update();
     spawnEnemies();
     handleCollisions();
-
-    removeDeadEntities(enemies);
-    removeDeadEntities(powerUps);
-    removeDeadEntities(activeVortexes);
-    removeDeadEntities(activeStaticFields);
-
-    if (screenShake.duration > 0) {
-        screenShake.duration--;
-        if (screenShake.duration <= 0) screenShake.intensity = 0;
-    }
+    [enemies, powerUps, activeVortexes, activeStaticFields].forEach(removeDeadEntities);
+    if (screenShake.duration > 0 && --screenShake.duration <= 0) screenShake.intensity = 0;
 }
 
 function drawGame() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.save();
-    if (screenShake.intensity > 0) {
-        ctx.translate((Math.random() - 0.5) * screenShake.intensity, (Math.random() - 0.5) * screenShake.intensity);
-    }
-
-    platforms.forEach(p => p.draw(ctx, camera));
-    [...xpOrbPool, ...powerUps, ...activeVortexes, ...activeStaticFields, ...enemies, ...projectilePool, ...enemyProjectilePool].forEach(e => {
-        if(e.active !== false) e.draw(ctx, camera, player);
-    });
-
+    if (screenShake.intensity > 0) ctx.translate((Math.random() - 0.5) * screenShake.intensity, (Math.random() - 0.5) * screenShake.intensity);
+    [...platforms, ...xpOrbPool, ...powerUps, ...activeVortexes, ...activeStaticFields, ...enemies, ...projectilePool, ...enemyProjectilePool].forEach(e => e.active && e.draw(ctx, camera, player));
     if (player) player.draw(ctx, camera);
-    damageNumberPool.forEach(dn => { if(dn.active) dn.draw(ctx, camera); });
-    
+    damageNumberPool.forEach(dn => dn.active && dn.draw(ctx, camera));
     ctx.restore();
     updateHUD(player, gameTime, frameCount);
 }
 
 function gameLoop(currentTime) {
     requestAnimationFrame(gameLoop);
-    if (gameState === 'loading') return;
-
-    const deltaTime = (currentTime - (lastFrameTime || currentTime)) / 1000.0;
-    
-    if (gameState === 'playing') {
-        updateGame(deltaTime);
-    } else if (gameState === 'menu') {
-        if (!demoPlayer) demoPlayer = new DemoPlayer(canvas.width / 2, canvas.height / 2);
-        demoPlayer.update();
-    }
-    
+    if (gameState === 'loading' || !lastFrameTime) { lastFrameTime = currentTime; return; }
+    const deltaTime = (currentTime - lastFrameTime) / 1000.0;
+    if (gameState === 'playing') updateGame(deltaTime);
+    else if (gameState === 'menu' && demoPlayer) demoPlayer.update();
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    if (gameState === 'menu') {
-        if (demoPlayer) demoPlayer.draw(ctx);
-    } else if (gameState !== 'loading') {
-        drawGame();
-    }
-    
+    if (gameState === 'menu' && demoPlayer) demoPlayer.draw(ctx);
+    else if (gameState !== 'loading') drawGame();
     lastFrameTime = currentTime;
 }
 
@@ -326,11 +258,7 @@ window.onload = () => {
     canvas = document.getElementById('gameCanvas');
     ctx = canvas.getContext('2d');
     isMobile = /Mobi|Android/i.test(navigator.userAgent);
-    
-    const resizeCanvas = () => {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-    };
+    const resizeCanvas = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
 
@@ -341,41 +269,21 @@ window.onload = () => {
     damageNumberPool = createPool(DamageNumber, 50);
 
     gameContext = {
-        setGameState,
-        showTemporaryMessage,
-        score,
-        xpOrbPool,
-        particlePool,
-        enemyProjectilePool,
-        activeVortexes,
-        powerUps,
-        damageNumberPool,
-        waveEnemiesRemaining,
-        screenShake,
-        get enemies() { return enemies; },
-        get platforms() { return platforms; },
-        player, // Será atualizado em initGame
-        get qtree() { return qtree; },
-        get frameCount() { return frameCount; },
-        get gameTime() { return gameTime; },
-        get waveNumber() { return waveNumber; },
-        get playerProjectiles() { return projectilePool; },
+        setGameState, showTemporaryMessage, score, xpOrbPool, particlePool,
+        enemyProjectilePool, activeVortexes, powerUps, damageNumberPool,
+        waveEnemiesRemaining, screenShake,
+        get enemies() { return enemies; }, get platforms() { return platforms; },
+        get player() { return player; }, get qtree() { return qtree; },
+        get frameCount() { return frameCount; }, get gameTime() { return gameTime; },
+        get waveNumber() { return waveNumber; }, get playerProjectiles() { return projectilePool; },
         get staticFields() { return activeStaticFields; },
-        isMobile,
-        keys,
-        movementVector,
-        ui,
-        initGame
+        isMobile, keys, movementVector, ui, initGame
     };
 
     loadPermanentData();
     SoundManager.init();
-    
     setupEventListeners(gameContext);
-    
     setGameState('menu');
     requestAnimationFrame(gameLoop);
-    
-    const debugStatus = document.getElementById('debug-status');
-    if (debugStatus) debugStatus.style.display = 'none';
+    document.getElementById('debug-status').style.display = 'none';
 };
