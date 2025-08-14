@@ -5,7 +5,7 @@ import { Quadtree, Rectangle, removeDeadEntities, formatTime } from './systems/u
 import { loadPermanentData, saveScore } from './systems/save.js';
 import SoundManager from './systems/sound.js';
 import { createPool, getFromPool, releaseToPool } from './systems/pooling.js';
-import { ui, setupEventListeners, showTemporaryMessage, populateLevelUpOptions, updateHUD } from './systems/ui.js';
+import { ui, setupEventListeners, showTemporaryMessage, populateLevelUpOptions, updateHUD } from './systems.ui.js';
 import { Player } from './entities/player.js';
 import { Enemy, BossEnemy } from './entities/enemy.js';
 import { Platform } from './entities/platform.js';
@@ -18,14 +18,21 @@ import { PowerUp } from './entities/powerup.js';
 import { Vortex } from './entities/vortex.js';
 import { StaticField } from './entities/staticfield.js';
 
+// Variáveis de estado globais
 let gameState = 'loading';
 let lastFrameTime = 0;
 let gameTime = 0;
 let frameCount = 0;
 let isMobile, canvas, ctx;
 let player, demoPlayer;
+
+// Arrays de entidades
 let platforms = [], enemies = [], activeVortexes = [], powerUps = [], activeStaticFields = [];
+
+// Pools de Objetos
 let particlePool, projectilePool, enemyProjectilePool, xpOrbPool, damageNumberPool;
+
+// Estado do Jogo
 let qtree;
 let score = { kills: 0, time: 0 };
 let screenShake = { intensity: 0, duration: 0 };
@@ -37,6 +44,7 @@ let waveCooldownTimer = 0;
 let currentWaveConfig = {};
 let enemySpawnTimer = 0;
 
+// Câmera
 let camera = {
     x: 0, y: 0, targetX: 0, targetY: 0,
     update() {
@@ -69,7 +77,7 @@ function setGameState(newState) {
     ui.dashButtonMobile.classList.toggle('hidden', !isMobile || newState !== 'playing');
 
     Object.values(ui).forEach(element => {
-        if (element && element.classList && element.classList.contains('ui-panel')) {
+        if (element?.classList?.contains('ui-panel')) {
             element.classList.add('hidden');
         }
     });
@@ -144,10 +152,11 @@ function spawnEnemies() {
         const isElite = Math.random() < (currentWaveConfig.eliteChance || 0);
         let x, y;
         const side = Math.floor(Math.random() * 4), margin = 50;
-        if (side === 0) { x = camera.x - margin; y = camera.y + Math.random() * canvas.height; }
-        else if (side === 1) { x = camera.x + canvas.width + margin; y = camera.y + Math.random() * canvas.height; }
-        else if (side === 2) { x = camera.x + Math.random() * canvas.width; y = camera.y - margin; }
-        else { x = camera.x + Math.random() * canvas.width; y = camera.y + canvas.height + margin; }
+        const cam = camera;
+        if (side === 0) { x = cam.x - margin; y = cam.y + Math.random() * canvas.height; }
+        else if (side === 1) { x = cam.x + canvas.width + margin; y = cam.y + Math.random() * canvas.height; }
+        else if (side === 2) { x = cam.x + Math.random() * canvas.width; y = cam.y - margin; }
+        else { x = cam.x + Math.random() * canvas.width; y = cam.y + canvas.height + margin; }
         
         enemies.push(new Enemy(x, y, config.type, isElite, gameTime, waveNumber));
         config.count--;
@@ -247,7 +256,10 @@ function gameLoop(currentTime) {
     if (gameState === 'loading' || !lastFrameTime) { lastFrameTime = currentTime; return; }
     const deltaTime = (currentTime - lastFrameTime) / 1000.0;
     if (gameState === 'playing') updateGame(deltaTime);
-    else if (gameState === 'menu' && demoPlayer) demoPlayer.update();
+    else if (gameState === 'menu') {
+        if (!demoPlayer) demoPlayer = new DemoPlayer(canvas.width / 2, canvas.height / 2);
+        demoPlayer.update();
+    }
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     if (gameState === 'menu' && demoPlayer) demoPlayer.draw(ctx);
     else if (gameState !== 'loading') drawGame();
@@ -284,6 +296,7 @@ window.onload = () => {
     SoundManager.init();
     setupEventListeners(gameContext);
     setGameState('menu');
+    lastFrameTime = performance.now();
     requestAnimationFrame(gameLoop);
     document.getElementById('debug-status').style.display = 'none';
 };
