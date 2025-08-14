@@ -8,16 +8,17 @@ import { getFromPool } from '../systems/pooling.js';
 import { Vortex } from './vortex.js';
 import { Rectangle } from '../systems/utils.js';
 import { StaticField } from './staticfield.js';
+import { createSkillHudIcon } from '../systems/ui.js'; // Importa a função
 
 function createLightningBolt(startPos, endPos, particlePool) {
     const dx = endPos.x - startPos.x;
     const dy = endPos.y - startPos.y;
     const dist = Math.hypot(dx, dy);
-    const segments = Math.floor(dist / 10);
+    const segments = Math.floor(dist / 15);
     for (let i = 0; i < segments; i++) {
         const t = i / segments;
-        const x = startPos.x + dx * t + (Math.random() - 0.5) * 10;
-        const y = startPos.y + dy * t + (Math.random() - 0.5) * 10;
+        const x = startPos.x + dx * t + (Math.random() - 0.5) * 15;
+        const y = startPos.y + dy * t + (Math.random() - 0.5) * 15;
         getFromPool(particlePool, x, y, '#ADD8E6', 1.5);
     }
 }
@@ -26,9 +27,9 @@ export class Player extends Entity {
     constructor(x, y, canvas) {
         super(x, y, 15);
 
-        const healthUpgradeLevel = playerUpgrades.max_health;
-        const damageUpgradeLevel = playerUpgrades.damage_boost;
-        const xpUpgradeLevel = playerUpgrades.xp_gain;
+        const healthUpgradeLevel = playerUpgrades.max_health || 0;
+        const damageUpgradeLevel = playerUpgrades.damage_boost || 0;
+        const xpUpgradeLevel = playerUpgrades.xp_gain || 0;
 
         this.baseHealth = CONFIG.PLAYER_HEALTH + (healthUpgradeLevel > 0 ? PERMANENT_UPGRADES.max_health.levels[healthUpgradeLevel - 1].effect : 0);
         this.damageModifier = 1 + (damageUpgradeLevel > 0 ? PERMANENT_UPGRADES.damage_boost.levels[damageUpgradeLevel - 1].effect : 0);
@@ -55,18 +56,17 @@ export class Player extends Entity {
         this.squashStretchTimer = 0;
         this.shielded = false;
         this.shieldTimer = 0;
-        
-        this.x = canvas.width / 2;
-        this.y = canvas.height * (1 - CONFIG.GROUND_HEIGHT_PERCENT) - this.radius;
     }
 
     update(gameContext) {
+        if(this.isDead) return;
         this.handleMovement(gameContext);
         this.applyGravity(gameContext);
         this.updateSkills(gameContext);
+        this.animationFrame++;
     }
     
-    handleMovement({ keys, movementVector, isMobile, ui }) {
+    handleMovement({ keys, movementVector, isMobile }) {
         if (this.isDashing) {
             this.x += this.dashDirection.x * CONFIG.PLAYER_DASH_FORCE;
             this.y += this.dashDirection.y * CONFIG.PLAYER_DASH_FORCE;
@@ -75,41 +75,34 @@ export class Player extends Entity {
             return;
         }
 
-        let dx = 0; let dy_input = 0;
-        
+        let dx = 0;
         if (isMobile) {
             dx = movementVector.x;
-            dy_input = movementVector.y;
         } else {
-            dx = (keys['d'] || keys['ArrowRight']) ? 1 : ((keys['a'] || keys['ArrowLeft']) ? -1 : 0);
-            dy_input = (keys['s'] || keys['ArrowDown']) ? 1 : ((keys['w'] || keys['ArrowUp']) ? -1 : 0);
+            dx = (keys['d'] || keys['arrowright']) ? 1 : ((keys['a'] || keys['arrowleft']) ? -1 : 0);
         }
 
-        if (dx !== 0 || dy_input !== 0) {
-            const magnitude = Math.hypot(dx, dy_input);
-            this.lastMoveDirection = { x: dx / magnitude, y: dy_input / magnitude };
+        if (dx !== 0) {
+            this.lastMoveDirection = { x: dx, y: 0 };
+            this.facingRight = dx > 0;
         }
-        if (dx !== 0) this.facingRight = dx > 0;
         
         this.x += dx * this.speed;
 
-        const jumpPressed = isMobile ? (movementVector.y < -0.5) : (keys['w'] || keys['ArrowUp'] || keys[' ']);
+        const jumpPressed = isMobile ? (movementVector.y < -0.8) : (keys['w'] || keys['arrowup'] || keys[' ']);
         if (jumpPressed && this.jumpsAvailable > 0) {
-            const isFirstJump = this.onGround || this.jumpsAvailable === (this.skills['double_jump'] ? 2 : 1);
-            this.velocityY = isFirstJump ? CONFIG.PLAYER_JUMP_FORCE : CONFIG.PLAYER_DOUBLE_JUMP_FORCE;
+            this.velocityY = this.onGround ? CONFIG.PLAYER_JUMP_FORCE : CONFIG.PLAYER_DOUBLE_JUMP_FORCE;
             this.jumpsAvailable--;
             this.onGround = false;
-            if (!isMobile) keys['w'] = keys['ArrowUp'] = keys[' '] = false;
+            if (!isMobile) keys['w'] = keys['arrowup'] = keys[' '] = false; // Consome o input
         }
 
         if (!isMobile && keys.shift) { this.dash(); keys.shift = false; }
 
         if (this.dashCooldown > 0) {
             this.dashCooldown--;
-            if (isMobile) ui.dashButtonMobile.classList.add('on-cooldown');
-        } else {
-            if (isMobile) ui.dashButtonMobile.classList.remove('on-cooldown');
         }
+        document.getElementById('dash-button-mobile').classList.toggle('on-cooldown', this.dashCooldown > 0);
     }
 
     dash() {
@@ -118,52 +111,34 @@ export class Player extends Entity {
         this.dashTimer = CONFIG.PLAYER_DASH_DURATION;
         this.dashCooldown = CONFIG.PLAYER_DASH_COOLDOWN;
         this.dashDirection = { ...this.lastMoveDirection };
-        if (this.dashDirection.x === 0 && this.dashDirection.y === 0) {
-            this.dashDirection.x = this.facingRight ? 1 : -1;
-        }
         SoundManager.play('uiClick', 'F5');
     }
 
-    applyGravity(gameContext) {
-        const { platforms } = gameContext;
-        const wasOnGround = this.onGround;
+    applyGravity({ platforms }) {
         this.velocityY += CONFIG.GRAVITY;
         this.y += this.velocityY;
         this.onGround = false;
 
         for (const p of platforms) {
-            if (this.x > p.x && this.x < p.x + p.width && (this.y - this.velocityY) <= p.y - this.radius && this.y >= p.y - this.radius) {
+            if (this.x + this.radius > p.x && this.x - this.radius < p.x + p.width && 
+                this.y + this.radius >= p.y && this.y + this.radius - this.velocityY <= p.y) {
                 this.y = p.y - this.radius;
                 this.velocityY = 0;
-                this.onGround = true;
-                if (!wasOnGround) {
-                    this.jumpsAvailable = (this.skills['double_jump'] ? 2 : 1);
+                if (!this.onGround) {
+                    this.onGround = true;
+                    this.jumpsAvailable = this.skills['double_jump'] ? 2 : 1;
                     this.squashStretchTimer = CONFIG.PLAYER_LANDING_SQUASH_DURATION;
                     SoundManager.play('land', '16n');
                 }
                 break;
             }
         }
-        
-        if (platforms.length > 0) {
-            const groundPlatform = platforms[0];
-            const groundTopY = groundPlatform.y;
-            if (this.y > groundTopY - this.radius) {
-                this.y = groundTopY - this.radius;
-                if (this.velocityY > 0) this.velocityY = 0;
-                if (!this.onGround) {
-                   this.onGround = true;
-                   this.jumpsAvailable = (this.skills['double_jump'] ? 2 : 1);
-                }
-            }
-            if (this.y > groundTopY + 200) { 
-                this.takeDamage(9999, gameContext);
-            }
-        }
     }
 
     takeDamage(amount, gameContext) {
+        if (this.isDead) return;
         const { screenShake, setGameState, particlePool } = gameContext;
+
         if (this.shielded) {
             this.shielded = false;
             if (particlePool) for(let i=0; i<15; i++) getFromPool(particlePool, this.x, this.y, 'cyan', 3);
@@ -198,7 +173,8 @@ export class Player extends Entity {
     addSkill(skillId, gameContext) {
         const { showTemporaryMessage, enemies, screenShake } = gameContext;
         const skillData = SKILL_DATABASE[skillId];
-        if (skillData.type === 'utility' && skillData.instant) {
+        
+        if (skillData.instant) {
             if (skillId === 'heal') this.health = Math.min(this.maxHealth, this.health + this.maxHealth * 0.25);
             if (skillId === 'black_hole') {
                 SoundManager.play('nuke', '8n');
@@ -208,17 +184,21 @@ export class Player extends Entity {
             }
             return;
         }
+
         if (!this.skills[skillId]) {
             this.skills[skillId] = { level: 1, timer: 0, orbs: [] };
         } else {
             this.skills[skillId].level++;
         }
+        
+        // CORREÇÃO: Chama a função para criar ou atualizar o ícone no HUD
+        createSkillHudIcon(skillId, this.skills[skillId].level);
     }
     
     findNearestEnemy(qtree) {
         let nearest = null;
         let nearestDistSq = Infinity;
-        const searchRadius = 2000;
+        const searchRadius = 1000;
         const searchArea = new Rectangle(this.x - searchRadius, this.y - searchRadius, searchRadius * 2, searchRadius * 2);
         const candidates = qtree.query(searchArea);
         for (const enemy of candidates) {
@@ -233,43 +213,48 @@ export class Player extends Entity {
     }
 
     updateSkills(gameContext) {
-        const { qtree, frameCount, playerProjectiles, activeVortexes, staticFields, particlePool } = gameContext;
+        const { qtree, frameCount, playerProjectiles, activeVortexes, staticFields, particlePool, enemies } = gameContext;
         for (const skillId in this.skills) {
             const skillState = this.skills[skillId];
             const skillData = SKILL_DATABASE[skillId];
             if (skillState.level > skillData.levels.length) continue;
             const levelData = skillData.levels[skillState.level - 1];
 
-            if (skillData.cooldown > 0) {
-                if (skillState.timer > 0) skillState.timer--;
-                if (skillState.timer > 0) continue;
+            if (skillData.cooldown > 0 && skillState.timer > 0) {
+                skillState.timer--;
             }
 
-            if (skillData.type === 'projectile') {
-                const target = this.findNearestEnemy(qtree);
-                if (target) {
-                    if (skillId === 'divine_lance') {
-                        const angle = Math.atan2(target.y - this.y, target.x - this.x);
-                        for (let i = 0; i < levelData.count; i++) {
-                            const spread = (i - (levelData.count - 1) / 2) * 0.1;
-                            getFromPool(playerProjectiles, this.x, this.y, angle + spread, { ...levelData, damage: levelData.damage * this.damageModifier });
+            if (skillState.timer <= 0) {
+                if (skillData.type === 'projectile') {
+                    const target = this.findNearestEnemy(qtree);
+                    if (target) {
+                        if (skillId === 'divine_lance') {
+                            const angle = Math.atan2(target.y - this.y, target.x - this.x);
+                            for (let i = 0; i < levelData.count; i++) {
+                                const spread = (i - (levelData.count - 1) / 2) * 0.1;
+                                getFromPool(playerProjectiles, this.x, this.y, angle + spread, { ...levelData, damage: levelData.damage * this.damageModifier });
+                            }
+                        } else if (skillId === 'chain_lightning') {
+                            let currentTarget = target;
+                            let lastPos = {x: this.x, y: this.y};
+                            let targetsHit = new Set([currentTarget]);
+                            for(let i=0; i <= levelData.chains; i++) {
+                                if (!currentTarget) break;
+                                currentTarget.takeDamage(levelData.damage * this.damageModifier, gameContext);
+                                createLightningBolt(lastPos, currentTarget, particlePool);
+                                lastPos = {x: currentTarget.x, y: currentTarget.y};
+                                currentTarget = enemies.filter(e => !e.isDead && !targetsHit.has(e) && Math.hypot(lastPos.x - e.x, lastPos.y - e.y) < levelData.chainRadius)
+                                                      .sort((a,b) => Math.hypot(lastPos.x - a.x, lastPos.y - a.y) - Math.hypot(lastPos.x - b.x, lastPos.y - b.y))[0];
+                                if(currentTarget) targetsHit.add(currentTarget);
+                            }
                         }
-                    } else if (skillId === 'chain_lightning') {
-                        let currentTarget = target;
-                        let lastPos = {x: this.x, y: this.y};
-                        for(let i=0; i<levelData.chains; i++) {
-                            if (!currentTarget) break;
-                            currentTarget.takeDamage(levelData.damage * this.damageModifier, gameContext);
-                            createLightningBolt(lastPos, currentTarget, particlePool);
-                            //... (lógica de encontrar o próximo alvo)
-                        }
+                        skillState.timer = skillData.cooldown;
                     }
+                } else if (skillData.type === 'aura') {
+                    if(skillId === 'vortex') activeVortexes.push(new Vortex(this.x, this.y, { ...levelData, damage: levelData.damage * this.damageModifier }));
+                    if(skillId === 'static_field') staticFields.push(new StaticField(this.x, this.y, levelData));
                     skillState.timer = skillData.cooldown;
                 }
-            } else if (skillData.type === 'aura') {
-                if(skillId === 'vortex') activeVortexes.push(new Vortex(this.x, this.y, { ...levelData, damage: levelData.damage * this.damageModifier }));
-                if(skillId === 'static_field') staticFields.push(new StaticField(this.x, this.y, levelData));
-                skillState.timer = skillData.cooldown;
             }
         }
         
@@ -336,6 +321,5 @@ export class Player extends Entity {
             ctx.stroke();
         }
         ctx.restore();
-        this.animationFrame++;
     }
 }
