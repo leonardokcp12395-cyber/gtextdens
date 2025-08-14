@@ -8,17 +8,16 @@ import { getFromPool } from '../systems/pooling.js';
 import { Vortex } from './vortex.js';
 import { Rectangle } from '../systems/utils.js';
 import { StaticField } from './staticfield.js';
-import { createSkillHudIcon } from '../systems/ui.js'; // Importa a função
 
 function createLightningBolt(startPos, endPos, particlePool) {
     const dx = endPos.x - startPos.x;
     const dy = endPos.y - startPos.y;
     const dist = Math.hypot(dx, dy);
-    const segments = Math.floor(dist / 15);
+    const segments = Math.floor(dist / 10);
     for (let i = 0; i < segments; i++) {
         const t = i / segments;
-        const x = startPos.x + dx * t + (Math.random() - 0.5) * 15;
-        const y = startPos.y + dy * t + (Math.random() - 0.5) * 15;
+        const x = startPos.x + dx * t + (Math.random() - 0.5) * 10;
+        const y = startPos.y + dy * t + (Math.random() - 0.5) * 10;
         getFromPool(particlePool, x, y, '#ADD8E6', 1.5);
     }
 }
@@ -26,7 +25,6 @@ function createLightningBolt(startPos, endPos, particlePool) {
 export class Player extends Entity {
     constructor(x, y, canvas) {
         super(x, y, 15);
-
         const healthUpgradeLevel = playerUpgrades.max_health || 0;
         const damageUpgradeLevel = playerUpgrades.damage_boost || 0;
         const xpUpgradeLevel = playerUpgrades.xp_gain || 0;
@@ -56,6 +54,8 @@ export class Player extends Entity {
         this.squashStretchTimer = 0;
         this.shielded = false;
         this.shieldTimer = 0;
+        this.x = x;
+        this.y = y;
     }
 
     update(gameContext) {
@@ -63,46 +63,54 @@ export class Player extends Entity {
         this.handleMovement(gameContext);
         this.applyGravity(gameContext);
         this.updateSkills(gameContext);
-        this.animationFrame++;
+
+        if (this.skills['health_regen']) {
+            const regenLevel = this.skills['health_regen'].level -1;
+            const regenData = SKILL_DATABASE['health_regen'].levels[regenLevel];
+            this.health = Math.min(this.maxHealth, this.health + regenData.regenPerSecond / 60);
+        }
+
+        if (this.shieldTimer > 0) {
+            this.shieldTimer--;
+        } else {
+            this.shielded = false;
+        }
     }
     
-    handleMovement({ keys, movementVector, isMobile }) {
+    handleMovement({ keys, movementVector, isMobile, ui }) {
         if (this.isDashing) {
             this.x += this.dashDirection.x * CONFIG.PLAYER_DASH_FORCE;
             this.y += this.dashDirection.y * CONFIG.PLAYER_DASH_FORCE;
-            this.dashTimer--;
-            if (this.dashTimer <= 0) this.isDashing = false;
+            if (--this.dashTimer <= 0) this.isDashing = false;
             return;
         }
-
-        let dx = 0;
-        if (isMobile) {
-            dx = movementVector.x;
-        } else {
+        let dx = 0, dy_input = 0;
+        if (isMobile) { dx = movementVector.x; dy_input = movementVector.y; }
+        else {
             dx = (keys['d'] || keys['arrowright']) ? 1 : ((keys['a'] || keys['arrowleft']) ? -1 : 0);
+            dy_input = (keys['s'] || keys['arrowdown']) ? 1 : ((keys['w'] || keys['arrowup']) ? -1 : 0);
         }
 
-        if (dx !== 0) {
-            this.lastMoveDirection = { x: dx, y: 0 };
-            this.facingRight = dx > 0;
+        if (dx !== 0 || dy_input !== 0) {
+            const mag = Math.hypot(dx, dy_input);
+            this.lastMoveDirection = { x: dx / mag, y: dy_input / mag };
         }
+        if (dx !== 0) this.facingRight = dx > 0;
         
         this.x += dx * this.speed;
 
-        const jumpPressed = isMobile ? (movementVector.y < -0.8) : (keys['w'] || keys['arrowup'] || keys[' ']);
+        const jumpPressed = isMobile ? (movementVector.y < -0.7) : (keys['w'] || keys['arrowup'] || keys[' ']);
         if (jumpPressed && this.jumpsAvailable > 0) {
-            this.velocityY = this.onGround ? CONFIG.PLAYER_JUMP_FORCE : CONFIG.PLAYER_DOUBLE_JUMP_FORCE;
+            const isFirstJump = this.onGround || this.jumpsAvailable === (this.skills['double_jump'] ? 2 : 1);
+            this.velocityY = isFirstJump ? CONFIG.PLAYER_JUMP_FORCE : CONFIG.PLAYER_DOUBLE_JUMP_FORCE;
             this.jumpsAvailable--;
             this.onGround = false;
-            if (!isMobile) keys['w'] = keys['arrowup'] = keys[' '] = false; // Consome o input
+            if (!isMobile) keys['w'] = keys['arrowup'] = keys[' '] = false; // Consumir o input
         }
 
-        if (!isMobile && keys.shift) { this.dash(); keys.shift = false; }
-
-        if (this.dashCooldown > 0) {
-            this.dashCooldown--;
-        }
-        document.getElementById('dash-button-mobile').classList.toggle('on-cooldown', this.dashCooldown > 0);
+        if (!isMobile && (keys.shift || keys.shiftleft)) { this.dash(); keys.shift = keys.shiftleft = false; }
+        if (this.dashCooldown > 0) this.dashCooldown--;
+        if (isMobile) ui.dashButtonMobile.classList.toggle('on-cooldown', this.dashCooldown > 0);
     }
 
     dash() {
@@ -111,56 +119,45 @@ export class Player extends Entity {
         this.dashTimer = CONFIG.PLAYER_DASH_DURATION;
         this.dashCooldown = CONFIG.PLAYER_DASH_COOLDOWN;
         this.dashDirection = { ...this.lastMoveDirection };
+        if (this.dashDirection.x === 0 && this.dashDirection.y === 0) this.dashDirection.x = this.facingRight ? 1 : -1;
         SoundManager.play('uiClick', 'F5');
     }
 
-    applyGravity({ platforms }) {
+    applyGravity({ platforms, setGameState }) {
+        const wasOnGround = this.onGround;
         this.velocityY += CONFIG.GRAVITY;
         this.y += this.velocityY;
         this.onGround = false;
 
         for (const p of platforms) {
-            if (this.x + this.radius > p.x && this.x - this.radius < p.x + p.width && 
-                this.y + this.radius >= p.y && this.y + this.radius - this.velocityY <= p.y) {
-                this.y = p.y - this.radius;
-                this.velocityY = 0;
-                if (!this.onGround) {
-                    this.onGround = true;
-                    this.jumpsAvailable = this.skills['double_jump'] ? 2 : 1;
+            if (this.x + this.radius > p.x && this.x - this.radius < p.x + p.width && (this.y - this.velocityY) <= p.y - this.radius && this.y >= p.y - this.radius) {
+                this.y = p.y - this.radius; this.velocityY = 0; this.onGround = true;
+                if (!wasOnGround) {
+                    this.jumpsAvailable = (this.skills['double_jump'] ? 2 : 1);
                     this.squashStretchTimer = CONFIG.PLAYER_LANDING_SQUASH_DURATION;
                     SoundManager.play('land', '16n');
                 }
-                break;
+                return; // Encontrou chão, sai da função
             }
         }
+        if (this.y > platforms[0].y + 200) this.takeDamage(9999, { setGameState });
     }
 
-    takeDamage(amount, gameContext) {
+    takeDamage(amount, { screenShake, setGameState, particlePool }) {
         if (this.isDead) return;
-        const { screenShake, setGameState, particlePool } = gameContext;
-
-        if (this.shielded) {
-            this.shielded = false;
-            if (particlePool) for(let i=0; i<15; i++) getFromPool(particlePool, this.x, this.y, 'cyan', 3);
-            return;
-        }
-        this.health -= amount;
-        this.hitTimer = 30;
+        if (this.shielded) { this.shielded = false; return; }
+        this.health -= amount; this.hitTimer = 30;
         SoundManager.play('damage', '8n');
-        screenShake.intensity = 5;
-        screenShake.duration = 15;
+        screenShake.intensity = 5; screenShake.duration = 15;
         if (this.health <= 0) {
-            this.health = 0;
-            this.isDead = true;
+            this.health = 0; this.isDead = true;
             setGameState('gameOver');
         }
     }
 
-    addXp(amount, gameContext) {
-        const { setGameState, particlePool } = gameContext;
+    addXp(amount, { setGameState }) {
         this.xp += amount * this.xpModifier;
         SoundManager.play('xp', 'C5');
-        if (particlePool) for (let i = 0; i < 2; i++) getFromPool(particlePool, this.x, this.y, 'cyan', 2);
         while (this.xp >= this.xpToNextLevel) {
             this.level++;
             this.xp -= this.xpToNextLevel;
@@ -171,62 +168,72 @@ export class Player extends Entity {
     }
     
     addSkill(skillId, gameContext) {
-        const { showTemporaryMessage, enemies, screenShake } = gameContext;
         const skillData = SKILL_DATABASE[skillId];
-        
         if (skillData.instant) {
             if (skillId === 'heal') this.health = Math.min(this.maxHealth, this.health + this.maxHealth * 0.25);
-            if (skillId === 'black_hole') {
+            else if (skillId === 'black_hole') {
                 SoundManager.play('nuke', '8n');
-                screenShake.intensity = 15; screenShake.duration = 30;
-                enemies.forEach(e => e.takeDamage(99999, gameContext));
-                showTemporaryMessage("BURACO NEGRO!", "gold");
+                gameContext.screenShake.intensity = 15; gameContext.screenShake.duration = 30;
+                gameContext.enemies.forEach(e => e.takeDamage(99999, gameContext));
+                gameContext.showTemporaryMessage("BURACO NEGRO!", "gold");
             }
             return;
         }
 
         if (!this.skills[skillId]) {
             this.skills[skillId] = { level: 1, timer: 0, orbs: [] };
+            // CORREÇÃO: Adiciona o ícone na HUD ao pegar a habilidade
+            if (skillData.type !== 'passive') {
+                const hudContainer = document.getElementById('skills-hud');
+                const div = document.createElement('div');
+                div.className = 'skill-hud-icon';
+                div.id = `hud-skill-${skillId}`;
+                div.innerHTML = `${skillData.icon}<sub>1</sub>`;
+                hudContainer.appendChild(div);
+            }
         } else {
             this.skills[skillId].level++;
+             const hudIcon = document.querySelector(`#hud-skill-${skillId} > sub`);
+             if(hudIcon) hudIcon.textContent = this.skills[skillId].level;
         }
-        
-        // CORREÇÃO: Chama a função para criar ou atualizar o ícone no HUD
-        createSkillHudIcon(skillId, this.skills[skillId].level);
+
+        if (skillId === 'magnet') {
+            const levelData = skillData.levels[this.skills[skillId].level - 1];
+            this.collectRadius = CONFIG.XP_ORB_ATTRACTION_RADIUS * (1 + levelData.collectRadiusBonus);
+        } else if (skillId === 'double_jump') {
+            this.jumpsAvailable = 2;
+        }
     }
     
-    findNearestEnemy(qtree) {
-        let nearest = null;
-        let nearestDistSq = Infinity;
-        const searchRadius = 1000;
+    findNearestEnemy({ qtree }) {
+        if (!qtree) return null;
+        let nearest = null; let nearestDistSq = Infinity;
+        const searchRadius = 2000;
         const searchArea = new Rectangle(this.x - searchRadius, this.y - searchRadius, searchRadius * 2, searchRadius * 2);
         const candidates = qtree.query(searchArea);
         for (const enemy of candidates) {
-            if(enemy.isDead) continue;
+            if (enemy.isDead) continue;
             const distSq = (this.x - enemy.x)**2 + (this.y - enemy.y)**2;
             if (distSq < nearestDistSq) {
-                nearestDistSq = distSq;
-                nearest = enemy;
+                nearestDistSq = distSq; nearest = enemy;
             }
         }
         return nearest;
     }
 
     updateSkills(gameContext) {
-        const { qtree, frameCount, playerProjectiles, activeVortexes, staticFields, particlePool, enemies } = gameContext;
+        const { qtree, frameCount, playerProjectiles, activeVortexes, staticFields, particlePool } = gameContext;
         for (const skillId in this.skills) {
             const skillState = this.skills[skillId];
             const skillData = SKILL_DATABASE[skillId];
             if (skillState.level > skillData.levels.length) continue;
             const levelData = skillData.levels[skillState.level - 1];
 
-            if (skillData.cooldown > 0 && skillState.timer > 0) {
-                skillState.timer--;
-            }
-
+            if (skillData.cooldown > 0 && skillState.timer > 0) skillState.timer--;
+            
             if (skillState.timer <= 0) {
-                if (skillData.type === 'projectile') {
-                    const target = this.findNearestEnemy(qtree);
+                 if (skillData.type === 'projectile') {
+                    const target = this.findNearestEnemy(gameContext);
                     if (target) {
                         if (skillId === 'divine_lance') {
                             const angle = Math.atan2(target.y - this.y, target.x - this.x);
@@ -235,24 +242,17 @@ export class Player extends Entity {
                                 getFromPool(playerProjectiles, this.x, this.y, angle + spread, { ...levelData, damage: levelData.damage * this.damageModifier });
                             }
                         } else if (skillId === 'chain_lightning') {
-                            let currentTarget = target;
-                            let lastPos = {x: this.x, y: this.y};
-                            let targetsHit = new Set([currentTarget]);
-                            for(let i=0; i <= levelData.chains; i++) {
-                                if (!currentTarget) break;
-                                currentTarget.takeDamage(levelData.damage * this.damageModifier, gameContext);
-                                createLightningBolt(lastPos, currentTarget, particlePool);
-                                lastPos = {x: currentTarget.x, y: currentTarget.y};
-                                currentTarget = enemies.filter(e => !e.isDead && !targetsHit.has(e) && Math.hypot(lastPos.x - e.x, lastPos.y - e.y) < levelData.chainRadius)
-                                                      .sort((a,b) => Math.hypot(lastPos.x - a.x, lastPos.y - a.y) - Math.hypot(lastPos.x - b.x, lastPos.y - b.y))[0];
-                                if(currentTarget) targetsHit.add(currentTarget);
-                            }
+                            createLightningBolt({x: this.x, y: this.y}, target, particlePool);
                         }
                         skillState.timer = skillData.cooldown;
                     }
                 } else if (skillData.type === 'aura') {
                     if(skillId === 'vortex') activeVortexes.push(new Vortex(this.x, this.y, { ...levelData, damage: levelData.damage * this.damageModifier }));
                     if(skillId === 'static_field') staticFields.push(new StaticField(this.x, this.y, levelData));
+                    skillState.timer = skillData.cooldown;
+                } else if (skillId === 'aegis_shield') {
+                    this.shielded = true;
+                    this.shieldTimer = levelData.duration;
                     skillState.timer = skillData.cooldown;
                 }
             }
@@ -272,8 +272,7 @@ export class Player extends Entity {
                 const orbX = this.x + Math.cos(orb.angle) * levelData.radius;
                 const orbY = this.y + Math.sin(orb.angle) * levelData.radius;
                 nearbyEnemies.forEach(enemy => {
-                    if (enemy.isDead) return;
-                    if (frameCount - orb.lastHitFrame > CONFIG.ORB_HIT_COOLDOWN_FRAMES && enemy.orbHitCooldown <= 0) {
+                    if (!enemy.isDead && frameCount - orb.lastHitFrame > CONFIG.ORB_HIT_COOLDOWN_FRAMES && enemy.orbHitCooldown <= 0) {
                          if (Math.hypot(orbX - enemy.x, orbY - enemy.y) < 10 + enemy.radius) {
                             enemy.takeDamage(levelData.damage * this.damageModifier, gameContext);
                             enemy.applyKnockback(orbX, orbY, CONFIG.ENEMY_KNOCKBACK_FORCE * 0.5);
@@ -321,5 +320,6 @@ export class Player extends Entity {
             ctx.stroke();
         }
         ctx.restore();
+        this.animationFrame++;
     }
 }
