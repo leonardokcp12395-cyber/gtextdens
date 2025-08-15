@@ -1,7 +1,6 @@
-// js/entities/powerup.js
 import { Entity } from './entity.js';
-import SoundManager from '../systems/sound.js';
 import { CONFIG } from '../config.js';
+// import SoundManager from '../systems/sound.js';
 
 export class PowerUp extends Entity {
     constructor(x, y, type) {
@@ -10,18 +9,9 @@ export class PowerUp extends Entity {
         this.animationFrame = 0;
     }
 
-    update(gameContext) {
-        const { player } = gameContext;
-        this.animationFrame++;
-        if (player && !this.isDead && Math.hypot(player.x - this.x, player.y - this.y) < player.radius + this.radius) {
-            this.applyEffect(gameContext);
-            this.isDead = true;
-        }
-    }
-
     draw(ctx, camera) {
         ctx.save();
-        ctx.translate((this.x - camera.x) | 0, (this.y - camera.y) | 0);
+        ctx.translate(this.x - camera.x, this.y - camera.y);
         ctx.rotate(this.animationFrame * 0.05);
         ctx.fillStyle = 'yellow';
         ctx.beginPath();
@@ -36,34 +26,26 @@ export class PowerUp extends Entity {
         ctx.restore();
     }
 
-    applyEffect(gameContext) {
-        const { enemies, screenShake, player } = gameContext;
-        
-        switch (this.type) {
-            case 'nuke':
-                enemies.forEach(e => {
-                    e.takeDamage(10000, gameContext);
-                    e.applyKnockback(this.x, this.y, CONFIG.ENEMY_KNOCKBACK_FORCE * 5);
-                });
-                SoundManager.play('nuke', '8n');
-                screenShake.intensity = 15;
-                screenShake.duration = 30;
-                break;
-            
-            case 'heal_orb':
-                if (player) {
-                    player.health = Math.min(player.maxHealth, player.health + player.maxHealth * 0.25);
-                    SoundManager.play('levelUp', 'C5');
-                }
-                break;
+    update(gameContext) {
+        this.animationFrame++;
+        const { player } = gameContext;
+        if (player && !this.isDead && Math.hypot(player.x - this.x, player.y - this.y) < player.radius + this.radius) {
+            this.applyEffect(gameContext);
+            this.isDead = true;
+        }
+    }
 
-            case 'invincibility':
-                 if (player) {
-                    player.shielded = true;
-                    player.shieldTimer = 300; // 5 segundos de invencibilidade
-                    SoundManager.play('levelUp', 'G5');
-                }
-                break;
+    applyEffect(gameContext) {
+        const { enemies, screenShake, player, soundManager } = gameContext;
+        
+        if(this.type === 'nuke'){
+            enemies.forEach(e => {
+                e.takeDamage(10000, gameContext);
+                e.applyKnockback(this.x, this.y, CONFIG.ENEMY_KNOCKBACK_FORCE * 5);
+            });
+            soundManager.play('nuke', '8n');
+            screenShake.intensity = 15;
+            screenShake.duration = 30;
         }
     }
 }

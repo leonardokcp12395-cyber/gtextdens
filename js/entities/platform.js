@@ -1,4 +1,3 @@
-// js/entities/platform.js
 import { Entity } from './entity.js';
 
 export class Platform extends Entity {
@@ -25,14 +24,14 @@ export class Platform extends Entity {
         gradient.addColorStop(1, '#1E593F');
         ctx.fillStyle = gradient;
         ctx.fillRect(this.x, this.y, this.width, this.height);
-        
+
         ctx.strokeStyle = 'rgba(0, 255, 0, 0.8)';
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.moveTo(this.x, this.y);
         ctx.lineTo(this.x + this.width, this.y);
         ctx.stroke();
-        
+
         ctx.restore();
     }
 }

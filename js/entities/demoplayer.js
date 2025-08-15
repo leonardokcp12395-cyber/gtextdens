@@ -1,4 +1,3 @@
-// js/entities/demoplayer.js
 import { Entity } from './entity.js';
 
 export class DemoPlayer extends Entity {
@@ -7,15 +6,13 @@ export class DemoPlayer extends Entity {
         this.animationFrame = 0;
         this.angle = 0;
     }
-
     update() {
         this.animationFrame++;
         this.y += Math.sin(this.animationFrame * 0.02) * 0.5;
     }
-
     draw(ctx) {
         ctx.save();
-        ctx.translate(this.x | 0, this.y | 0);
+        ctx.translate(this.x, this.y);
         ctx.fillStyle = 'white';
         ctx.strokeStyle = 'cyan';
         ctx.lineWidth = 3;

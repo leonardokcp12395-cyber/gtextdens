@@ -1,9 +1,10 @@
 // js/config.js
+
 export const DEBUG_MODE = false;
 
 export const CONFIG = {
     PLAYER_HEALTH: 120,
-    PLAYER_SPEED: 3,
+    PLAYER_SPEED: 4,
     PLAYER_JUMP_FORCE: -10,
     PLAYER_DASH_FORCE: 15,
     PLAYER_DASH_DURATION: 10,
@@ -14,7 +15,7 @@ export const CONFIG = {
     XP_TO_NEXT_LEVEL_BASE: 80,
     XP_TO_NEXT_LEVEL_MULTIPLIER: 1.15,
     XP_ORB_ATTRACTION_RADIUS: 120,
-    POWERUP_DROP_CHANCE: 0.03,
+    POWERUP_DROP_CHANCE: 0.02,
     JOYSTICK_RADIUS: 60,
     JOYSTICK_DEAD_ZONE: 10,
     CAMERA_LERP_FACTOR: 0.05,
@@ -23,12 +24,6 @@ export const CONFIG = {
     ORB_HIT_COOLDOWN_FRAMES: 12,
     TEMPORARY_MESSAGE_DURATION: 120,
     WORLD_BOUNDS: { width: 8000, height: 2000 }
-};
-
-export const POWERUP_TYPES = {
-    'nuke': { message: "NUKE!", color: "yellow" },
-    'heal_orb': { message: "VIDA!", color: "lime" },
-    'invincibility': { message: "INVENCÍVEL!", color: "gold" }
 };
 
 export const PERMANENT_UPGRADES = {
@@ -44,7 +39,7 @@ export const PERMANENT_UPGRADES = {
 };
 
 export const SKILL_DATABASE = {
-    'chain_lightning': { name: "Relâmpago em Cadeia", icon: "↯", type: 'projectile', cooldown: 120, levels: [
+    'chain_lightning': { name: "Relâmpago em Cadeia", icon: "↯", type: 'projectile', cooldown: 120, causesHitStop: true, levels: [
         { desc: "Lança um raio que salta para 2 inimigos.", damage: 25, chains: 2, chainRadius: 150 },
         { desc: "O raio salta para 3 inimigos.", damage: 30, chains: 3, chainRadius: 160 },
         { desc: "Aumenta o dano e o número de saltos.", damage: 35, chains: 4, chainRadius: 170 },
@@ -88,24 +83,88 @@ export const SKILL_DATABASE = {
         { desc: "Aumenta o raio e o dano da explosão.", radius: 100, damage: 15, particleCount: 40 },
         { desc: "Aumenta ainda mais o dano e as partículas.", radius: 120, damage: 25, particleCount: 50 },
     ]},
+    'dash': { name: "Carga Astral", icon: "»", type: 'utility', cooldown: CONFIG.PLAYER_DASH_COOLDOWN, levels: [
+        { desc: `Realiza uma esquiva rápida na direção do movimento (cooldown: ${CONFIG.PLAYER_DASH_COOLDOWN/60}s).`, duration: CONFIG.PLAYER_DASH_DURATION, force: CONFIG.PLAYER_DASH_FORCE }
+    ]},
+    'double_jump': { name: "Salto Duplo", icon: "▲", type: 'passive', levels: [
+        { desc: "Permite um segundo salto no ar.", jumps: 2 }
+    ]},
+    'celestial_ray': { name: "Raio Celestial", icon: "→", type: 'projectile', cooldown: 90, causesHitStop: true, levels: [
+        { desc: "Dispara um raio poderoso na última direção de movimento.", damage: 30, speed: 10, width: 10, length: 150, pierce: 5 }
+    ]},
     'static_field': { name: "Campo Estático", icon: "⚡", type: 'aura', cooldown: 300, levels: [
         { desc: "Cria um campo que abranda inimigos em 50%.", radius: 100, duration: 180, slowFactor: 0.5 }
     ]},
     'black_hole': { name: "Buraco Negro", icon: "⚫", type: 'utility', cooldown: 900, levels: [
         { desc: "Invoca um buraco negro que destrói todos os inimigos no ecrã.", damage: 99999 }
-    ], instant: true },
-    'aegis_shield': { name: "Égide Divina", icon: "🛡️", type: 'utility', cooldown: 600, levels: [
-        { desc: "Cria um escudo que absorve o próximo golpe." }
     ]},
-    'double_jump': { name: "Salto Duplo", icon: "▲", type: 'passive', levels: [{ desc: "Permite um segundo salto no ar." }] },
-];
+    'aegis_shield': { name: "Égide Divina", icon: "🛡️", type: 'utility', cooldown: 600, levels: [
+        { desc: "Cria um escudo temporário que absorve um golpe.", duration: 300 }
+    ]},
+    'scorched_earth': { name: "Rastro Ardente", icon: "🔥", type: 'passive', levels: [
+        { desc: "Deixa um rasto de chamas enquanto dá um dash, causando dano.", damagePerFrame: 0.5 }
+    ]}
+};
+
+export const CHARACTER_DATABASE = {
+    'SERAPH': {
+        name: "Seraph",
+        description: "Um anjo guerreiro equilibrado, mestre da lança.",
+        baseHealth: CONFIG.PLAYER_HEALTH,
+        speed: CONFIG.PLAYER_SPEED,
+        initialSkill: 'divine_lance'
+    },
+    'CHERUB': {
+        name: "Cherub",
+        description: "Rápido e ágil, mas mais frágil. Protegido por orbes sagrados.",
+        baseHealth: CONFIG.PLAYER_HEALTH * 0.8,
+        speed: CONFIG.PLAYER_SPEED * 1.2,
+        initialSkill: 'orbital_shield'
+    }
+};
+
+export const ACHIEVEMENT_DATABASE = {
+    'TOTAL_KILLS_100': {
+        name: "Caçador de Iniciantes",
+        description: "Derrote 100 inimigos no total.",
+        condition: { type: 'totalKills', value: 100 },
+        reward: { type: 'gems', amount: 50 }
+    },
+    'TOTAL_KILLS_1000': {
+        name: "Matador de Legiões",
+        description: "Derrote 1.000 inimigos no total.",
+        condition: { type: 'totalKills', value: 1000 },
+        reward: { type: 'gems', amount: 200 }
+    },
+    'SURVIVE_15_MINUTES': {
+        name: "Sobrevivente Tenaz",
+        description: "Sobreviva por 15 minutos em uma única partida.",
+        condition: { type: 'survivalTime', value: 15 * 60 },
+        reward: { type: 'gems', amount: 150 }
+    }
+};
+
+export const EVOLUTION_DATABASE = {
+    'firmament_lances': {
+        name: "Lanças do Firmamento",
+        baseSkill: 'divine_lance',
+        passiveReq: 'health_regen',
+        description: "As lanças agora curam o jogador numa pequena percentagem do dano causado."
+    },
+    'stasis_aura': {
+        name: "Aura da Stasis",
+        baseSkill: 'orbital_shield',
+        passiveReq: 'static_field',
+        description: "Os orbes agora abrandam inimigos que tocam."
+    }
+};
 
 export const WAVE_CONFIGS = [
-    { enemies: [{ type: 'chaser', count: 5, spawnInterval: 60 }], eliteChance: 0 },
-    { enemies: [{ type: 'chaser', count: 8, spawnInterval: 50 }, { type: 'speeder', count: 4, spawnInterval: 70 }], eliteChance: 0.01 },
-    { enemies: [{ type: 'chaser', count: 10, spawnInterval: 45 }, { type: 'speeder', count: 6, spawnInterval: 60 }, { type: 'tank', count: 3, spawnInterval: 100 }], eliteChance: 0.02 },
-    { enemies: [{ type: 'chaser', count: 12, spawnInterval: 40 }, { type: 'speeder', count: 8, spawnInterval: 50 }, { type: 'tank', count: 4, spawnInterval: 90 }, { type: 'shooter', count: 2, spawnInterval: 120 }], eliteChance: 0.03 },
-    { enemies: [{ type: 'chaser', count: 15, spawnInterval: 35 }, { type: 'speeder', count: 10, spawnInterval: 45 }, { type: 'tank', count: 5, spawnInterval: 80 }, { type: 'shooter', count: 3, spawnInterval: 100 }, { type: 'bomber', count: 2, spawnInterval: 150 }], eliteChance: 0.04 },
-    { enemies: [{ type: 'chaser', count: 15, spawnInterval: 30 }, { type: 'healer', count: 1, spawnInterval: 200 }, { type: 'tank', count: 5, spawnInterval: 90 }], eliteChance: 0.05 },
-    { enemies: [{ type: 'speeder', count: 15, spawnInterval: 30 }, { type: 'summoner', count: 1, spawnInterval: 250 }, { type: 'shooter', count: 4, spawnInterval: 100 }], eliteChance: 0.06 },
+    { duration: 30, enemies: [{ type: 'chaser', count: 5, spawnInterval: 60 }], eliteChance: 0 },
+    { duration: 45, enemies: [{ type: 'chaser', count: 8, spawnInterval: 50 }, { type: 'speeder', count: 4, spawnInterval: 70 }], eliteChance: 0.01 },
+    { duration: 60, enemies: [{ type: 'chaser', count: 10, spawnInterval: 45 }, { type: 'speeder', count: 6, spawnInterval: 60 }, { type: 'tank', count: 3, spawnInterval: 100 }], eliteChance: 0.02 },
+    { duration: 75, enemies: [{ type: 'chaser', count: 12, spawnInterval: 40 }, { type: 'speeder', count: 8, spawnInterval: 50 }, { type: 'tank', count: 4, spawnInterval: 90 }, { type: 'shooter', count: 2, spawnInterval: 120 }, { type: 'mimic', count: 2, spawnInterval: 300 }], eliteChance: 0.03 },
+    { duration: 90, enemies: [{ type: 'chaser', count: 15, spawnInterval: 35 }, { type: 'speeder', count: 10, spawnInterval: 45 }, { type: 'tank', count: 5, spawnInterval: 80 }, { type: 'shooter', count: 3, spawnInterval: 100 }, { type: 'bomber', count: 2, spawnInterval: 150 }], eliteChance: 0.04 },
+    { duration: 100, enemies: [{ type: 'chaser', count: 15, spawnInterval: 30 }, { type: 'healer', count: 1, spawnInterval: 200 }, { type: 'tank', count: 5, spawnInterval: 90 }, { type: 'mimic', count: 3, spawnInterval: 250 }], eliteChance: 0.05 },
+    { duration: 110, enemies: [{ type: 'speeder', count: 15, spawnInterval: 30 }, { type: 'summoner', count: 1, spawnInterval: 250 }, { type: 'shooter', count: 4, spawnInterval: 100 }, { type: 'mimic', count: 4, spawnInterval: 200 }], eliteChance: 0.06 },
 ];

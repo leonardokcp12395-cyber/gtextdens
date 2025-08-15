@@ -1,4 +1,3 @@
-// js/entities/damagenumber.js
 import { Entity } from './entity.js';
 import { releaseToPool } from '../systems/pooling.js';
 
@@ -8,13 +7,13 @@ export class DamageNumber extends Entity {
     }
 
     init(x, y, amount) {
-        super.init();
+        super.reset();
         this.x = x;
         this.y = y;
         this.amount = Math.round(amount);
         this.alpha = 1;
         this.velocityY = -2;
-        this.life = 60; // 1 segundo
+        this.life = 60;
     }
 
     update() {
@@ -29,7 +28,7 @@ export class DamageNumber extends Entity {
 
     draw(ctx, camera) {
         ctx.save();
-        ctx.translate((this.x - camera.x) | 0, (this.y - camera.y) | 0);
+        ctx.translate(this.x - camera.x, this.y - camera.y);
         ctx.globalAlpha = this.alpha;
         ctx.fillStyle = '#FFF';
         ctx.font = 'bold 20px "Courier New", Courier, monospace';
