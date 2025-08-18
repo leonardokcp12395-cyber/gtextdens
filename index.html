@@ -29,20 +29,34 @@
             <p><strong><span class="tooltip" data-text="Qi é a energia vital que flui por todos os seres vivos. É a base do cultivo.">Nível de Qi</span>:</strong> <span id="cult-qi">0</span> / <span id="cult-qi-max">100</span></p>
         </div>
 
-        <!-- Painel Central: Log de Eventos -->
+        <!-- Painel Central: Mapa e Eventos -->
         <div id="event-panel" class="panel">
-            <h2>Diário da Jornada</h2>
-            <div id="event-log">
-                <div id="event-content">
-                    <p>Você nasceu em uma pequena vila de camponeses. O futuro é uma tela em branco, esperando para ser pintada por suas ações.</p>
+            <!-- Visão do Mapa -->
+            <div id="map-view" class="view-container active">
+                <h2>Mapa do Mundo</h2>
+                <p>Escolha uma região para explorar. Cada exploração consome energia.</p>
+                <div id="regions-container">
+                    <!-- Regiões desbloqueadas serão renderizadas aqui -->
                 </div>
             </div>
-            <div id="choices-container">
-                <!-- As opções de escolha aparecerão aqui -->
+
+            <!-- Visão de Evento -->
+            <div id="event-view" class="view-container">
+                <h2 id="event-title">Diário da Jornada</h2>
+                <div id="event-log">
+                    <div id="event-content">
+                        <p>Você nasceu em uma pequena vila de camponeses. O futuro é uma tela em branco, esperando para ser pintada por suas ações.</p>
+                    </div>
+                </div>
+                <div id="choices-container">
+                    <!-- As opções de escolha aparecerão aqui -->
+                </div>
             </div>
+
+            <!-- Botões de Ação Globais -->
             <div class="action-buttons-container">
                 <button id="sect-actions-btn" style="display: none;">Ações da Seita</button>
-                <button id="next-year-btn">Avançar Ano</button>
+                <button id="next-year-btn">Descansar (Avançar Ano)</button>
             </div>
         </div>
 

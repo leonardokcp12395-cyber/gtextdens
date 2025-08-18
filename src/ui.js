@@ -1,4 +1,5 @@
 import { gameState, allGameData, cultivationRealms } from './state.js';
+import { travelToRegion } from './game.js';
 // As importações de handlers e game serão adicionadas depois
 // import { advanceYear } from './game.js';
 // import { showSectActions } from './handlers.js';
@@ -34,6 +35,10 @@ export const elements = {
     resourcesContent: document.getElementById('resources-content'),
     historyLogContent: document.getElementById('history-log-content'),
     actionLogList: document.getElementById('action-log-list'),
+    // Map and event views
+    mapView: document.getElementById('map-view'),
+    eventView: document.getElementById('event-view'),
+    regionsContainer: document.getElementById('regions-container'),
     eventContent: document.getElementById('event-content'),
     choicesContainer: document.getElementById('choices-container'),
     nextYearBtn: document.getElementById('next-year-btn'),
@@ -110,6 +115,7 @@ export function updateUI() {
     if (!gameState.combat) {
         elements.nextYearBtn.style.display = 'block';
     }
+    renderMap(); // Atualiza o mapa com regiões desbloqueadas
     const currentRealm = cultivationRealms[gameState.cultivation.realmIndex];
     const subRealmName = currentRealm.subRealms[gameState.cultivation.subRealmIndex];
     elements.age.textContent = gameState.age;
@@ -186,6 +192,52 @@ export function showDeathScreen() {
     elements.choicesContainer.appendChild(restartButton);
     elements.nextYearBtn.style.display = 'none';
     elements.sectActionsBtn.style.display = 'none';
+}
+
+/**
+ * Controla qual visão principal (mapa ou evento) está ativa.
+ * @param {'map' | 'event'} viewName - O nome da visão a ser exibida.
+ */
+export function showView(viewName) {
+    elements.mapView.classList.remove('active');
+    elements.eventView.classList.remove('active');
+
+    if (viewName === 'map') {
+        elements.mapView.classList.add('active');
+    } else {
+        elements.eventView.classList.add('active');
+    }
+}
+
+/**
+ * Renderiza as regiões desbloqueadas no mapa.
+ */
+export function renderMap() {
+    if (!allGameData.regions) return;
+    elements.regionsContainer.innerHTML = '';
+
+    allGameData.regions.forEach(region => {
+        // Checa se a região está desbloqueada
+        let isUnlocked = region.unlocked;
+        if (region.unlockRequirements) {
+            if (region.unlockRequirements.age && gameState.age >= region.unlockRequirements.age) {
+                isUnlocked = true;
+            }
+            if (region.unlockRequirements.sect && gameState.sect.id) {
+                isUnlocked = true;
+            }
+        }
+
+        if (isUnlocked) {
+            const regionButton = document.createElement('button');
+            regionButton.className = 'region-button';
+            regionButton.innerHTML = `<strong>${region.name}</strong><br><small>${region.description}</small>`;
+            regionButton.onclick = () => {
+                travelToRegion(region.id);
+            };
+            elements.regionsContainer.appendChild(regionButton);
+        }
+    });
 }
 
 /**

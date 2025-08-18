@@ -61,7 +61,8 @@ export function initializeGameState() {
             rankIndex: 0,
             contribution: 0
         },
-        combat: null // Referência ao combatState
+        combat: null, // Referência ao combatState
+        currentRegionId: "vila_inicial"
     };
 
     // Aplica bônus de legado de jogos anteriores

@@ -218,3 +218,33 @@ span {
     opacity: 1;
     visibility: visible;
 }
+
+/* Estilos da Visão de Mapa e Evento */
+.view-container {
+    display: none;
+    flex-direction: column;
+    flex-grow: 1;
+}
+
+.view-container.active {
+    display: flex;
+}
+
+#regions-container .region-button {
+    display: block;
+    width: 100%;
+    padding: 15px;
+    margin-bottom: 10px;
+    background-color: #4a4a4a;
+    color: #e0e0e0;
+    border: 1px solid #666;
+    border-radius: 5px;
+    cursor: pointer;
+    text-align: left;
+    font-size: 1.1em;
+}
+
+#regions-container .region-button:hover {
+    background-color: #5a5a5a;
+    border-color: #888;
+}

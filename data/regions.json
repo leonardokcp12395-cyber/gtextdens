@@ -1,0 +1,34 @@
+[
+    {
+        "id": "vila_inicial",
+        "name": "Vila Inicial",
+        "description": "Sua casa. Um lugar humilde, mas seguro, cheio de rostos familiares.",
+        "unlocked": true,
+        "unlockRequirements": null,
+        "eventIds": ["age_3", "age_5", "age_8", "age_10", "age_14"]
+    },
+    {
+        "id": "floresta_proxima",
+        "name": "Floresta Próxima",
+        "description": "Uma floresta densa e antiga nos arredores de sua vila. Dizem que contém tanto perigos quanto tesouros.",
+        "unlocked": false,
+        "unlockRequirements": { "age": 12 },
+        "eventIds": ["age_12"]
+    },
+    {
+        "id": "cidade_provincial",
+        "name": "Cidade Provincial",
+        "description": "A capital da província. Um centro de comércio e cultivo, onde as grandes seitas recrutam novos discípulos.",
+        "unlocked": false,
+        "unlockRequirements": { "age": 15 },
+        "eventIds": ["age_15", "age_16", "age_18"]
+    },
+    {
+        "id": "montanhas_seita",
+        "name": "Montanhas da Seita",
+        "description": "Uma área remota e cheia de energia espiritual, o lar da sua seita.",
+        "unlocked": false,
+        "unlockRequirements": { "sect": true },
+        "eventIds": ["age_17", "age_20", "age_22"]
+    }
+]
