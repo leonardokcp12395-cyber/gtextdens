@@ -16,6 +16,7 @@
             <hr>
             <h3>Atributos Primários</h3>
             <ul>
+                <li><strong>Saúde:</strong> <span id="attr-health">100</span> / <span id="attr-max-health">100</span></li>
                 <li><strong>Corpo:</strong> <span id="attr-body">10</span></li>
                 <li><strong>Mente:</strong> <span id="attr-mind">10</span></li>
                 <li><strong>Alma:</strong> <span id="attr-soul">10</span></li>
@@ -31,7 +32,9 @@
         <div id="event-panel" class="panel">
             <h2>Diário da Jornada</h2>
             <div id="event-log">
-                <p id="event-text">Você nasceu em uma pequena vila de camponeses. O futuro é uma tela em branco, esperando para ser pintada por suas ações.</p>
+                <div id="event-content">
+                    <p>Você nasceu em uma pequena vila de camponeses. O futuro é uma tela em branco, esperando para ser pintada por suas ações.</p>
+                </div>
             </div>
             <div id="choices-container">
                 <!-- As opções de escolha aparecerão aqui -->
@@ -257,7 +260,7 @@
         "resultText": "Você recusa, dizendo que não está preparado. Lian parece desapontado com sua falta de espírito marcial. (Relacionamento com Lian -10)"
       }
     ]
-  }
+  },
 ];
     </script>
     <script>

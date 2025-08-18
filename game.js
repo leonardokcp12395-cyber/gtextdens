@@ -3,6 +3,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const elements = {
         name: document.getElementById('char-name'),
         age: document.getElementById('char-age'),
+        attrHealth: document.getElementById('attr-health'),
+        attrMaxHealth: document.getElementById('attr-max-health'),
         attrBody: document.getElementById('attr-body'),
         attrMind: document.getElementById('attr-mind'),
         attrSoul: document.getElementById('attr-soul'),
@@ -18,7 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
         sectContribution: document.getElementById('sect-contribution'),
         inventoryList: document.getElementById('inventory-list'),
         relationshipsList: document.getElementById('relationships-list'),
-        eventText: document.getElementById('event-text'),
+        eventContent: document.getElementById('event-content'),
         choicesContainer: document.getElementById('choices-container'),
         nextYearBtn: document.getElementById('next-year-btn'),
         sectActionsBtn: document.getElementById('sect-actions-btn')
@@ -89,7 +91,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     gameState.attributes.soul += 1;
                     success = true;
                 } else {
-                    // Placeholder for health system
+                    gameState.attributes.health -= 5; // Dano de saúde na falha
                     success = false;
                 }
                 break;
@@ -152,12 +154,44 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- FUNÇÕES DE UI ---
 
+    /** Mostra a tela de morte */
+    function showDeathScreen() {
+        // Lógica do Sistema de Legado v1
+        if (gameState.cultivation.realmIndex >= 2) { // A partir de Estabelecimento de Fundação
+            const legacyBonus = { attribute: 'luck', value: 1 };
+            localStorage.setItem('wuxiaLegacy', JSON.stringify(legacyBonus));
+        }
+
+        const finalRealm = cultivationRealms[gameState.cultivation.realmIndex].name;
+        const summaryHTML = `
+            <h2>Fim da Jornada</h2>
+            <p>Você viveu até os <strong>${gameState.age}</strong> anos.</p>
+            <p>Seu cultivo alcançou o reino de <strong>${finalRealm}</strong>.</p>
+            <p>Sua reputação final foi de <strong>${gameState.resources.reputation}</strong>.</p>
+            <p>Você terminou sua jornada com <strong>${gameState.inventory.length}</strong> itens em sua posse.</p>
+            <hr>
+            <p>O Dao é eterno, e o ciclo recomeça. Uma nova vida o aguarda.</p>
+        `;
+        elements.eventContent.innerHTML = summaryHTML;
+
+        elements.choicesContainer.innerHTML = '';
+        const restartButton = document.createElement('button');
+        restartButton.textContent = "Começar Nova Vida";
+        restartButton.onclick = () => {
+            location.reload();
+        };
+        elements.choicesContainer.appendChild(restartButton);
+
+        elements.nextYearBtn.style.display = 'none';
+        elements.sectActionsBtn.style.display = 'none';
+    }
+
     /** Mostra a loja da seita */
     function showSectStore() {
         const sectData = allGameData.sects.find(s => s.id === gameState.sect.id);
         if (!sectData) return;
 
-        elements.eventText.textContent = `Você entra no pavilhão de tesouros da ${sectData.name}.`;
+        elements.eventContent.innerHTML = `<p>Você entra no pavilhão de tesouros da ${sectData.name}.</p>`;
         elements.choicesContainer.innerHTML = '';
 
         sectData.store.forEach(item => {
@@ -190,7 +224,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     /** Mostra as ações disponíveis na seita */
     function showSectActions() {
-        elements.eventText.textContent = "Você está no pátio principal da sua seita. O que gostaria de fazer?";
+        elements.eventContent.innerHTML = "<p>Você está no pátio principal da sua seita. O que gostaria de fazer?</p>";
         elements.choicesContainer.innerHTML = '';
 
         const missionButton = document.createElement('button');
@@ -198,7 +232,7 @@ document.addEventListener('DOMContentLoaded', () => {
         missionButton.onclick = () => {
             // Lógica da missão a ser implementada
             gameState.sect.contribution += 10;
-            elements.eventText.textContent = "Você completou uma missão simples de patrulha e ganhou 10 pontos de contribuição.";
+            elements.eventContent.innerHTML = "<p>Você completou uma missão simples de patrulha e ganhou 10 pontos de contribuição.</p>";
             elements.choicesContainer.innerHTML = '';
             updateUI();
         };
@@ -228,6 +262,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateUI() {
         const currentRealm = cultivationRealms[gameState.cultivation.realmIndex];
         elements.age.textContent = gameState.age;
+        elements.attrHealth.textContent = gameState.attributes.health;
+        elements.attrMaxHealth.textContent = gameState.attributes.maxHealth;
         elements.attrBody.textContent = gameState.attributes.body;
         elements.attrMind.textContent = gameState.attributes.mind;
         elements.attrSoul.textContent = gameState.attributes.soul;
@@ -287,7 +323,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     /** Mostra um evento e suas escolhas na UI */
     function showEvent(event) {
-        elements.eventText.textContent = event.text;
+        elements.eventContent.innerHTML = `<p>${event.text}</p>`;
         elements.choicesContainer.innerHTML = '';
 
         event.choices.forEach(choice => {
@@ -306,10 +342,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     resultText = success ? choice.successText : choice.failureText;
                 }
 
-                elements.eventText.textContent = resultText;
+                elements.eventContent.innerHTML = `<p>${resultText}</p>`;
                 elements.choicesContainer.innerHTML = '';
-                elements.nextYearBtn.style.display = 'block';
-                updateUI();
+
+                if (gameState.attributes.health <= 0) {
+                    showDeathScreen();
+                } else {
+                    elements.nextYearBtn.style.display = 'block';
+                    updateUI();
+                }
             };
             elements.choicesContainer.appendChild(button);
         });
@@ -322,11 +363,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const currentRealmIndex = gameState.cultivation.realmIndex;
         const nextRealm = cultivationRealms[currentRealmIndex + 1];
         if (!nextRealm) {
-            elements.eventText.textContent = "Você atingiu o pico do mundo mortal. O caminho à frente está velado em mistério.";
+            elements.eventContent.innerHTML = "<p>Você atingiu o pico do mundo mortal. O caminho à frente está velado em mistério.</p>";
             return;
         }
 
-        elements.eventText.textContent = `Você acumulou Qi suficiente e sentiu um gargalo em seu cultivo. Você pode tentar avançar para o próximo reino: ${nextRealm.name}. O que você faz?`;
+        elements.eventContent.innerHTML = `<p>Você acumulou Qi suficiente e sentiu um gargalo em seu cultivo. Você pode tentar avançar para o próximo reino: ${nextRealm.name}. O que você faz?</p>`;
         elements.choicesContainer.innerHTML = '';
 
         const attemptButton = document.createElement('button');
@@ -337,20 +378,24 @@ document.addEventListener('DOMContentLoaded', () => {
             if (Math.random() < successChance) {
                 gameState.cultivation.realmIndex++;
                 gameState.cultivation.qi = 0;
-                elements.eventText.textContent = `Parabéns! Após uma meditação perigosa, você rompeu seus limites e avançou para o reino ${nextRealm.name}!`;
+                elements.eventContent.innerHTML = `<p>Parabéns! Após uma meditação perigosa, você rompeu seus limites e avançou para o reino ${nextRealm.name}!</p>`;
             } else {
                 gameState.cultivation.qi = Math.floor(gameState.cultivation.qi * 0.8); // Perde 20% do Qi
-                elements.eventText.textContent = "A tentativa falhou! Seu Qi se dispersa violentamente e você sofre um revés. Você precisará de mais tempo para se estabilizar.";
+                elements.eventContent.innerHTML = "<p>A tentativa falhou! Seu Qi se dispersa violentamente e você sofre um revés. Você precisará de mais tempo para se estabilizar.</p>";
             }
             elements.choicesContainer.innerHTML = '';
-            elements.nextYearBtn.style.display = 'block';
-            updateUI();
+            if (gameState.attributes.health <= 0) {
+                showDeathScreen();
+            } else {
+                elements.nextYearBtn.style.display = 'block';
+                updateUI();
+            }
         };
 
         const waitButton = document.createElement('button');
         waitButton.textContent = "Esperar e acumular mais base.";
         waitButton.onclick = () => {
-            elements.eventText.textContent = "Você decide esperar, sentindo que uma base mais sólida aumentará suas chances no futuro.";
+            elements.eventContent.innerHTML = "<p>Você decide esperar, sentindo que uma base mais sólida aumentará suas chances no futuro.</p>";
             elements.choicesContainer.innerHTML = '';
             elements.nextYearBtn.style.display = 'block';
             updateUI();
@@ -364,6 +409,16 @@ document.addEventListener('DOMContentLoaded', () => {
     /** Ação principal do botão "Avançar Ano" */
     function advanceYear() {
         gameState.age++;
+
+        // Lógica de envelhecimento e morte por idade
+        if (gameState.age > 50) {
+            gameState.attributes.health--;
+        }
+        if (gameState.attributes.health <= 0) {
+            showDeathScreen();
+            return;
+        }
+
         if (gameState.inventory.includes("Técnica de Respiração Básica")) {
             gameState.cultivation.qi += 10; // Aumentei o ganho para facilitar o teste
         } else {
@@ -384,9 +439,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (currentEvent) {
                 showEvent(currentEvent);
             } else {
-                elements.eventText.textContent = `Você passou um ano tranquilo meditando e treinando. Nada de extraordinário aconteceu.`;
+                elements.eventContent.innerHTML = `<p>Você passou um ano tranquilo meditando e treinando. Nada de extraordinário aconteceu.</p>`;
             }
         }
+
+        // A verificação de morte foi movida para os manipuladores de onclick
         updateUI();
     }
 
@@ -396,7 +453,7 @@ document.addEventListener('DOMContentLoaded', () => {
         allGameData = gameData;
         gameState = {
             age: 0,
-            attributes: { body: 10, mind: 10, soul: 10, luck: 5 },
+            attributes: { health: 100, maxHealth: 100, body: 10, mind: 10, soul: 10, luck: 5 },
             cultivation: { realmIndex: 0, qi: 0 },
             resources: { money: 10, reputation: 0 }, // Reputação como número
             inventory: [],
@@ -407,6 +464,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 contribution: 0
             }
         };
+
+        // Lógica para carregar o Legado
+        const legacyData = localStorage.getItem('wuxiaLegacy');
+        if (legacyData) {
+            try {
+                const legacyBonus = JSON.parse(legacyData);
+                if (legacyBonus && legacyBonus.attribute && legacyBonus.value) {
+                    gameState.attributes[legacyBonus.attribute] += legacyBonus.value;
+
+                    const originalEventHTML = elements.eventContent.innerHTML;
+                    elements.eventContent.innerHTML = `<p>Você sente a bênção de um ancestral. (+${legacyBonus.value} ${legacyBonus.attribute})</p>` + originalEventHTML;
+
+                    localStorage.removeItem('wuxiaLegacy');
+                }
+            } catch (e) {
+                console.error("Erro ao processar o legado:", e);
+                localStorage.removeItem('wuxiaLegacy'); // Limpa o legado corrompido
+            }
+        }
 
         elements.nextYearBtn.addEventListener('click', advanceYear);
         elements.sectActionsBtn.addEventListener('click', showSectActions);
