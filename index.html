@@ -46,30 +46,44 @@
             </div>
         </div>
 
-        <!-- Painel Direito: Recursos e Relacionamentos -->
-        <div id="resources-panel" class="panel">
-            <h2>Recursos</h2>
-            <p><strong>Dinheiro:</strong> <span id="res-money">10</span> Moedas de Cobre</p>
-            <p><strong>Reputação:</strong> <span id="res-reputation">0</span></p>
-
-            <div id="sect-info-container" style="display: none;">
-                <hr>
-                <h3>Seita</h3>
-                <p><strong>Nome:</strong> <span id="sect-name">Nenhuma</span></p>
-                <p><strong>Rank:</strong> <span id="sect-rank">Mortal</span></p>
-                <p><strong>Contribuição:</strong> <span id="sect-contribution">0</span></p>
+        <!-- Painel Direito: Abas de Recursos e Histórico -->
+        <div id="right-panel" class="panel">
+            <div class="tabs">
+                <button id="resources-tab" class="tab-button active">Recursos</button>
+                <button id="history-tab" class="tab-button">Histórico</button>
             </div>
 
-            <hr>
-            <h3>Itens</h3>
-            <ul id="inventory-list">
-                <li>Nenhum</li>
-            </ul>
-            <hr>
-            <h3>Relacionamentos</h3>
-            <ul id="relationships-list">
-                <li>Nenhum</li>
-            </ul>
+            <div id="resources-content" class="tab-content active">
+                <h2>Recursos</h2>
+                <p><strong>Dinheiro:</strong> <span id="res-money">10</span> Moedas de Cobre</p>
+                <p><strong>Reputação:</strong> <span id="res-reputation">0</span></p>
+
+                <div id="sect-info-container" style="display: none;">
+                    <hr>
+                    <h3>Seita</h3>
+                    <p><strong>Nome:</strong> <span id="sect-name">Nenhuma</span></p>
+                    <p><strong>Rank:</strong> <span id="sect-rank">Mortal</span></p>
+                    <p><strong>Contribuição:</strong> <span id="sect-contribution">0</span></p>
+                </div>
+
+                <hr>
+                <h3>Itens</h3>
+                <ul id="inventory-list">
+                    <li>Nenhum</li>
+                </ul>
+                <hr>
+                <h3>Relacionamentos</h3>
+                <ul id="relationships-list">
+                    <li>Nenhum</li>
+                </ul>
+            </div>
+
+            <div id="history-log-content" class="tab-content">
+                <h2>Histórico de Ações</h2>
+                <ul id="action-log-list">
+                    <!-- O histórico será renderizado aqui -->
+                </ul>
+            </div>
         </div>
     </div>
 

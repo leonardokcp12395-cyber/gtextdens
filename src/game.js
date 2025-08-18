@@ -1,6 +1,6 @@
 import { gameState, allGameData, setGameData, cultivationRealms, combatState, saveGame } from './state.js';
-import { elements, updateUI, showDeathScreen } from './ui.js';
-import { applyEffects, handleSpecialEffects, logLifeEvent, showSectActions } from './handlers.js';
+import { elements, updateUI, showDeathScreen, setupTabs } from './ui.js';
+import { applyEffects, handleSpecialEffects, logLifeEvent, showSectActions, logAction } from './handlers.js';
 
 const ACTION_ENERGY_COST = 20;
 
@@ -12,6 +12,7 @@ export function initializeGame(gameData) {
     setGameData(gameData);
     // A inicialização do gameState já foi feita no main, mas precisamos garantir a UI inicial.
     updateUI();
+    setupTabs();
     elements.nextYearBtn.addEventListener('click', advanceYear);
     elements.sectActionsBtn.addEventListener('click', showSectActions);
 }
@@ -60,6 +61,12 @@ export function showEvent(event) {
             }
             elements.eventContent.innerHTML = `<p>${resultText}</p>`;
             elements.choicesContainer.innerHTML = '';
+
+            logAction({
+                eventText: event.text,
+                choiceText: choice.text,
+                resultText: resultText
+            });
 
             if (gameState.attributes.health <= 0) {
                 showDeathScreen();

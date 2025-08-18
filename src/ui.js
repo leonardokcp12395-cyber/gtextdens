@@ -28,6 +28,12 @@ export const elements = {
     sectContribution: document.getElementById('sect-contribution'),
     inventoryList: document.getElementById('inventory-list'),
     relationshipsList: document.getElementById('relationships-list'),
+    // Elements for the new tab system
+    resourcesTab: document.getElementById('resources-tab'),
+    historyTab: document.getElementById('history-tab'),
+    resourcesContent: document.getElementById('resources-content'),
+    historyLogContent: document.getElementById('history-log-content'),
+    actionLogList: document.getElementById('action-log-list'),
     eventContent: document.getElementById('event-content'),
     choicesContainer: document.getElementById('choices-container'),
     nextYearBtn: document.getElementById('next-year-btn'),
@@ -179,4 +185,45 @@ export function showDeathScreen() {
     elements.choicesContainer.appendChild(restartButton);
     elements.nextYearBtn.style.display = 'none';
     elements.sectActionsBtn.style.display = 'none';
+}
+
+/**
+ * Renderiza o histórico de ações na UI.
+ */
+export function updateActionLogUI() {
+    if (!elements.actionLogList) return;
+    elements.actionLogList.innerHTML = '';
+    // Mostra as ações mais recentes primeiro
+    [...gameState.actionLog].reverse().forEach(log => {
+        const li = document.createElement('li');
+        li.innerHTML = `
+            <strong>Idade: ${log.age}</strong><br>
+            <em>${log.eventText}</em><br>
+            <span class="choice-made">Sua escolha: ${log.choiceText}</span><br>
+            <span>Resultado: ${log.resultText}</span>
+        `;
+        elements.actionLogList.appendChild(li);
+    });
+}
+
+
+/**
+ * Configura os event listeners para o sistema de abas.
+ */
+export function setupTabs() {
+    elements.resourcesTab.addEventListener('click', () => {
+        elements.resourcesTab.classList.add('active');
+        elements.historyTab.classList.remove('active');
+        elements.resourcesContent.classList.add('active');
+        elements.historyLogContent.classList.remove('active');
+    });
+
+    elements.historyTab.addEventListener('click', () => {
+        elements.historyTab.classList.add('active');
+        elements.resourcesTab.classList.remove('active');
+        elements.historyLogContent.classList.add('active');
+        elements.resourcesContent.classList.remove('active');
+        // Atualiza o log sempre que a aba é aberta
+        updateActionLogUI();
+    });
 }

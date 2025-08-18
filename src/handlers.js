@@ -7,6 +7,20 @@ export function logLifeEvent(text) {
     gameState.lifeLog.push(`Idade ${gameState.age}: ${text}`);
 }
 
+/**
+ * Adiciona uma entrada ao log de ações detalhado.
+ * @param {object} logData - Os dados a serem registrados.
+ * @param {string} logData.eventText - O texto do evento.
+ * @param {string} logData.choiceText - O texto da escolha do jogador.
+ * @param {string} logData.resultText - O texto do resultado da ação.
+ */
+export function logAction(logData) {
+    gameState.actionLog.push({
+        age: gameState.age,
+        ...logData
+    });
+}
+
 export function applyEffects(effects) {
     if (!effects) return;
     if (effects.attributes) {

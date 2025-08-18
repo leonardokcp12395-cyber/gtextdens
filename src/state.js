@@ -36,6 +36,7 @@ export function initializeGameState() {
         inventory: [],
         relationships: [],
         lifeLog: [],
+        actionLog: [],
         sect: {
             id: null,
             rankIndex: 0,

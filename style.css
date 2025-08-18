@@ -22,8 +22,38 @@ body {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
-#character-panel, #resources-panel {
+#character-panel, #right-panel {
     flex: 1; /* Painéis laterais ocupam 1 parte do espaço */
+}
+
+/* Estilos do Sistema de Abas */
+.tabs {
+    display: flex;
+    border-bottom: 1px solid #444;
+    margin-bottom: 20px;
+}
+
+.tab-button {
+    padding: 10px 20px;
+    cursor: pointer;
+    background-color: transparent;
+    border: none;
+    color: #e0e0e0;
+    font-size: 1em;
+    border-bottom: 2px solid transparent;
+}
+
+.tab-button.active {
+    color: #a29bfe;
+    border-bottom: 2px solid #a29bfe;
+}
+
+.tab-content {
+    display: none; /* Esconde todo o conteúdo da aba por padrão */
+}
+
+.tab-content.active {
+    display: block; /* Mostra apenas o conteúdo da aba ativa */
 }
 
 #event-panel {
