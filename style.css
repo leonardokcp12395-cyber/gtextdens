@@ -1,0 +1,113 @@
+/* Estilos Gerais */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #1a1a1a;
+    color: #e0e0e0;
+    margin: 0;
+    padding: 20px;
+}
+
+/* Container Principal do Jogo */
+.game-container {
+    display: flex;
+    gap: 20px;
+}
+
+/* Estilos dos Painéis */
+.panel {
+    background-color: #2c2c2c;
+    border: 1px solid #444;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+#character-panel, #resources-panel {
+    flex: 1; /* Painéis laterais ocupam 1 parte do espaço */
+}
+
+#event-panel {
+    flex: 3; /* Painel central ocupa 3 partes, sendo maior */
+    display: flex;
+    flex-direction: column;
+}
+
+/* Títulos e Separadores */
+h2, h3 {
+    color: #a29bfe;
+    border-bottom: 1px solid #444;
+    padding-bottom: 10px;
+    margin-top: 0;
+}
+
+hr {
+    border: none;
+    border-top: 1px solid #444;
+    margin: 20px 0;
+}
+
+/* Listas */
+ul {
+    padding-left: 20px;
+}
+
+li {
+    margin-bottom: 8px;
+}
+
+/* Log de Eventos e Escolhas */
+#event-log {
+    flex-grow: 1;
+    margin-bottom: 20px;
+    background-color: #1f1f1f;
+    padding: 15px;
+    border-radius: 4px;
+    overflow-y: auto;
+}
+
+#event-text {
+    font-size: 1.1em;
+    line-height: 1.6;
+}
+
+#choices-container button {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    margin-top: 10px;
+    background-color: #6c5ce7;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1em;
+    transition: background-color 0.3s;
+}
+
+#choices-container button:hover {
+    background-color: #a29bfe;
+}
+
+/* Botão Principal */
+#next-year-btn {
+    padding: 15px;
+    width: 100%;
+    background-color: #00b894;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1.2em;
+    font-weight: bold;
+    margin-top: auto; /* Empurra o botão para o fundo do painel de eventos */
+}
+
+#next-year-btn:hover {
+    background-color: #55efc4;
+}
+
+/* Spans com dados */
+span {
+    color: #55efc4;
+    font-weight: bold;
+}
