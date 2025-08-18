@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jornada do Dao Imortal</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-container">
+        <!-- Painel Esquerdo: Atributos do Personagem -->
+        <div id="character-panel" class="panel">
+            <h2>Personagem</h2>
+            <p><strong>Nome:</strong> <span id="char-name">Jovem Cultivador</span></p>
+            <p><strong>Idade:</strong> <span id="char-age">0</span></p>
+            <hr>
+            <h3>Atributos Primários</h3>
+            <ul>
+                <li><strong>Corpo:</strong> <span id="attr-body">10</span></li>
+                <li><strong>Mente:</strong> <span id="attr-mind">10</span></li>
+                <li><strong>Alma:</strong> <span id="attr-soul">10</span></li>
+                <li><strong>Sorte:</strong> <span id="attr-luck">5</span></li>
+            </ul>
+            <hr>
+            <h3>Cultivo</h3>
+            <p><strong>Reino:</strong> <span id="cult-realm">Mortal</span></p>
+            <p><strong>Nível de Qi:</strong> <span id="cult-qi">0</span> / 100</p>
+        </div>
+
+        <!-- Painel Central: Log de Eventos -->
+        <div id="event-panel" class="panel">
+            <h2>Diário da Jornada</h2>
+            <div id="event-log">
+                <p id="event-text">Você nasceu em uma pequena vila de camponeses. O futuro é uma tela em branco, esperando para ser pintada por suas ações.</p>
+            </div>
+            <div id="choices-container">
+                <!-- As opções de escolha aparecerão aqui -->
+            </div>
+            <button id="next-year-btn">Avançar Ano</button>
+        </div>
+
+        <!-- Painel Direito: Recursos e Relacionamentos -->
+        <div id="resources-panel" class="panel">
+            <h2>Recursos</h2>
+            <p><strong>Dinheiro:</strong> <span id="res-money">10</span> Moedas de Cobre</p>
+            <p><strong>Reputação:</strong> <span id="res-reputation">Neutra</span></p>
+            <hr>
+            <h3>Itens</h3>
+            <ul id="inventory-list">
+                <li>Nenhum</li>
+            </ul>
+            <hr>
+            <h3>Relacionamentos</h3>
+            <ul id="relationships-list">
+                <li>Nenhum</li>
+            </ul>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
