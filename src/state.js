@@ -13,10 +13,29 @@ export let combatState = null;
 
 // Constante com as definições dos reinos de cultivo.
 export const cultivationRealms = [
-    { name: "Mortal", qiMax: 100 },
-    { name: "Condensação de Qi", qiMax: 500 },
-    { name: "Estabelecimento de Fundação", qiMax: 2000 },
-    { name: "Núcleo Dourado", qiMax: 10000 }
+    {
+        name: "Mortal",
+        qiMax: 100,
+        subRealms: ["Comum", "Desperto", "Iniciado"]
+    },
+    {
+        name: "Condensação de Qi",
+        qiMax: 500,
+        subRealms: ["Estágio Inicial", "Estágio Intermediário", "Estágio Avançado"],
+        breakthroughRequirements: { mind: 12, soul: 12 }
+    },
+    {
+        name: "Estabelecimento de Fundação",
+        qiMax: 2000,
+        subRealms: ["Estágio Inicial", "Estágio Intermediário", "Estágio Avançado"],
+        breakthroughRequirements: { body: 20, mind: 20 }
+    },
+    {
+        name: "Núcleo Dourado",
+        qiMax: 10000,
+        subRealms: ["Estágio Inicial", "Estágio Intermediário", "Estágio Avançado"],
+        breakthroughRequirements: { soul: 30, luck: 10 }
+    }
 ];
 
 /**
@@ -31,7 +50,7 @@ export function initializeGameState() {
             body: 10, mind: 10, soul: 10, luck: 5,
             defense: 5, critChance: 0.05, dodgeChance: 0.05
         },
-        cultivation: { realmIndex: 0, qi: 0 },
+        cultivation: { realmIndex: 0, subRealmIndex: 0, qi: 0 },
         resources: { money: 10, reputation: 0 },
         inventory: [],
         relationships: [],

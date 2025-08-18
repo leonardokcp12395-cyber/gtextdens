@@ -91,60 +91,64 @@ function triggerBreakthroughEvent() {
         elements.eventContent.innerHTML = "<p>Você atingiu o pico do mundo mortal. O caminho à frente está velado em mistério.</p>";
         return;
     }
-    elements.eventContent.innerHTML = `<p>Você acumulou Qi suficiente... Você pode tentar avançar para o próximo reino: ${nextRealm.name}.</p>`;
-    elements.choicesContainer.innerHTML = '';
-    const choices = [
-        {
-            text: "Tentar o avanço agora.",
-            action: () => {
-                const successChance = 0.5 + (gameState.attributes.luck * 0.01);
-                if (Math.random() < successChance) {
-                    gameState.cultivation.realmIndex++;
-                    gameState.cultivation.qi = 0;
-                    logLifeEvent(`Avançou para o reino ${nextRealm.name}.`);
-                    elements.eventContent.innerHTML = `<p>Parabéns! Você avançou para o reino ${nextRealm.name}!</p>`;
-                } else {
-                    gameState.cultivation.qi = Math.floor(gameState.cultivation.qi * 0.8);
-                    elements.eventContent.innerHTML = "<p>A tentativa falhou! Seu Qi se dispersa violentamente.</p>";
-                }
-            }
-        },
-        {
-            text: "Usar Pílula do Estabelecimento de Fundação",
-            requires: "foundation_pill",
-            action: () => {
-                const pillIndex = gameState.inventory.indexOf("foundation_pill");
-                gameState.inventory.splice(pillIndex, 1);
-                gameState.cultivation.realmIndex++;
-                gameState.cultivation.qi = 0;
-                logLifeEvent(`Avançou para o reino ${nextRealm.name} com a ajuda de uma pílula.`);
-                elements.eventContent.innerHTML = `<p>Com a ajuda da pílula, você avança para o reino ${nextRealm.name}!</p>`;
-            }
-        },
-        {
-            text: "Esperar e acumular mais base.",
-            action: () => {
-                elements.eventContent.innerHTML = "<p>Você decide esperar, sentindo que uma base mais sólida aumentará suas chances.</p>";
-            }
+
+    // Verifica se o jogador cumpre os requisitos
+    const requirements = nextRealm.breakthroughRequirements || {};
+    let meetsRequirements = true;
+    let requirementsText = "";
+    for (const attr in requirements) {
+        if (gameState.attributes[attr] < requirements[attr]) {
+            meetsRequirements = false;
+            requirementsText += ` ${attr}: ${requirements[attr]} (Você tem ${gameState.attributes[attr]}),`;
         }
-    ];
-    choices.forEach(choice => {
-        if (choice.requires && !gameState.inventory.includes(choice.requires)) return;
-        const button = document.createElement('button');
-        button.textContent = choice.text;
-        button.onclick = () => {
-            choice.action();
-            elements.choicesContainer.innerHTML = '';
-            if (gameState.attributes.health <= 0) {
-                showDeathScreen();
-            } else {
-                elements.nextYearBtn.style.display = 'block';
-                updateUI();
-            }
-            saveGame();
-        };
-        elements.choicesContainer.appendChild(button);
-    });
+    }
+    requirementsText = requirementsText.slice(0, -1); // Remove a última vírgula
+
+    let eventHTML = `<p>Você acumulou Qi suficiente e sente a barreira para o próximo reino: ${nextRealm.name}.</p>`;
+    if (!meetsRequirements) {
+        eventHTML += `<p style="color: #d63031;">No entanto, você sente que sua base é instável. Requisitos não cumpridos:${requirementsText}.</p>`;
+    }
+    elements.eventContent.innerHTML = eventHTML;
+    elements.choicesContainer.innerHTML = '';
+
+    // Lógica dos botões de escolha
+    const attemptButton = document.createElement('button');
+    attemptButton.textContent = "Tentar o avanço agora.";
+    if (!meetsRequirements) {
+        attemptButton.disabled = true;
+        attemptButton.title = `Requisitos não cumpridos:${requirementsText}`;
+    }
+    attemptButton.onclick = () => {
+        const successChance = (meetsRequirements ? 0.7 : 0.1) + (gameState.attributes.luck * 0.01);
+        if (Math.random() < successChance) {
+            gameState.cultivation.realmIndex++;
+            gameState.cultivation.subRealmIndex = 0;
+            gameState.cultivation.qi = 0;
+            logLifeEvent(`Avançou para o reino ${nextRealm.name}.`);
+            elements.eventContent.innerHTML = `<p>Parabéns! Após uma meditação perigosa, você rompeu seus limites e avançou para o reino ${nextRealm.name}!</p>`;
+        } else {
+            gameState.cultivation.qi = Math.floor(gameState.cultivation.qi * 0.8);
+            elements.eventContent.innerHTML = `<p>A tentativa falhou! Seu Qi se dispersa violentamente e você sofre um revés.</p>`;
+        }
+        elements.choicesContainer.innerHTML = '';
+        elements.nextYearBtn.style.display = 'block';
+        updateUI();
+        saveGame();
+    };
+    elements.choicesContainer.appendChild(attemptButton);
+
+    // Botão de esperar
+    const waitButton = document.createElement('button');
+    waitButton.textContent = "Esperar e acumular mais base.";
+    waitButton.onclick = () => {
+        elements.eventContent.innerHTML = "<p>Você decide esperar, sentindo que uma base mais sólida aumentará suas chances.</p>";
+        elements.choicesContainer.innerHTML = '';
+        elements.nextYearBtn.style.display = 'block';
+        updateUI();
+        saveGame();
+    };
+    elements.choicesContainer.appendChild(waitButton);
+
     elements.nextYearBtn.style.display = 'none';
 }
 
@@ -176,6 +180,24 @@ export function advanceYear() {
     }
 
     const currentRealm = cultivationRealms[gameState.cultivation.realmIndex];
+
+    // Lógica de avanço de sub-reino
+    const subRealmThreshold1 = Math.floor(currentRealm.qiMax / 3);
+    const subRealmThreshold2 = Math.floor((currentRealm.qiMax * 2) / 3);
+    const oldSubRealm = gameState.cultivation.subRealmIndex;
+
+    if (gameState.cultivation.subRealmIndex < 2 && gameState.cultivation.qi >= subRealmThreshold2) {
+        gameState.cultivation.subRealmIndex = 2;
+    } else if (gameState.cultivation.subRealmIndex < 1 && gameState.cultivation.qi >= subRealmThreshold1) {
+        gameState.cultivation.subRealmIndex = 1;
+    }
+
+    if (oldSubRealm !== gameState.cultivation.subRealmIndex) {
+        const subRealmName = currentRealm.subRealms[gameState.cultivation.subRealmIndex];
+        logLifeEvent(`Atingiu ${currentRealm.name} - ${subRealmName}.`);
+        applyEffects({ attributes: { health: 10, maxHealth: 10 } }); // Bônus por avançar
+    }
+
     if (gameState.cultivation.qi >= currentRealm.qiMax) {
         gameState.cultivation.qi = currentRealm.qiMax;
         triggerBreakthroughEvent();

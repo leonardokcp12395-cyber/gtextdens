@@ -111,6 +111,7 @@ export function updateUI() {
         elements.nextYearBtn.style.display = 'block';
     }
     const currentRealm = cultivationRealms[gameState.cultivation.realmIndex];
+    const subRealmName = currentRealm.subRealms[gameState.cultivation.subRealmIndex];
     elements.age.textContent = gameState.age;
     elements.attrHealth.textContent = gameState.attributes.health;
     elements.attrMaxHealth.textContent = gameState.attributes.maxHealth;
@@ -120,7 +121,7 @@ export function updateUI() {
     elements.attrMind.textContent = gameState.attributes.mind;
     elements.attrSoul.textContent = gameState.attributes.soul;
     elements.attrLuck.textContent = gameState.attributes.luck;
-    elements.cultRealm.textContent = currentRealm.name;
+    elements.cultRealm.textContent = `${currentRealm.name} - ${subRealmName}`;
     elements.cultQi.textContent = gameState.cultivation.qi;
     elements.cultQiMax.textContent = currentRealm.qiMax;
     elements.resMoney.textContent = `${gameState.resources.money} Moedas de Cobre`;
