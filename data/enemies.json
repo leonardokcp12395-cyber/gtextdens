@@ -1,0 +1,10 @@
+[
+    {
+        "id": "rival_lian_14",
+        "name": "Rival Lian",
+        "attributes": {
+            "health": 30,
+            "body": 12
+        }
+    }
+]

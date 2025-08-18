@@ -1,0 +1,26 @@
+[
+    {
+        "id": "basic_breathing_technique",
+        "name": "Técnica de Respiração Básica",
+        "type": "technique",
+        "effects": {}
+    },
+    {
+        "id": "body_refining_pill",
+        "name": "Pílula de Refinamento Corporal",
+        "type": "pill",
+        "effects": { "attributes": { "body": 2, "maxHealth": 5 } }
+    },
+    {
+        "id": "clear_mind_pill",
+        "name": "Pílula da Mente Clara",
+        "type": "pill",
+        "effects": { "attributes": { "mind": 2 } }
+    },
+    {
+    "id": "foundation_pill",
+    "name": "Pílula do Estabelecimento de Fundação",
+    "type": "pill",
+    "effects": {}
+    }
+]

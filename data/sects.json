@@ -1,0 +1,114 @@
+[
+    {
+        "id": "hidden_cloud_sect",
+        "name": "Seita da Nuvem Oculta",
+        "alignment": "Justa",
+        "description": "Uma seita antiga e respeitada que valoriza o equilíbrio e a compreensão profunda do Dao. Seus discípulos são conhecidos por sua base sólida e temperamento calmo.",
+        "benefit": {
+            "type": "passive_qi_gain",
+            "value": 2,
+            "description": "+2 Qi adicional por ano."
+        },
+        "ranks": [
+            "Discípulo Externo",
+            "Discípulo Interno",
+            "Discípulo de Elite",
+            "Ancião"
+        ],
+        "contribution_needed": [
+            100,
+            500,
+            2000
+        ],
+        "store": [
+            {
+            "id": "tech_cloud_step",
+            "name": "Técnica do Passo da Nuvem",
+            "type": "technique",
+            "cost": 50,
+            "description": "Uma técnica de movimento que aumenta a agilidade e a capacidade de esquiva.",
+            "effects": { "attributes": { "body": 5 } }
+            },
+            {
+            "id": "pill_spirit_cleansing",
+            "name": "Pílula da Limpeza Espiritual",
+            "type": "pill",
+            "cost": 100,
+            "description": "Uma pílula que purifica a alma, aumentando seu potencial.",
+            "effects": { "attributes": { "soul": 10 } }
+            }
+        ],
+        "missions": [
+            {
+                "id": "mission_patrol_forest",
+                "name": "Patrulhar a Floresta",
+                "description": "Um ancião pede que você patrulhe a floresta ao redor da seita para garantir que nenhuma fera demoníaca ou cultivador suspeito se aproxime.",
+                "check": { "special": "mission_patrol_forest" },
+                "rewards": {
+                    "success": { "contribution": 15, "reputation": 1, "item": "body_refining_pill" },
+                    "failure": { "health": -5 }
+                }
+            },
+            {
+                "id": "mission_organize_library",
+                "name": "Organizar a Biblioteca",
+                "description": "A vasta biblioteca de técnicas da seita está uma bagunça. Um bibliotecário pede sua ajuda para catalogar alguns pergaminhos antigos.",
+                "check": { "attribute": "mind", "difficulty": 12 },
+                "rewards": {
+                    "success": { "contribution": 10, "mind": 1 },
+                    "failure": {}
+                }
+            },
+            {
+                "id": "mission_help_alchemist",
+                "name": "Ajudar o Alquimista",
+                "description": "O alquimista-chefe precisa de um assistente para identificar ervas raras. É um trabalho tedioso que exige uma mente afiada.",
+                "check": { "attribute": "mind", "difficulty": 14 },
+                "rewards": {
+                    "success": { "contribution": 20, "item": "clear_mind_pill" },
+                    "failure": { "reputation": -1 }
+                }
+            }
+        ]
+    },
+    {
+        "id": "blood_demon_sect",
+        "name": "Seita do Demônio de Sangue",
+        "alignment": "Demoníaca",
+        "description": "Uma seita temida e secreta que acredita que o poder deve ser tomado a qualquer custo. Seus métodos são cruéis, mas inegavelmente eficazes.",
+        "benefit": {
+            "type": "body_cultivation_boost",
+            "value": 1,
+            "description": "+1 de Corpo a cada 5 anos."
+        },
+        "ranks": [
+            "Servo de Sangue",
+            "Cultivador de Sangue",
+            "Lorde de Sangue",
+            "Patriarca"
+        ],
+        "contribution_needed": [
+            120,
+            600,
+            2500
+        ],
+        "store": [
+            {
+            "id": "tech_blood_fury",
+            "name": "Técnica da Fúria de Sangue",
+            "type": "technique",
+            "cost": 60,
+            "description": "Uma arte secreta que usa a essência vital para aumentar o poder de ataque.",
+            "effects": { "attributes": { "body": 8, "soul": -2 } }
+            },
+            {
+                "id": "pill_soul_devouring",
+                "name": "Pílula Devoradora de Almas",
+                "type": "pill",
+                "cost": 120,
+                "description": "Uma pílula proibida que consome a energia de outros para fortalecer a própria alma.",
+                "effects": { "attributes": { "soul": 15, "reputation": -10 } }
+            }
+        ]
+    }
+]

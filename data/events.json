@@ -1,0 +1,100 @@
+[
+    {
+        "age": 3,
+        "text": "Você começa a andar e balbuciar suas primeiras palavras. Seus pais notam sua curiosidade.",
+        "choices": [
+            { "text": "Tentar explorar o quintal.", "effects": { "attributes": { "body": 1 } }, "resultKey": "explore_yard_success" },
+            { "text": "Ouvir atentamente as conversas dos adultos.", "effects": { "attributes": { "mind": 1 } }, "resultKey": "listen_adults_success" }
+        ]
+    },
+    {
+        "age": 5,
+        "text": "Um velho monge viajante passa pela sua vila. Ele olha para você com um brilho nos olhos e diz: 'Jovem, vejo um potencial extraordinário em você. Mas o caminho do cultivo é árduo. O que você fará?'",
+        "choices": [
+            { "text": "Pedir para se tornar seu discípulo.", "effects": { "special": "monk_disciple" }, "successKey": "monk_success", "failureKey": "monk_failure" },
+            { "text": "Ignorá-lo.", "effects": {}, "resultKey": "monk_ignore" }
+        ]
+    },
+    {
+        "age": 8,
+        "text": "Durante uma brincadeira, você tropeça e cai perto de um riacho. Algo brilhante chama sua atenção na lama.",
+        "choices": [
+            { "text": "Pegar o objeto brilhante.", "effects": { "resources": { "money": 5 } }, "resultKey": "shiny_object_success" },
+            { "text": "Ignorar e voltar para casa.", "effects": {}, "resultKey": "shiny_object_ignore" }
+        ]
+    },
+    {
+        "age": 10,
+        "text": "Durante o treino na praça da vila, um dos garotos mais velhos te desafia para um combate de treino. 'Vamos ver do que você é feito, novato!', ele provoca.",
+        "choices": [
+            { "text": "Aceitar e lutar de forma agressiva.", "effects": { "attributes": { "body": 2 }, "resources": { "reputation": 1 } }, "resultKey": "bully_fight_aggro" },
+            { "text": "Aceitar e lutar de forma defensiva.", "effects": { "attributes": { "mind": 2 }, "resources": { "reputation": 1 } }, "resultKey": "bully_fight_def" },
+            { "text": "Recusar o desafio.", "effects": { "resources": { "reputation": -1 } }, "resultKey": "bully_refuse" }
+        ]
+    },
+    {
+        "age": 12,
+        "text": "Explorando a floresta perto da vila, você encontra a entrada de uma caverna escura e úmida, escondida atrás de uma cortina de vinhas.",
+        "choices": [
+            { "text": "Entrar e explorar a caverna.", "effects": { "special": "explore_cave" }, "successKey": "explore_cave_success", "failureKey": "explore_cave_failure" },
+            { "text": "Marcar o local e voltar mais tarde.", "effects": {}, "resultKey": "explore_cave_ignore" }
+        ]
+    },
+    {
+        "age": 14,
+        "text": "Outro jovem da sua vila, Lian, começa a mostrar um talento para o cultivo quase tão grande quanto o seu. Ele te encara com uma mistura de admiração e rivalidade.",
+        "choices": [
+            { "text": "Oferecer amizade e treinar junto.", "effects": { "relationships": { "Lian": 20 }, "attributes": { "mind": 1 } }, "resultKey": "rivalry_friend" },
+            { "text": "Declarar abertamente que você será o melhor.", "effects": { "relationships": { "Lian": -15 }, "attributes": { "body": 1 } }, "resultKey": "rivalry_aggro" }
+        ]
+    },
+    {
+        "age": 15,
+        "text": "Chega a notícia de que a prestigiosa 'Seita da Nuvem Oculta' realizará seu exame anual de recrutamento em uma cidade próxima no próximo ano. Esta é uma chance de ouro.",
+        "choices": [
+            { "text": "Começar a treinar o dobro para o exame.", "effects": { "attributes": { "soul": 2 }, "cultivation": { "qi": 10 } }, "resultKey": "sect_exam_prep" },
+            { "text": "Achar que é impossível e não se esforçar.", "effects": { "attributes": { "soul": -1 } }, "resultKey": "sect_exam_slump" }
+        ]
+    },
+    {
+        "age": 16,
+        "text": "É o dia do exame de recrutamento da Seita da Nuvem Oculta. Discípulos de toda a província estão aqui. A primeira fase testa a força da mente e da alma para resistir a uma ilusão.",
+        "choices": [
+            { "text": "Enfrentar o teste com tudo o que você tem.", "effects": { "special": "sect_exam_hidden_cloud" }, "successKey": "sect_exam_success", "failureKey": "sect_exam_failure" },
+            { "text": "Desistir. A competição é forte demais.", "effects": { "attributes": { "soul": -2 } }, "resultKey": "sect_exam_giveup" }
+        ]
+    },
+    {
+        "age": 17,
+        "sectId": "hidden_cloud_sect",
+        "text": "Um ancião da Seita da Nuvem Oculta te vê treinando e, impressionado com sua dedicação, te oferece uma Pílula de Qi de baixo grau como incentivo.",
+        "choices": [
+            { "text": "Agradecer e aceitar a pílula.", "effects": { "cultivation": { "qi": 20 }, "relationships": {"Ancião da Seita": 5} }, "resultKey": "sect_elder_accept" },
+            { "text": "Recusar educadamente, dizendo que prefere avançar com seu próprio esforço.", "effects": { "attributes": { "soul": 1 }, "relationships": {"Ancião da Seita": 10} }, "resultKey": "sect_elder_refuse" }
+        ]
+    },
+    {
+        "age": 18,
+        "text": "Um alquimista de passagem ouve sobre seu potencial e lhe oferece uma 'Pílula de Aceleração do Qi' por 25 moedas. Ele afirma que ela pode impulsionar seu cultivo em meses.",
+        "choices": [
+            { "text": "Comprar a pílula (requer 25 moedas).", "effects": { "special": "buy_qi_pill" }, "successKey": "buy_pill_success", "failureKey": "buy_pill_failure" },
+            { "text": "Desconfiar do alquimista e recusar.", "effects": {}, "resultKey": "buy_pill_ignore" }
+        ]
+    },
+    {
+        "age": 20,
+        "text": "Você descobre uma clareira escondida onde a energia espiritual do mundo parece ser anormalmente densa. É um local perfeito para meditar.",
+        "choices": [
+            { "text": "Meditar no local por um dia inteiro.", "effects": { "special": "meditate_power_spot" }, "successKey": "power_spot_success", "failureKey": "power_spot_failure" },
+            { "text": "É muito arriscado. Deixar o local.", "effects": {}, "resultKey": "power_spot_ignore" }
+        ]
+    },
+    {
+        "age": 22,
+        "text": "Seu rival, Lian, agora no mesmo reino que você, te desafia para um duelo amigável na arena da seita para 'trocar dicas'. Muitos discípulos param para assistir.",
+        "choices": [
+            { "text": "Aceitar o duelo.", "effects": { "special": "duel_lian" }, "successKey": "duel_lian_win", "failureKey": "duel_lian_loss" },
+            { "text": "Recusar educadamente.", "effects": { "relationships": { "Lian": -10 } }, "resultKey": "duel_lian_refuse" }
+        ]
+    }
+]
