@@ -1,4 +1,4 @@
-1.0
+### **1.0**
 Excelente ideia! A combinação de um simulador de vida no estilo BitLife com o universo rico e profundo de Wuxia/Xianxia/Cultivo tem um potencial incrível para um jogo web de texto. É um nicho com muitos fãs e a jogabilidade baseada em escolhas se encaixa perfeitamente.
 
 Vamos estruturar um plano completo e detalhado para você criar seu jogo.
@@ -195,7 +195,7 @@ Beta Testing: Libere o jogo para uma comunidade pequena (talvez em fóruns como 
 
 Polimento: Corrija erros de digitação, melhore a clareza dos textos, adicione pequenos efeitos sonoros ou visuais se desejar.
 
-1.0.1
+### **1.0.1**
 Claro! Agora que temos a fundação sólida, podemos adicionar camadas de complexidade e polimento para transformar um bom jogo em um jogo *excepcional e viciante*.
 
 Aqui estão várias ideias avançadas, divididas por categoria, para melhorar seu projeto:
