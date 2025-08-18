@@ -269,8 +269,8 @@
                     {
                         "text": "Aceitar o duelo.",
                         "effects": { "special": "duel_lian" },
-                        "successText": "Com sua base sólida, você consegue uma vitória apertada! Sua reputação na seita cresce. (+2 Reputação, Relacionamento com Lian +5)",
-                        "failureText": "Lian se mostra mais habilidoso desta vez e você é derrotado. Você perde um pouco de prestígio. (-1 Reputação, Relacionamento com Lian -5)"
+                        "successText": "Você derrota Lian com um movimento rápido! Sua reputação na vila aumenta.",
+                        "failureText": "Lian é mais forte do que você pensava e te derruba facilmente. Que vergonha..."
                     },
                     {
                         "text": "Recusar educadamente.",
@@ -345,9 +345,9 @@
                             "id": "mission_patrol_forest",
                             "name": "Patrulhar a Floresta",
                             "description": "Um ancião pede que você patrulhe a floresta ao redor da seita para garantir que nenhuma fera demoníaca ou cultivador suspeito se aproxime.",
-                            "check": { "attribute": "body", "difficulty": 12 },
+                            "check": { "special": "mission_patrol_forest" },
                             "rewards": {
-                                "success": { "contribution": 15, "reputation": 1 },
+                                "success": { "contribution": 15, "reputation": 1, "item": "body_refining_pill" },
                                 "failure": { "health": -5 }
                             }
                         },
@@ -412,6 +412,16 @@
                             "effects": { "attributes": { "soul": 15, "reputation": -10 } }
                         }
                     ]
+                }
+            ],
+            "enemies": [
+                {
+                    "id": "rival_lian_14",
+                    "name": "Rival Lian",
+                    "attributes": {
+                        "health": 30,
+                        "body": 12
+                    }
                 }
             ]
         };
