@@ -4,7 +4,10 @@
         "name": "Rival Lian",
         "attributes": {
             "health": 30,
-            "body": 12
+            "body": 12,
+            "defense": 3,
+            "critChance": 0.05,
+            "dodgeChance": 0.05
         }
     }
 ]

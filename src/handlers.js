@@ -105,7 +105,8 @@ function startCombat(enemyId) {
     const newCombatState = {
         enemy: enemyData,
         enemyHealth: enemyData.attributes.health,
-        log: []
+        log: [],
+        playerIsDefending: false
     };
     setCombatState(newCombatState);
     showCombatUI();
@@ -121,31 +122,82 @@ function showCombatUI() {
         <hr><div class="combat-log">${combatLog}</div>`;
     elements.eventContent.innerHTML = combatHTML;
     elements.choicesContainer.innerHTML = '';
+
     const attackButton = document.createElement('button');
     attackButton.textContent = "Ataque Físico";
-    attackButton.onclick = () => takeCombatTurn('physical');
+    attackButton.onclick = () => takeCombatTurn('attack');
     elements.choicesContainer.appendChild(attackButton);
+
+    const defendButton = document.createElement('button');
+    defendButton.textContent = "Defender";
+    defendButton.onclick = () => takeCombatTurn('defend');
+    elements.choicesContainer.appendChild(defendButton);
+
     elements.nextYearBtn.style.display = 'none';
     elements.sectActionsBtn.style.display = 'none';
 }
 
-function takeCombatTurn(attackType) {
+function takeCombatTurn(actionType) {
     if (!combatState) return;
     combatState.log = [];
-    const playerDamage = Math.max(1, Math.floor(gameState.attributes.body / 2) + Math.floor(Math.random() * (gameState.attributes.luck / 2)));
-    combatState.enemyHealth -= playerDamage;
-    combatState.log.push(`Você ataca e causa ${playerDamage} de dano.`);
+
+    // --- Ação do Jogador ---
+    if (actionType === 'attack') {
+        combatState.playerIsDefending = false; // Atacar remove o estado de defesa
+        // Chance de Esquiva do Inimigo
+        if (Math.random() < combatState.enemy.attributes.dodgeChance) {
+            combatState.log.push(`${combatState.enemy.name} se esquiva do seu ataque!`);
+        } else {
+            // Cálculo de Dano do Jogador
+            let playerDamage = Math.max(1, Math.floor(gameState.attributes.body / 2) - Math.floor(combatState.enemy.attributes.defense / 2));
+            // Chance de Crítico do Jogador
+            if (Math.random() < gameState.attributes.critChance) {
+                playerDamage *= 2;
+                combatState.log.push("GOLPE CRÍTICO!");
+            }
+            combatState.enemyHealth -= playerDamage;
+            combatState.log.push(`Você ataca e causa ${playerDamage} de dano.`);
+        }
+    } else if (actionType === 'defend') {
+        combatState.playerIsDefending = true;
+        combatState.log.push("Você se prepara para defender o próximo ataque.");
+    }
+
+    // Checa se o inimigo foi derrotado
     if (combatState.enemyHealth <= 0) {
         endCombat('win');
         return;
     }
-    const enemyDamage = Math.max(1, Math.floor(combatState.enemy.attributes.body / 2));
-    applyEffects({ attributes: { health: -enemyDamage } });
-    combatState.log.push(`${combatState.enemy.name} ataca e causa ${enemyDamage} de dano.`);
+
+    // --- Ação do Inimigo ---
+    // Chance de Esquiva do Jogador
+    if (Math.random() < gameState.attributes.dodgeChance) {
+        combatState.log.push(`Você se esquiva do ataque de ${combatState.enemy.name}!`);
+    } else {
+        // Cálculo de Dano do Inimigo
+        let enemyDamage = Math.max(1, Math.floor(combatState.enemy.attributes.body / 2) - Math.floor(gameState.attributes.defense / 2));
+        // Chance de Crítico do Inimigo
+        if (Math.random() < combatState.enemy.attributes.critChance) {
+            enemyDamage *= 2;
+            combatState.log.push("GOLPE CRÍTICO!");
+        }
+        // Aplica o estado de defesa
+        if (combatState.playerIsDefending) {
+            enemyDamage = Math.floor(enemyDamage / 2);
+            combatState.log.push("Sua defesa amortece o golpe!");
+            combatState.playerIsDefending = false;
+        }
+        applyEffects({ attributes: { health: -enemyDamage } });
+        combatState.log.push(`${combatState.enemy.name} ataca e causa ${enemyDamage} de dano.`);
+    }
+
+    // Checa se o jogador foi derrotado
     if (gameState.attributes.health <= 0) {
         endCombat('loss');
         return;
     }
+
+    // Atualiza a UI para o próximo turno
     showCombatUI();
     updateUI();
 }

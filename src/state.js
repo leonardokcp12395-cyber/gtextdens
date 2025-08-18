@@ -25,7 +25,12 @@ export const cultivationRealms = [
 export function initializeGameState() {
     gameState = {
         age: 0,
-        attributes: { health: 100, maxHealth: 100, energy: 100, maxEnergy: 100, body: 10, mind: 10, soul: 10, luck: 5 },
+        attributes: {
+            health: 100, maxHealth: 100,
+            energy: 100, maxEnergy: 100,
+            body: 10, mind: 10, soul: 10, luck: 5,
+            defense: 5, critChance: 0.05, dodgeChance: 0.05
+        },
         cultivation: { realmIndex: 0, qi: 0 },
         resources: { money: 10, reputation: 0 },
         inventory: [],
