@@ -23,7 +23,8 @@ document.addEventListener('DOMContentLoaded', () => {
         eventContent: document.getElementById('event-content'),
         choicesContainer: document.getElementById('choices-container'),
         nextYearBtn: document.getElementById('next-year-btn'),
-        sectActionsBtn: document.getElementById('sect-actions-btn')
+        sectActionsBtn: document.getElementById('sect-actions-btn'),
+        debugLog: document.getElementById('debug-log')
     };
 
     let gameState = {};
@@ -76,7 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
         switch (specialKey) {
             case "monk_disciple":
                 if (Math.random() > 0.5) {
-                    gameState.inventory.push("Técnica de Respiração Básica");
+                    gameState.inventory.push("basic_breathing_technique");
                     gameState.cultivation.qi += 5;
                     success = true;
                 } else {
@@ -86,7 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 break;
             case "explore_cave":
                 if (Math.random() > 0.5) {
-                    gameState.inventory.push("Pílula de Refinamento Corporal");
+                    gameState.inventory.push("body_refining_pill");
                     gameState.attributes.body += 1;
                     gameState.attributes.soul += 1;
                     success = true;
@@ -203,7 +204,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     applyEffects(item.effects);
                     // Adiciona item ao inventário se for um item físico
                     if (item.type === 'pill' || item.type === 'technique') {
-                        gameState.inventory.push(item.name);
+                        gameState.inventory.push(item.id); // Armazena o ID, não o nome
                     }
                     elements.eventText.textContent = `Você adquiriu ${item.name}!`;
                     elements.choicesContainer.innerHTML = ''; // Limpa para não poder comprar de novo
@@ -229,19 +230,37 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const missionButton = document.createElement('button');
         missionButton.textContent = "Aceitar uma Missão da Seita";
-        missionButton.onclick = () => {
-            // Lógica da missão a ser implementada
-            gameState.sect.contribution += 10;
-            elements.eventContent.innerHTML = "<p>Você completou uma missão simples de patrulha e ganhou 10 pontos de contribuição.</p>";
-            elements.choicesContainer.innerHTML = '';
-            updateUI();
-        };
+        missionButton.onclick = acceptSectMission;
         elements.choicesContainer.appendChild(missionButton);
 
         const storeButton = document.createElement('button');
         storeButton.textContent = "Visitar a Loja da Seita";
         storeButton.onclick = showSectStore;
         elements.choicesContainer.appendChild(storeButton);
+
+        // Lógica do botão de Promoção
+        const sectData = allGameData.sects.find(s => s.id === gameState.sect.id);
+        const currentRankIndex = gameState.sect.rankIndex;
+        const nextRankIndex = currentRankIndex + 1;
+
+        if (nextRankIndex < sectData.ranks.length) {
+            const promotionButton = document.createElement('button');
+            const neededContribution = sectData.contribution_needed[currentRankIndex];
+            promotionButton.textContent = `Tentar Promoção para ${sectData.ranks[nextRankIndex]} (${neededContribution} contribuição)`;
+
+            if (gameState.sect.contribution >= neededContribution) {
+                promotionButton.onclick = () => {
+                    gameState.sect.contribution -= neededContribution;
+                    gameState.sect.rankIndex++;
+                    elements.eventContent.innerHTML = `<p>Parabéns! Você foi promovido para ${sectData.ranks[gameState.sect.rankIndex]}!</p>`;
+                    elements.choicesContainer.innerHTML = '';
+                    updateUI();
+                };
+            } else {
+                promotionButton.disabled = true;
+            }
+            elements.choicesContainer.appendChild(promotionButton);
+        }
 
         const leaveButton = document.createElement('button');
         leaveButton.textContent = "Voltar às suas atividades";
@@ -256,6 +275,60 @@ document.addEventListener('DOMContentLoaded', () => {
 
         elements.nextYearBtn.style.display = 'none';
         elements.sectActionsBtn.style.display = 'none';
+    }
+
+    /** Lida com a lógica de aceitar e processar uma missão da seita */
+    function acceptSectMission() {
+        const sectData = allGameData.sects.find(s => s.id === gameState.sect.id);
+        if (!sectData || !sectData.missions || sectData.missions.length === 0) {
+            elements.eventContent.innerHTML = "<p>Não há missões disponíveis no momento.</p>";
+            return;
+        }
+
+        // Seleciona uma missão aleatória
+        const mission = sectData.missions[Math.floor(Math.random() * sectData.missions.length)];
+
+        elements.eventContent.innerHTML = `<p><strong>Nova Missão: ${mission.name}</strong></p><p>${mission.description}</p>`;
+        elements.choicesContainer.innerHTML = '';
+
+        const attemptButton = document.createElement('button');
+        attemptButton.textContent = "Tentar a Missão";
+        attemptButton.onclick = () => {
+            // Lógica de sucesso da missão
+            const playerStat = gameState.attributes[mission.check.attribute];
+            const successChance = 0.5 + ((playerStat - mission.check.difficulty) * 0.05); // 5% de chance por ponto acima/abaixo
+
+            if (Math.random() < successChance) {
+                // Sucesso
+                const successRewards = mission.rewards.success;
+                gameState.sect.contribution += successRewards.contribution || 0;
+                if (successRewards.reputation) gameState.resources.reputation += successRewards.reputation;
+                if (successRewards.mind) gameState.attributes.mind += successRewards.mind;
+                if (successRewards.item) {
+                    gameState.inventory.push(successRewards.item);
+                }
+                elements.eventContent.innerHTML = `<p>Sucesso! Você completou a missão '${mission.name}' e ganhou ${successRewards.contribution || 0} de contribuição.</p>`;
+            } else {
+                // Falha
+                const failureRewards = mission.rewards.failure;
+                if (failureRewards.health) gameState.attributes.health += failureRewards.health;
+                elements.eventContent.innerHTML = `<p>Falha! Você não conseguiu completar a missão '${mission.name}'.</p>`;
+            }
+
+            elements.choicesContainer.innerHTML = '';
+            // Verificar morte após a falha
+            if (gameState.attributes.health <= 0) {
+                showDeathScreen();
+            } else {
+                updateUI();
+            }
+        };
+        elements.choicesContainer.appendChild(attemptButton);
+
+        const refuseButton = document.createElement('button');
+        refuseButton.textContent = "Recusar Missão";
+        refuseButton.onclick = showSectActions; // Volta para o menu de ações
+        elements.choicesContainer.appendChild(refuseButton);
     }
 
     /** Atualiza toda a UI com base no gameState atual */
@@ -296,15 +369,39 @@ document.addEventListener('DOMContentLoaded', () => {
     /** Helper para atualizar a lista de inventário na UI */
     function updateInventoryList() {
         elements.inventoryList.innerHTML = '';
+
+        // Criar uma lista plana de todos os itens da loja e itens únicos para fácil consulta
+        const allStoreItems = allGameData.sects.flatMap(sect => sect.store || []);
+        const allItems = [...allStoreItems, ...(allGameData.items || [])];
+
         if (gameState.inventory.length === 0) {
             elements.inventoryList.innerHTML = '<li>Nenhum</li>';
-        } else {
-            gameState.inventory.forEach(item => {
-                const li = document.createElement('li');
-                li.textContent = item;
-                elements.inventoryList.appendChild(li);
-            });
+            return;
         }
+
+        gameState.inventory.forEach((itemId, index) => {
+            const itemData = allItems.find(i => i.id === itemId);
+
+            elements.debugLog.innerHTML += `Searching for ${itemId}. Found: ${!!itemData}<br>`;
+
+            if (!itemData) return;
+
+            const li = document.createElement('li');
+
+            if (itemData.type === 'pill') {
+                const useButton = document.createElement('button');
+                useButton.textContent = `Usar ${itemData.name}`;
+                useButton.onclick = () => {
+                    applyEffects(itemData.effects);
+                    gameState.inventory.splice(index, 1); // Remove o item pelo índice
+                    updateUI(); // Atualiza toda a UI
+                };
+                li.appendChild(useButton);
+            } else {
+                li.textContent = itemData.name; // Para itens não-consumíveis como técnicas
+            }
+            elements.inventoryList.appendChild(li);
+        });
     }
 
     /** Helper para atualizar a lista de relacionamentos na UI */
@@ -448,8 +545,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- INICIALIZAÇÃO DO JOGO ---
-    function initializeGame(events, gameData) {
-        allEvents = events;
+    function initializeGame(gameData) {
+        allEvents = gameData.events;
         allGameData = gameData;
         gameState = {
             age: 0,
@@ -489,6 +586,6 @@ document.addEventListener('DOMContentLoaded', () => {
         updateUI();
     }
 
-    // As variáveis eventsData e gameData agora estão disponíveis globalmente a partir de index.html
-    initializeGame(eventsData, gameData);
+    // A variável wuxiaGameData agora está disponível globalmente a partir de index.html
+    initializeGame(wuxiaGameData);
 });

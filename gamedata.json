@@ -1,4 +1,30 @@
 {
+  "items": [
+    {
+      "id": "basic_breathing_technique",
+      "name": "Técnica de Respiração Básica",
+      "type": "technique",
+      "effects": {}
+    },
+    {
+      "id": "body_refining_pill",
+      "name": "Pílula de Refinamento Corporal",
+      "type": "pill",
+      "effects": { "attributes": { "body": 2, "maxHealth": 5 } }
+    },
+    {
+      "id": "clear_mind_pill",
+      "name": "Pílula da Mente Clara",
+      "type": "pill",
+      "effects": { "attributes": { "mind": 2 } }
+    },
+    {
+      "id": "debug_mind_pill",
+      "name": "Pílula da Mente do Depurador",
+      "type": "pill",
+      "effects": { "attributes": { "mind": 5 } }
+    }
+  ],
   "sects": [
     {
       "id": "hidden_cloud_sect",
@@ -15,6 +41,11 @@
         "Discípulo Interno",
         "Discípulo de Elite",
         "Ancião"
+      ],
+      "contribution_needed": [
+        100,
+        500,
+        2000
       ],
       "store": [
         {
@@ -33,6 +64,18 @@
           "description": "Uma pílula que purifica a alma, aumentando seu potencial.",
           "effects": { "attributes": { "soul": 10 } }
         }
+      ],
+      "missions": [
+        {
+          "id": "mission_help_alchemist",
+          "name": "Ajudar o Alquimista",
+          "description": "O alquimista-chefe precisa de um assistente para identificar ervas raras. É um trabalho tedioso que exige uma mente afiada.",
+          "check": { "attribute": "mind", "difficulty": 14 },
+          "rewards": {
+            "success": { "contribution": 20, "item": "clear_mind_pill" },
+            "failure": { "reputation": -1 }
+          }
+        }
       ]
     },
     {
@@ -50,6 +93,11 @@
         "Cultivador de Sangue",
         "Lorde de Sangue",
         "Patriarca"
+      ],
+      "contribution_needed": [
+        120,
+        600,
+        2500
       ],
       "store": [
         {
