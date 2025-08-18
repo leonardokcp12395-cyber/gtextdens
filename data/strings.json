@@ -29,5 +29,13 @@
     "power_spot_ignore": "Você decide que a prudência é a melhor parte da coragem e deixa o local intocado.",
     "duel_lian_win": "Você derrota Lian com um movimento rápido! Sua reputação na vila aumenta.",
     "duel_lian_loss": "Lian é mais forte do que você pensava e te derruba facilmente. Que vergonha...",
-    "duel_lian_refuse": "Você recusa, dizendo que não está preparado. Lian parece desapontado com sua falta de espírito marcial. (Relacionamento com Lian -10)"
+    "duel_lian_refuse": "Você recusa, dizendo que não está preparado. Lian parece desapontado com sua falta de espírito marcial. (Relacionamento com Lian -10)",
+
+    "random_pouch_keep": "Você discretamente guarda as moedas. Ninguém parece ter visto. (+15 Moedas, -1 Sorte)",
+    "random_pouch_return": "Você pergunta ao redor e encontra um mercador aflito que lhe agradece profusamente por sua honestidade. (+2 Reputação, +1 Sorte)",
+    "random_insight_success": "Você foca na sensação e alcança um novo nível de entendimento sobre o Dao. Sua mente se expande. (+3 Mente, +1 Alma)",
+    "random_insight_failure": "Você força demais e a epifania se desfaz em confusão, deixando-o com uma leve dor de cabeça. (-1 Mente)",
+    "random_insight_ignore": "Você reconhece que não está preparado e permite que a sensação se dissipe. A prudência é uma virtude.",
+    "random_rumor_investigate": "A jornada é árdua, mas a experiência fortalece seu corpo e espírito. Você não encontra a flor, mas se sente mais forte. (+1 Corpo, +1 Alma)",
+    "random_rumor_ignore": "Você tem coisas mais importantes para fazer do que perseguir rumores de bêbados."
 }

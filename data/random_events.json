@@ -1,0 +1,51 @@
+[
+    {
+        "id": "random_001",
+        "text": "Enquanto caminhava pela cidade, você encontra uma pequena bolsa de moedas no chão. Ninguém parece ter notado.",
+        "choices": [
+            {
+                "text": "Pegar as moedas para si.",
+                "effects": { "resources": { "money": 15 }, "attributes": { "luck": -1 } },
+                "resultKey": "random_pouch_keep"
+            },
+            {
+                "text": "Procurar o dono.",
+                "effects": { "resources": { "reputation": 2 }, "attributes": { "luck": 1 } },
+                "resultKey": "random_pouch_return"
+            }
+        ]
+    },
+    {
+        "id": "random_002",
+        "text": "Durante sua meditação diária, uma súbita e profunda epifania sobre o fluxo de Qi invade sua mente. É uma oportunidade rara, mas forçá-la pode ser perigoso.",
+        "choices": [
+            {
+                "text": "Tentar compreender a epifania.",
+                "effects": { "special": "insight_meditation" },
+                "successKey": "random_insight_success",
+                "failureKey": "random_insight_failure"
+            },
+            {
+                "text": "Deixar a sensação passar.",
+                "effects": {},
+                "resultKey": "random_insight_ignore"
+            }
+        ]
+    },
+    {
+        "id": "random_003",
+        "text": "Você ouve dois cultivadores cochichando sobre uma 'flor espiritual' rara que desabrocha apenas uma vez por década em uma montanha próxima. Eles mencionam que a trilha é perigosa.",
+        "choices": [
+            {
+                "text": "Investigar o rumor.",
+                "effects": { "attributes": { "body": 1, "soul": 1 } },
+                "resultKey": "random_rumor_investigate"
+            },
+            {
+                "text": "É muito arriscado. Ignorar.",
+                "effects": {},
+                "resultKey": "random_rumor_ignore"
+            }
+        ]
+    }
+]

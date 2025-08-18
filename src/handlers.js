@@ -86,6 +86,15 @@ export function handleSpecialEffects(specialKey) {
                 success = true;
             }
             break;
+        case "insight_meditation":
+            if (gameState.attributes.mind > 15) {
+                applyEffects({ attributes: { mind: 3, soul: 1 } });
+                success = true;
+            } else {
+                applyEffects({ attributes: { mind: -1 } });
+                success = false;
+            }
+            break;
         case "meditate_power_spot":
             if (gameState.attributes.mind > 12) {
                 applyEffects({ cultivation: { qi: 75 }, attributes: { mind: 1 } });

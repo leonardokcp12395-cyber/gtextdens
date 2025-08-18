@@ -179,12 +179,23 @@ export function advanceYear() {
     if (gameState.cultivation.qi >= currentRealm.qiMax) {
         gameState.cultivation.qi = currentRealm.qiMax;
         triggerBreakthroughEvent();
+        updateUI();
+        saveGame();
+        return;
+    }
+
+    // Lógica de Evento Aleatório (25% de chance)
+    if (Math.random() < 0.25 && allGameData.random_events && allGameData.random_events.length > 0) {
+        const randomEvent = allGameData.random_events[Math.floor(Math.random() * allGameData.random_events.length)];
+        showEvent(randomEvent);
     } else {
+        // Lógica de Evento por Idade (como antes)
         const eventsForAge = allGameData.events.filter(event => event.age === gameState.age);
         let currentEvent = eventsForAge.find(event => event.sectId === gameState.sect.id);
         if (!currentEvent) {
             currentEvent = eventsForAge.find(event => !event.sectId);
         }
+
         if (currentEvent) {
             showEvent(currentEvent);
         } else {
