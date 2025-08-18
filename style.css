@@ -132,4 +132,59 @@ li {
 span {
     color: #55efc4;
     font-weight: bold;
+    transition: all 0.3s ease-in-out;
+}
+
+/* Animação para feedback de mudança de stat */
+.stat-increased {
+    animation: flash-green 0.7s ease-out;
+}
+.stat-decreased {
+    animation: flash-red 0.7s ease-out;
+}
+
+@keyframes flash-green {
+    0% { color: #55efc4; transform: scale(1); }
+    50% { color: #00b894; transform: scale(1.1); }
+    100% { color: #55efc4; transform: scale(1); }
+}
+
+@keyframes flash-red {
+    0% { color: #e0e0e0; transform: scale(1); }
+    50% { color: #d63031; transform: scale(1.1); }
+    100% { color: #e0e0e0; transform: scale(1); }
+}
+
+/* Estilos para Tooltips */
+.tooltip {
+    position: relative;
+    cursor: help;
+    border-bottom: 1px dotted #a29bfe;
+}
+
+.tooltip::after {
+    content: attr(data-text);
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 125%;
+    z-index: 1;
+
+    background-color: #333;
+    color: #fff;
+    padding: 10px 15px;
+    border-radius: 6px;
+    font-size: 0.9em;
+    font-weight: normal;
+    width: 200px;
+    text-align: center;
+
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s, visibility 0.3s;
+}
+
+.tooltip:hover::after {
+    opacity: 1;
+    visibility: visible;
 }

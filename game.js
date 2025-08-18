@@ -80,6 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         const enemyDamage = Math.max(1, Math.floor(combatState.enemy.attributes.body / 2));
         gameState.attributes.health -= enemyDamage;
+        flashStat(elements.attrHealth, 'decrease');
         combatState.log.push(`${combatState.enemy.name} ataca e causa ${enemyDamage} de dano.`);
         if (gameState.attributes.health <= 0) {
             endCombat('loss');
@@ -93,6 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const originalEvent = allGameData.events.find(e => e.age === gameState.age && e.choices.some(c => c.effects.special === 'duel_lian'));
         let resultText = '';
         if (outcome === 'win') {
+            logLifeEvent(`Derrotou ${combatState.enemy.name} em um duelo.`);
             resultText = allGameData.strings[originalEvent.choices[0].successKey];
         } else {
             resultText = allGameData.strings[originalEvent.choices[0].failureKey];
@@ -111,10 +113,30 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- FUNÇÕES DE LÓGICA DO JOGO ---
+    /** Adiciona um evento importante ao diário de vida do jogador */
+    function logLifeEvent(text) {
+        gameState.lifeLog.push(`Idade ${gameState.age}: ${text}`);
+    }
+
     function applyEffects(effects) {
         if (!effects) return;
         if (effects.attributes) {
-            for (const attr in effects.attributes) gameState.attributes[attr] += effects.attributes[attr];
+            for (const attr in effects.attributes) {
+                const value = effects.attributes[attr];
+                gameState.attributes[attr] += value;
+                // Mapeia o atributo para o seu elemento correspondente na UI
+                const elementMap = {
+                    health: elements.attrHealth,
+                    maxHealth: elements.attrMaxHealth,
+                    body: elements.attrBody,
+                    mind: elements.attrMind,
+                    soul: elements.attrSoul,
+                    luck: elements.attrLuck
+                };
+                if (elementMap[attr]) {
+                    flashStat(elementMap[attr], value > 0 ? 'increase' : 'decrease');
+                }
+            }
         }
         if (effects.resources) {
             for (const res in effects.resources) gameState.resources[res] += effects.resources[res];
@@ -141,9 +163,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (Math.random() > 0.5) {
                     gameState.inventory.push("basic_breathing_technique");
                     gameState.cultivation.qi += 5;
+                    flashStat(elements.cultQi, 'increase');
                     success = true;
                 } else {
                     gameState.attributes.luck += 1;
+                    flashStat(elements.attrLuck, 'increase');
                     success = false;
                 }
                 break;
@@ -151,10 +175,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (Math.random() > 0.5) {
                     gameState.inventory.push("body_refining_pill");
                     gameState.attributes.body += 1;
+                    flashStat(elements.attrBody, 'increase');
                     gameState.attributes.soul += 1;
+                    flashStat(elements.attrSoul, 'increase');
                     success = true;
                 } else {
                     gameState.attributes.health -= 5;
+                    flashStat(elements.attrHealth, 'decrease');
                     success = false;
                 }
                 break;
@@ -162,6 +189,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (gameState.resources.money >= 20) {
                     gameState.resources.money -= 20;
                     gameState.attributes.soul += 5;
+                    flashStat(elements.attrSoul, 'increase');
                     success = true;
                 } else success = false;
                 break;
@@ -169,16 +197,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (gameState.resources.money >= 25) {
                     gameState.resources.money -= 25;
                     gameState.cultivation.qi += 50;
+                    flashStat(elements.cultQi, 'increase');
                     success = true;
                 } else success = false;
                 break;
             case "meditate_power_spot":
                 if (gameState.attributes.mind > 12) {
                     gameState.cultivation.qi += 75;
+                    flashStat(elements.cultQi, 'increase');
                     gameState.attributes.mind += 1;
+                    flashStat(elements.attrMind, 'increase');
                     success = true;
                 } else {
                     gameState.attributes.mind -= 1;
+                    flashStat(elements.attrMind, 'decrease');
                     success = false;
                 }
                 break;
@@ -189,6 +221,7 @@ document.addEventListener('DOMContentLoaded', () => {
             case "sect_exam_hidden_cloud":
                 if (gameState.attributes.mind >= 12 && gameState.attributes.soul >= 12) {
                     gameState.sect.id = "hidden_cloud_sect";
+                    logLifeEvent("Juntou-se à Seita da Nuvem Oculta.");
                     success = true;
                 } else success = false;
                 break;
@@ -199,13 +232,32 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- FUNÇÕES DE UI ---
+    function flashStat(element, changeType) {
+        const className = changeType === 'increase' ? 'stat-increased' : 'stat-decreased';
+        element.classList.add(className);
+        setTimeout(() => {
+            element.classList.remove(className);
+        }, 700);
+    }
+
     function showDeathScreen() {
         if (gameState.cultivation.realmIndex >= 2) {
             const legacyBonus = { attribute: 'luck', value: 1 };
             localStorage.setItem('wuxiaLegacy', JSON.stringify(legacyBonus));
         }
         const finalRealm = cultivationRealms[gameState.cultivation.realmIndex].name;
-        const summaryHTML = `<h2>Fim da Jornada</h2><p>Você viveu até os <strong>${gameState.age}</strong> anos.</p><p>Seu cultivo alcançou o reino de <strong>${finalRealm}</strong>.</p><p>Sua reputação final foi de <strong>${gameState.resources.reputation}</strong>.</p><p>Você terminou sua jornada com <strong>${gameState.inventory.length}</strong> itens em sua posse.</p><hr><p>O Dao é eterno, e o ciclo recomeça. Uma nova vida o aguarda.</p>`;
+        const lifeLogHTML = gameState.lifeLog.map(log => `<li>${log}</li>`).join('');
+        const summaryHTML = `
+            <h2>Fim da Jornada</h2>
+            <p>Você viveu até os <strong>${gameState.age}</strong> anos.</p>
+            <p>Seu cultivo alcançou o reino de <strong>${finalRealm}</strong>.</p>
+            <p>Sua reputação final foi de <strong>${gameState.resources.reputation}</strong>.</p>
+            <hr>
+            <h3 id="life-log-header">Diário de Vida:</h3>
+            <ul>${lifeLogHTML}</ul>
+            <hr>
+            <p>O Dao é eterno, e o ciclo recomeça. Uma nova vida o aguarda.</p>
+        `;
         elements.eventContent.innerHTML = summaryHTML;
         elements.choicesContainer.innerHTML = '';
         const restartButton = document.createElement('button');
@@ -267,7 +319,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 promotionButton.onclick = () => {
                     gameState.sect.contribution -= neededContribution;
                     gameState.sect.rankIndex++;
-                    elements.eventContent.innerHTML = `<p>Parabéns! Você foi promovido para ${sectData.ranks[gameState.sect.rankIndex]}!</p>`;
+                    const newRank = sectData.ranks[gameState.sect.rankIndex];
+                    logLifeEvent(`Foi promovido para ${newRank} na seita.`);
+                    elements.eventContent.innerHTML = `<p>Parabéns! Você foi promovido para ${newRank}!</p>`;
                     elements.choicesContainer.innerHTML = '';
                     updateUI();
                 };
@@ -472,6 +526,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (Math.random() < successChance) {
                         gameState.cultivation.realmIndex++;
                         gameState.cultivation.qi = 0;
+                        logLifeEvent(`Avançou para o reino ${nextRealm.name}.`);
                         elements.eventContent.innerHTML = `<p>Parabéns! Após uma meditação perigosa, você rompeu seus limites e avançou para o reino ${nextRealm.name}!</p>`;
                     } else {
                         gameState.cultivation.qi = Math.floor(gameState.cultivation.qi * 0.8);
@@ -487,6 +542,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     gameState.inventory.splice(pillIndex, 1);
                     gameState.cultivation.realmIndex++;
                     gameState.cultivation.qi = 0;
+                    logLifeEvent(`Avançou para o reino ${nextRealm.name} com a ajuda de uma pílula.`);
                     elements.eventContent.innerHTML = `<p>Com a ajuda da pílula, você avança para o reino ${nextRealm.name} sem dificuldades!</p>`;
                 }
             },
@@ -559,8 +615,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- INICIALIZAÇÃO DO JOGO ---
     function initializeGame(gameData) {
-        allGameData = gameData;
         allEvents = gameData.events;
+        allGameData = gameData;
         gameState = {
             age: 0,
             attributes: { health: 100, maxHealth: 100, body: 10, mind: 10, soul: 10, luck: 5 },
@@ -568,6 +624,7 @@ document.addEventListener('DOMContentLoaded', () => {
             resources: { money: 10, reputation: 0 },
             inventory: [],
             relationships: [],
+            lifeLog: [],
             sect: {
                 id: null,
                 rankIndex: 0,
