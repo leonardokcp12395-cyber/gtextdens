@@ -16,6 +16,23 @@
     ]
   },
   {
+    "age": 17,
+    "sectId": "hidden_cloud_sect",
+    "text": "Um ancião da Seita da Nuvem Oculta te vê treinando e, impressionado com sua dedicação, te oferece uma Pílula de Qi de baixo grau como incentivo.",
+    "choices": [
+      {
+        "text": "Agradecer e aceitar a pílula.",
+        "effects": { "cultivation": { "qi": 20 }, "relationships": {"Ancião da Seita": 5} },
+        "resultText": "O ancião sorri. 'Continue se esforçando', ele diz. Você sente seu cultivo se fortalecer. (+20 Qi)"
+      },
+      {
+        "text": "Recusar educadamente, dizendo que prefere avançar com seu próprio esforço.",
+        "effects": { "attributes": { "soul": 1 }, "relationships": {"Ancião da Seita": 10} },
+        "resultText": "O ancião parece ainda mais impressionado com sua força de vontade. 'Um bom jovem, de fato.' (+1 Alma, Relacionamento com o Ancião +10)"
+      }
+    ]
+  },
+  {
     "age": 5,
     "text": "Um velho monge viajante passa pela sua vila. Ele olha para você com um brilho nos olhos e diz: 'Jovem, vejo um potencial extraordinário em você. Mas o caminho do cultivo é árduo. O que você fará?'",
     "choices": [
@@ -120,18 +137,18 @@
   },
   {
     "age": 16,
-    "text": "Um mercador viajante de aparência misteriosa se aproxima e oferece uma 'Pílula da Alma de Jade' por um preço exorbitante de 20 moedas. 'Uma pechincha para um futuro imortal', ele sussurra.",
+    "text": "É o dia do exame de recrutamento da Seita da Nuvem Oculta. Discípulos de toda a província estão aqui. A primeira fase testa a força da mente e da alma para resistir a uma ilusão.",
     "choices": [
       {
-        "text": "Comprar a pílula (requer 20 moedas).",
-        "effects": { "special": "buy_jade_pill" },
-        "successText": "Você gasta quase tudo o que tem. Ao consumir a pílula, sente sua alma se fortalecer imensamente! (+5 Alma, -20 Moedas)",
-        "failureText": "Você não tem moedas suficientes. O mercador sorri enigmaticamente e desaparece nas sombras."
+        "text": "Enfrentar o teste com tudo o que você tem.",
+        "effects": { "special": "sect_exam_hidden_cloud" },
+        "successText": "Sua mente e alma são fortes! Você passa no exame e é aceito como um Discípulo Externo da Seita da Nuvem Oculta!",
+        "failureText": "A ilusão é avassaladora. Você falha no exame e é mandado para casa, desapontado."
       },
       {
-        "text": "Recusar a oferta e guardar o dinheiro.",
-        "effects": {},
-        "resultText": "Você decide que o preço é um roubo e guarda seu dinheiro para necessidades mais urgentes."
+        "text": "Desistir. A competição é forte demais.",
+        "effects": { "attributes": { "soul": -2 } },
+        "resultText": "Você desiste antes mesmo de tentar. Sua falta de confiança abala sua força de vontade. (-2 Alma)"
       }
     ]
   },

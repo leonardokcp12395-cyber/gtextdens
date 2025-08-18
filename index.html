@@ -36,14 +36,26 @@
             <div id="choices-container">
                 <!-- As opções de escolha aparecerão aqui -->
             </div>
-            <button id="next-year-btn">Avançar Ano</button>
+            <div class="action-buttons-container">
+                <button id="sect-actions-btn" style="display: none;">Ações da Seita</button>
+                <button id="next-year-btn">Avançar Ano</button>
+            </div>
         </div>
 
         <!-- Painel Direito: Recursos e Relacionamentos -->
         <div id="resources-panel" class="panel">
             <h2>Recursos</h2>
             <p><strong>Dinheiro:</strong> <span id="res-money">10</span> Moedas de Cobre</p>
-            <p><strong>Reputação:</strong> <span id="res-reputation">Neutra</span></p>
+            <p><strong>Reputação:</strong> <span id="res-reputation">0</span></p>
+
+            <div id="sect-info-container" style="display: none;">
+                <hr>
+                <h3>Seita</h3>
+                <p><strong>Nome:</strong> <span id="sect-name">Nenhuma</span></p>
+                <p><strong>Rank:</strong> <span id="sect-rank">Mortal</span></p>
+                <p><strong>Contribuição:</strong> <span id="sect-contribution">0</span></p>
+            </div>
+
             <hr>
             <h3>Itens</h3>
             <ul id="inventory-list">
@@ -180,18 +192,18 @@
   },
   {
     "age": 16,
-    "text": "Um mercador viajante de aparência misteriosa se aproxima e oferece uma 'Pílula da Alma de Jade' por um preço exorbitante de 20 moedas. 'Uma pechincha para um futuro imortal', ele sussurra.",
+    "text": "É o dia do exame de recrutamento da Seita da Nuvem Oculta. Discípulos de toda a província estão aqui. A primeira fase testa a força da mente e da alma para resistir a uma ilusão.",
     "choices": [
       {
-        "text": "Comprar a pílula (requer 20 moedas).",
-        "effects": { "special": "buy_jade_pill" },
-        "successText": "Você gasta quase tudo o que tem. Ao consumir a pílula, sente sua alma se fortalecer imensamente! (+5 Alma, -20 Moedas)",
-        "failureText": "Você não tem moedas suficientes. O mercador sorri enigmaticamente e desaparece nas sombras."
+        "text": "Enfrentar o teste com tudo o que você tem.",
+        "effects": { "special": "sect_exam_hidden_cloud" },
+        "successText": "Sua mente e alma são fortes! Você passa no exame e é aceito como um Discípulo Externo da Seita da Nuvem Oculta!",
+        "failureText": "A ilusão é avassaladora. Você falha no exame e é mandado para casa, desapontado."
       },
       {
-        "text": "Recusar a oferta e guardar o dinheiro.",
-        "effects": {},
-        "resultText": "Você decide que o preço é um roubo e guarda seu dinheiro para necessidades mais urgentes."
+        "text": "Desistir. A competição é forte demais.",
+        "effects": { "attributes": { "soul": -2 } },
+        "resultText": "Você desiste antes mesmo de tentar. Sua falta de confiança abala sua força de vontade. (-2 Alma)"
       }
     ]
   },
@@ -247,6 +259,82 @@
     ]
   }
 ];
+    </script>
+    <script>
+        const gameData = {
+  "sects": [
+    {
+      "id": "hidden_cloud_sect",
+      "name": "Seita da Nuvem Oculta",
+      "alignment": "Justa",
+      "description": "Uma seita antiga e respeitada que valoriza o equilíbrio e a compreensão profunda do Dao. Seus discípulos são conhecidos por sua base sólida e temperamento calmo.",
+      "benefit": {
+        "type": "passive_qi_gain",
+        "value": 2,
+        "description": "+2 Qi adicional por ano."
+      },
+      "ranks": [
+        "Discípulo Externo",
+        "Discípulo Interno",
+        "Discípulo de Elite",
+        "Ancião"
+      ],
+      "store": [
+        {
+          "id": "tech_cloud_step",
+          "name": "Técnica do Passo da Nuvem",
+          "type": "technique",
+          "cost": 50,
+          "description": "Uma técnica de movimento que aumenta a agilidade e a capacidade de esquiva.",
+          "effects": { "attributes": { "body": 5 } }
+        },
+        {
+          "id": "pill_spirit_cleansing",
+          "name": "Pílula da Limpeza Espiritual",
+          "type": "pill",
+          "cost": 100,
+          "description": "Uma pílula que purifica a alma, aumentando seu potencial.",
+          "effects": { "attributes": { "soul": 10 } }
+        }
+      ]
+    },
+    {
+      "id": "blood_demon_sect",
+      "name": "Seita do Demônio de Sangue",
+      "alignment": "Demoníaca",
+      "description": "Uma seita temida e secreta que acredita que o poder deve ser tomado a qualquer custo. Seus métodos são cruéis, mas inegavelmente eficazes.",
+      "benefit": {
+        "type": "body_cultivation_boost",
+        "value": 1,
+        "description": "+1 de Corpo a cada 5 anos."
+      },
+      "ranks": [
+        "Servo de Sangue",
+        "Cultivador de Sangue",
+        "Lorde de Sangue",
+        "Patriarca"
+      ],
+      "store": [
+        {
+          "id": "tech_blood_fury",
+          "name": "Técnica da Fúria de Sangue",
+          "type": "technique",
+          "cost": 60,
+          "description": "Uma arte secreta que usa a essência vital para aumentar o poder de ataque.",
+          "effects": { "attributes": { "body": 8, "soul": -2 } }
+        },
+        {
+            "id": "pill_soul_devouring",
+            "name": "Pílula Devoradora de Almas",
+            "type": "pill",
+            "cost": 120,
+            "description": "Uma pílula proibida que consome a energia de outros para fortalecer a própria alma.",
+            "effects": { "attributes": { "soul": 15, "reputation": -10 } }
+        }
+      ]
+    }
+  ]
+};
     </script>
     <script src="game.js"></script>
 </body>

@@ -106,6 +106,28 @@ li {
     background-color: #55efc4;
 }
 
+.action-buttons-container {
+    display: flex;
+    gap: 10px;
+    margin-top: auto;
+}
+
+#sect-actions-btn {
+    padding: 15px;
+    background-color: #a29bfe;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1.2em;
+    font-weight: bold;
+    flex-grow: 1;
+}
+
+#next-year-btn {
+    flex-grow: 2; /* Botão de avançar ano maior */
+}
+
 /* Spans com dados */
 span {
     color: #55efc4;

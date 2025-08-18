@@ -12,15 +12,21 @@ document.addEventListener('DOMContentLoaded', () => {
         cultQiMax: document.getElementById('cult-qi-max'),
         resMoney: document.getElementById('res-money'),
         resReputation: document.getElementById('res-reputation'),
+        sectInfoContainer: document.getElementById('sect-info-container'),
+        sectName: document.getElementById('sect-name'),
+        sectRank: document.getElementById('sect-rank'),
+        sectContribution: document.getElementById('sect-contribution'),
         inventoryList: document.getElementById('inventory-list'),
         relationshipsList: document.getElementById('relationships-list'),
         eventText: document.getElementById('event-text'),
         choicesContainer: document.getElementById('choices-container'),
-        nextYearBtn: document.getElementById('next-year-btn')
+        nextYearBtn: document.getElementById('next-year-btn'),
+        sectActionsBtn: document.getElementById('sect-actions-btn')
     };
 
     let gameState = {};
     let allEvents = [];
+    let allGameData = {};
 
     const cultivationRealms = [
         { name: "Mortal", qiMax: 100 },
@@ -129,6 +135,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     success = false;
                 }
                 break;
+            case "sect_exam_hidden_cloud":
+                // Requer mente e alma fortes para passar no exame da seita justa
+                if (gameState.attributes.mind >= 12 && gameState.attributes.soul >= 12) {
+                    gameState.sect.id = "hidden_cloud_sect";
+                    success = true;
+                } else {
+                    success = false;
+                }
+                break;
             default:
                 success = true;
         }
@@ -136,6 +151,78 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- FUNÇÕES DE UI ---
+
+    /** Mostra a loja da seita */
+    function showSectStore() {
+        const sectData = allGameData.sects.find(s => s.id === gameState.sect.id);
+        if (!sectData) return;
+
+        elements.eventText.textContent = `Você entra no pavilhão de tesouros da ${sectData.name}.`;
+        elements.choicesContainer.innerHTML = '';
+
+        sectData.store.forEach(item => {
+            const itemButton = document.createElement('button');
+            itemButton.textContent = `Comprar ${item.name} (${item.cost} contribuição)`;
+            itemButton.onclick = () => {
+                if (gameState.sect.contribution >= item.cost) {
+                    gameState.sect.contribution -= item.cost;
+                    applyEffects(item.effects);
+                    // Adiciona item ao inventário se for um item físico
+                    if (item.type === 'pill' || item.type === 'technique') {
+                        gameState.inventory.push(item.name);
+                    }
+                    elements.eventText.textContent = `Você adquiriu ${item.name}!`;
+                    elements.choicesContainer.innerHTML = ''; // Limpa para não poder comprar de novo
+                    showSectStore(); // Volta para a loja
+                } else {
+                    elements.eventText.textContent = "Você não tem pontos de contribuição suficientes.";
+                }
+                updateUI();
+            };
+            elements.choicesContainer.appendChild(itemButton);
+        });
+
+        const leaveStoreButton = document.createElement('button');
+        leaveStoreButton.textContent = "Sair da Loja";
+        leaveStoreButton.onclick = showSectActions; // Volta para o menu de ações da seita
+        elements.choicesContainer.appendChild(leaveStoreButton);
+    }
+
+    /** Mostra as ações disponíveis na seita */
+    function showSectActions() {
+        elements.eventText.textContent = "Você está no pátio principal da sua seita. O que gostaria de fazer?";
+        elements.choicesContainer.innerHTML = '';
+
+        const missionButton = document.createElement('button');
+        missionButton.textContent = "Aceitar uma Missão da Seita";
+        missionButton.onclick = () => {
+            // Lógica da missão a ser implementada
+            gameState.sect.contribution += 10;
+            elements.eventText.textContent = "Você completou uma missão simples de patrulha e ganhou 10 pontos de contribuição.";
+            elements.choicesContainer.innerHTML = '';
+            updateUI();
+        };
+        elements.choicesContainer.appendChild(missionButton);
+
+        const storeButton = document.createElement('button');
+        storeButton.textContent = "Visitar a Loja da Seita";
+        storeButton.onclick = showSectStore;
+        elements.choicesContainer.appendChild(storeButton);
+
+        const leaveButton = document.createElement('button');
+        leaveButton.textContent = "Voltar às suas atividades";
+        leaveButton.onclick = () => {
+            elements.eventText.textContent = "Você volta para seus afazeres, pronto para o próximo ano.";
+            elements.choicesContainer.innerHTML = '';
+            // Restaurar a visibilidade dos botões de ação
+            elements.nextYearBtn.style.display = 'block';
+            elements.sectActionsBtn.style.display = 'block';
+        };
+        elements.choicesContainer.appendChild(leaveButton);
+
+        elements.nextYearBtn.style.display = 'none';
+        elements.sectActionsBtn.style.display = 'none';
+    }
 
     /** Atualiza toda a UI com base no gameState atual */
     function updateUI() {
@@ -150,6 +237,22 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.cultQiMax.textContent = currentRealm.qiMax;
         elements.resMoney.textContent = `${gameState.resources.money} Moedas de Cobre`;
         elements.resReputation.textContent = gameState.resources.reputation;
+
+        // Atualiza a UI da Seita
+        if (gameState.sect.id) {
+            const sectData = allGameData.sects.find(s => s.id === gameState.sect.id);
+            if (sectData) {
+                elements.sectInfoContainer.style.display = 'block';
+                elements.sectName.textContent = sectData.name;
+                elements.sectRank.textContent = sectData.ranks[gameState.sect.rankIndex];
+                elements.sectContribution.textContent = gameState.sect.contribution;
+                elements.sectActionsBtn.style.display = 'block';
+            }
+        } else {
+            elements.sectInfoContainer.style.display = 'none';
+            elements.sectActionsBtn.style.display = 'none';
+        }
+
         updateInventoryList();
         updateRelationshipsList();
     }
@@ -272,7 +375,12 @@ document.addEventListener('DOMContentLoaded', () => {
             gameState.cultivation.qi = currentRealm.qiMax; // Cap de Qi
             triggerBreakthroughEvent();
         } else {
-            const currentEvent = allEvents.find(event => event.age === gameState.age);
+            const eventsForAge = allEvents.filter(event => event.age === gameState.age);
+            let currentEvent = eventsForAge.find(event => event.sectId === gameState.sect.id);
+            if (!currentEvent) {
+                currentEvent = eventsForAge.find(event => !event.sectId);
+            }
+
             if (currentEvent) {
                 showEvent(currentEvent);
             } else {
@@ -283,21 +391,28 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- INICIALIZAÇÃO DO JOGO ---
-    function initializeGame(eventsData) {
-        allEvents = eventsData;
+    function initializeGame(events, gameData) {
+        allEvents = events;
+        allGameData = gameData;
         gameState = {
             age: 0,
             attributes: { body: 10, mind: 10, soul: 10, luck: 5 },
             cultivation: { realmIndex: 0, qi: 0 },
-            resources: { money: 10, reputation: "Neutra" },
+            resources: { money: 10, reputation: 0 }, // Reputação como número
             inventory: [],
-            relationships: []
+            relationships: [],
+            sect: {
+                id: null,
+                rankIndex: 0,
+                contribution: 0
+            }
         };
 
         elements.nextYearBtn.addEventListener('click', advanceYear);
+        elements.sectActionsBtn.addEventListener('click', showSectActions);
         updateUI();
     }
 
-    // A variável eventsData agora está disponível globalmente a partir de index.html
-    initializeGame(eventsData);
+    // As variáveis eventsData e gameData agora estão disponíveis globalmente a partir de index.html
+    initializeGame(eventsData, gameData);
 });

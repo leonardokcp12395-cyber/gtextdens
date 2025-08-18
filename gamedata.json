@@ -1,0 +1,74 @@
+{
+  "sects": [
+    {
+      "id": "hidden_cloud_sect",
+      "name": "Seita da Nuvem Oculta",
+      "alignment": "Justa",
+      "description": "Uma seita antiga e respeitada que valoriza o equilíbrio e a compreensão profunda do Dao. Seus discípulos são conhecidos por sua base sólida e temperamento calmo.",
+      "benefit": {
+        "type": "passive_qi_gain",
+        "value": 2,
+        "description": "+2 Qi adicional por ano."
+      },
+      "ranks": [
+        "Discípulo Externo",
+        "Discípulo Interno",
+        "Discípulo de Elite",
+        "Ancião"
+      ],
+      "store": [
+        {
+          "id": "tech_cloud_step",
+          "name": "Técnica do Passo da Nuvem",
+          "type": "technique",
+          "cost": 50,
+          "description": "Uma técnica de movimento que aumenta a agilidade e a capacidade de esquiva.",
+          "effects": { "attributes": { "body": 5 } }
+        },
+        {
+          "id": "pill_spirit_cleansing",
+          "name": "Pílula da Limpeza Espiritual",
+          "type": "pill",
+          "cost": 100,
+          "description": "Uma pílula que purifica a alma, aumentando seu potencial.",
+          "effects": { "attributes": { "soul": 10 } }
+        }
+      ]
+    },
+    {
+      "id": "blood_demon_sect",
+      "name": "Seita do Demônio de Sangue",
+      "alignment": "Demoníaca",
+      "description": "Uma seita temida e secreta que acredita que o poder deve ser tomado a qualquer custo. Seus métodos são cruéis, mas inegavelmente eficazes.",
+      "benefit": {
+        "type": "body_cultivation_boost",
+        "value": 1,
+        "description": "+1 de Corpo a cada 5 anos."
+      },
+      "ranks": [
+        "Servo de Sangue",
+        "Cultivador de Sangue",
+        "Lorde de Sangue",
+        "Patriarca"
+      ],
+      "store": [
+        {
+          "id": "tech_blood_fury",
+          "name": "Técnica da Fúria de Sangue",
+          "type": "technique",
+          "cost": 60,
+          "description": "Uma arte secreta que usa a essência vital para aumentar o poder de ataque.",
+          "effects": { "attributes": { "body": 8, "soul": -2 } }
+        },
+        {
+            "id": "pill_soul_devouring",
+            "name": "Pílula Devoradora de Almas",
+            "type": "pill",
+            "cost": 120,
+            "description": "Uma pílula proibida que consome a energia de outros para fortalecer a própria alma.",
+            "effects": { "attributes": { "soul": 15, "reputation": -10 } }
+        }
+      ]
+    }
+  ]
+}
