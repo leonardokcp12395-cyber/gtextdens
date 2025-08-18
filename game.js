@@ -28,6 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let gameState = {};
     let allGameData = {};
+    let combatState = null;
 
     const cultivationRealms = [
         { name: "Mortal", qiMax: 100 },
@@ -36,8 +37,80 @@ document.addEventListener('DOMContentLoaded', () => {
         { name: "Núcleo Dourado", qiMax: 10000 }
     ];
 
-    // --- FUNÇÕES DE LÓGICA DO JOGO ---
+    // --- FUNÇÕES DE COMBATE ---
+    function startCombat(enemyId) {
+        const enemyData = allGameData.enemies.find(e => e.id === enemyId);
+        if (!enemyData) { return; }
+        combatState = {
+            enemy: enemyData,
+            enemyHealth: enemyData.attributes.health,
+            log: []
+        };
+        gameState.combat = combatState;
+        showCombatUI();
+    }
 
+    function showCombatUI() {
+        if (!combatState) return;
+        const combatLog = combatState.log.map(entry => `<p>${entry}</p>`).join('');
+        const combatHTML = `
+            <h2>Combate!</h2>
+            <p><strong>${combatState.enemy.name}</strong> - Saúde: ${combatState.enemyHealth}</p>
+            <p><strong>Você</strong> - Saúde: ${gameState.attributes.health}</p>
+            <hr><div class="combat-log">${combatLog}</div>`;
+        elements.eventContent.innerHTML = combatHTML;
+        elements.choicesContainer.innerHTML = '';
+        const attackButton = document.createElement('button');
+        attackButton.textContent = "Ataque Físico";
+        attackButton.onclick = () => takeCombatTurn('physical');
+        elements.choicesContainer.appendChild(attackButton);
+        elements.nextYearBtn.style.display = 'none';
+        elements.sectActionsBtn.style.display = 'none';
+    }
+
+    function takeCombatTurn(attackType) {
+        if (!combatState) return;
+        combatState.log = [];
+        const playerDamage = Math.max(1, Math.floor(gameState.attributes.body / 2) + Math.floor(Math.random() * (gameState.attributes.luck / 2)));
+        combatState.enemyHealth -= playerDamage;
+        combatState.log.push(`Você ataca e causa ${playerDamage} de dano.`);
+        if (combatState.enemyHealth <= 0) {
+            endCombat('win');
+            return;
+        }
+        const enemyDamage = Math.max(1, Math.floor(combatState.enemy.attributes.body / 2));
+        gameState.attributes.health -= enemyDamage;
+        combatState.log.push(`${combatState.enemy.name} ataca e causa ${enemyDamage} de dano.`);
+        if (gameState.attributes.health <= 0) {
+            endCombat('loss');
+            return;
+        }
+        showCombatUI();
+        updateUI();
+    }
+
+    function endCombat(outcome) {
+        const originalEvent = allGameData.events.find(e => e.age === gameState.age && e.choices.some(c => c.effects.special === 'duel_lian'));
+        let resultText = '';
+        if (outcome === 'win') {
+            resultText = allGameData.strings[originalEvent.choices[0].successKey];
+        } else {
+            resultText = allGameData.strings[originalEvent.choices[0].failureKey];
+        }
+        elements.eventContent.innerHTML = `<p>${resultText}</p>`;
+        elements.choicesContainer.innerHTML = '';
+        combatState = null;
+        gameState.combat = null;
+        if (gameState.attributes.health <= 0) {
+            showDeathScreen();
+        } else {
+            elements.nextYearBtn.style.display = 'block';
+            if (gameState.sect.id) elements.sectActionsBtn.style.display = 'block';
+            updateUI();
+        }
+    }
+
+    // --- FUNÇÕES DE LÓGICA DO JOGO ---
     function applyEffects(effects) {
         if (!effects) return;
         if (effects.attributes) {
@@ -61,7 +134,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function handleSpecialEffects(specialKey, mission = null) {
+    function handleSpecialEffects(specialKey) {
         let success = false;
         switch (specialKey) {
             case "monk_disciple":
@@ -110,29 +183,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 break;
             case "duel_lian":
-                const enemy = allGameData.enemies.find(e => e.id === 'rival_lian_14');
-                if (enemy) {
-                    const playerDamage = Math.max(1, Math.floor(gameState.attributes.body / 2));
-                    if (playerDamage >= enemy.attributes.health) {
-                        success = true; // Player wins
-                    } else {
-                        const enemyDamage = Math.max(1, Math.floor(enemy.attributes.body / 2));
-                        gameState.attributes.health -= enemyDamage;
-                        success = false; // Player loses
-                    }
-                } else {
-                    success = false; // Enemy not found, should not happen
-                }
+                startCombat('rival_lian_14');
+                success = true;
                 break;
             case "sect_exam_hidden_cloud":
                 if (gameState.attributes.mind >= 12 && gameState.attributes.soul >= 12) {
                     gameState.sect.id = "hidden_cloud_sect";
-                    success = true;
-                } else success = false;
-                break;
-            case "mission_patrol_forest":
-                if (gameState.attributes.body >= 12) {
-                    startCombat('weak_demon_beast', mission ? mission.id : null);
                     success = true;
                 } else success = false;
                 break;
@@ -143,7 +199,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- FUNÇÕES DE UI ---
-
     function showDeathScreen() {
         if (gameState.cultivation.realmIndex >= 2) {
             const legacyBonus = { attribute: 'luck', value: 1 };
@@ -284,6 +339,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateUI() {
+        if (!gameState.combat) {
+            elements.nextYearBtn.style.display = 'block';
+        }
         const currentRealm = cultivationRealms[gameState.cultivation.realmIndex];
         elements.age.textContent = gameState.age;
         elements.attrHealth.textContent = gameState.attributes.health;
@@ -374,9 +432,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
-                let resultText = choice.resultText;
+                let resultText;
                 if (choice.effects.special) {
-                    resultText = success ? choice.successText : choice.failureText;
+                    const key = success ? choice.successKey : choice.failureKey;
+                    resultText = allGameData.strings[key] || "Resultado não encontrado.";
+                } else {
+                    resultText = allGameData.strings[choice.resultKey] || "Resultado não encontrado.";
                 }
                 elements.eventContent.innerHTML = `<p>${resultText}</p>`;
                 elements.choicesContainer.innerHTML = '';
@@ -403,37 +464,58 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         elements.eventContent.innerHTML = `<p>Você acumulou Qi suficiente e sentiu um gargalo em seu cultivo. Você pode tentar avançar para o próximo reino: ${nextRealm.name}. O que você faz?</p>`;
         elements.choicesContainer.innerHTML = '';
-        const attemptButton = document.createElement('button');
-        attemptButton.textContent = "Tentar o avanço agora.";
-        attemptButton.onclick = () => {
-            const successChance = 0.5 + (gameState.attributes.luck * 0.01);
-            if (Math.random() < successChance) {
-                gameState.cultivation.realmIndex++;
-                gameState.cultivation.qi = 0;
-                elements.eventContent.innerHTML = `<p>Parabéns! Após uma meditação perigosa, você rompeu seus limites e avançou para o reino ${nextRealm.name}!</p>`;
-            } else {
-                gameState.cultivation.qi = Math.floor(gameState.cultivation.qi * 0.8);
-                elements.eventContent.innerHTML = "<p>A tentativa falhou! Seu Qi se dispersa violentamente e você sofre um revés. Você precisará de mais tempo para se estabilizar.</p>";
+        const choices = [
+            {
+                text: "Tentar o avanço agora.",
+                action: () => {
+                    const successChance = 0.5 + (gameState.attributes.luck * 0.01);
+                    if (Math.random() < successChance) {
+                        gameState.cultivation.realmIndex++;
+                        gameState.cultivation.qi = 0;
+                        elements.eventContent.innerHTML = `<p>Parabéns! Após uma meditação perigosa, você rompeu seus limites e avançou para o reino ${nextRealm.name}!</p>`;
+                    } else {
+                        gameState.cultivation.qi = Math.floor(gameState.cultivation.qi * 0.8);
+                        elements.eventContent.innerHTML = "<p>A tentativa falhou! Seu Qi se dispersa violentamente e você sofre um revés. Você precisará de mais tempo para se estabilizar.</p>";
+                    }
+                }
+            },
+            {
+                text: "Usar Pílula do Estabelecimento de Fundação",
+                requires: "foundation_pill",
+                action: () => {
+                    const pillIndex = gameState.inventory.indexOf("foundation_pill");
+                    gameState.inventory.splice(pillIndex, 1);
+                    gameState.cultivation.realmIndex++;
+                    gameState.cultivation.qi = 0;
+                    elements.eventContent.innerHTML = `<p>Com a ajuda da pílula, você avança para o reino ${nextRealm.name} sem dificuldades!</p>`;
+                }
+            },
+            {
+                text: "Esperar e acumular mais base.",
+                action: () => {
+                    elements.eventContent.innerHTML = "<p>Você decide esperar, sentindo que uma base mais sólida aumentará suas chances no futuro.</p>";
+                }
             }
-            elements.choicesContainer.innerHTML = '';
-            if (gameState.attributes.health <= 0) {
-                showDeathScreen();
-            } else {
-                elements.nextYearBtn.style.display = 'block';
-                updateUI();
+        ];
+        choices.forEach(choice => {
+            if (choice.requires && !gameState.inventory.includes(choice.requires)) {
+                return; // Pula esta opção se o item não estiver no inventário
             }
-        };
-        elements.choicesContainer.appendChild(attemptButton);
-        const waitButton = document.createElement('button');
-        waitButton.textContent = "Esperar e acumular mais base.";
-        waitButton.onclick = () => {
-            elements.eventContent.innerHTML = "<p>Você decide esperar, sentindo que uma base mais sólida aumentará suas chances no futuro.</p>";
-            elements.choicesContainer.innerHTML = '';
-            elements.nextYearBtn.style.display = 'block';
-            updateUI();
-        };
-        elements.choicesContainer.appendChild(attemptButton);
-        elements.choicesContainer.appendChild(waitButton);
+            const button = document.createElement('button');
+            button.textContent = choice.text;
+            button.onclick = () => {
+                choice.action();
+                elements.choicesContainer.innerHTML = '';
+                if (gameState.attributes.health <= 0) {
+                    showDeathScreen();
+                } else {
+                    elements.nextYearBtn.style.display = 'block';
+                    updateUI();
+                }
+            };
+            elements.choicesContainer.appendChild(button);
+        });
+
         elements.nextYearBtn.style.display = 'none';
     }
 
@@ -460,7 +542,7 @@ document.addEventListener('DOMContentLoaded', () => {
             gameState.cultivation.qi = currentRealm.qiMax;
             triggerBreakthroughEvent();
         } else {
-            const eventsForAge = allEvents.filter(event => event.age === gameState.age);
+            const eventsForAge = allGameData.events.filter(event => event.age === gameState.age);
             let currentEvent = eventsForAge.find(event => event.sectId === gameState.sect.id);
             if (!currentEvent) {
                 currentEvent = eventsForAge.find(event => !event.sectId);
@@ -477,8 +559,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- INICIALIZAÇÃO DO JOGO ---
     function initializeGame(gameData) {
-        allEvents = gameData.events;
         allGameData = gameData;
+        allEvents = gameData.events;
         gameState = {
             age: 0,
             attributes: { health: 100, maxHealth: 100, body: 10, mind: 10, soul: 10, luck: 5 },
@@ -490,7 +572,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 id: null,
                 rankIndex: 0,
                 contribution: 0
-            }
+            },
+            combat: null
         };
         const legacyData = localStorage.getItem('wuxiaLegacy');
         if (legacyData) {
