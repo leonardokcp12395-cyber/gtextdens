@@ -11,6 +11,8 @@ export const elements = {
     age: document.getElementById('char-age'),
     attrHealth: document.getElementById('attr-health'),
     attrMaxHealth: document.getElementById('attr-max-health'),
+    attrEnergy: document.getElementById('attr-energy'),
+    attrMaxEnergy: document.getElementById('attr-max-energy'),
     attrBody: document.getElementById('attr-body'),
     attrMind: document.getElementById('attr-mind'),
     attrSoul: document.getElementById('attr-soul'),
@@ -106,6 +108,8 @@ export function updateUI() {
     elements.age.textContent = gameState.age;
     elements.attrHealth.textContent = gameState.attributes.health;
     elements.attrMaxHealth.textContent = gameState.attributes.maxHealth;
+    elements.attrEnergy.textContent = gameState.attributes.energy;
+    elements.attrMaxEnergy.textContent = gameState.attributes.maxEnergy;
     elements.attrBody.textContent = gameState.attributes.body;
     elements.attrMind.textContent = gameState.attributes.mind;
     elements.attrSoul.textContent = gameState.attributes.soul;

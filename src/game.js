@@ -1,6 +1,8 @@
-import { gameState, allGameData, setGameData, cultivationRealms, combatState } from './state.js';
+import { gameState, allGameData, setGameData, cultivationRealms, combatState, saveGame } from './state.js';
 import { elements, updateUI, showDeathScreen } from './ui.js';
 import { applyEffects, handleSpecialEffects, logLifeEvent, showSectActions } from './handlers.js';
+
+const ACTION_ENERGY_COST = 20;
 
 /**
  * Inicializa o jogo, configurando o estado inicial e os event listeners.
@@ -21,10 +23,23 @@ export function initializeGame(gameData) {
 export function showEvent(event) {
     elements.eventContent.innerHTML = `<p>${event.text}</p>`;
     elements.choicesContainer.innerHTML = '';
+
+    const hasEnoughEnergy = gameState.attributes.energy >= ACTION_ENERGY_COST;
+
     event.choices.forEach(choice => {
         const button = document.createElement('button');
         button.textContent = choice.text;
+
+        if (!hasEnoughEnergy) {
+            button.disabled = true;
+            button.textContent += ` (Requer ${ACTION_ENERGY_COST} de Energia)`;
+        }
+
         button.onclick = () => {
+            // Deduz energia
+            gameState.attributes.energy -= ACTION_ENERGY_COST;
+            if (gameState.attributes.energy < 0) gameState.attributes.energy = 0;
+
             let success = true;
             if (choice.effects.special) {
                 success = handleSpecialEffects(choice.effects.special);
@@ -52,6 +67,7 @@ export function showEvent(event) {
                 elements.nextYearBtn.style.display = 'block';
                 updateUI();
             }
+            saveGame();
         };
         elements.choicesContainer.appendChild(button);
     });
@@ -118,6 +134,7 @@ function triggerBreakthroughEvent() {
                 elements.nextYearBtn.style.display = 'block';
                 updateUI();
             }
+            saveGame();
         };
         elements.choicesContainer.appendChild(button);
     });
@@ -133,6 +150,10 @@ export function advanceYear() {
         // showCombatUI(); // Esta chamada está em takeCombatTurn, o que é correto.
         return;
     }
+
+  // Restaura a energia ao avançar o ano
+  gameState.attributes.energy = gameState.attributes.maxEnergy;
+
     gameState.age++;
     if (gameState.age > 50) gameState.attributes.health--;
 
@@ -165,4 +186,5 @@ export function advanceYear() {
         }
     }
     updateUI();
+    saveGame();
 }

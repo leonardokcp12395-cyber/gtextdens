@@ -1,4 +1,4 @@
-import { initializeGameState, setGameData } from './state.js';
+import { initializeGameState, setGameData, loadGame } from './state.js';
 import { initializeGame } from './game.js';
 
 /**
@@ -41,6 +41,8 @@ async function main() {
     if (gameData) {
         // Define o estado inicial do jogador
         initializeGameState();
+        // Carrega o progresso salvo, se houver
+        loadGame();
         // Passa os dados carregados para o módulo de estado
         setGameData(gameData);
         // Inicia a lógica principal do jogo e a UI

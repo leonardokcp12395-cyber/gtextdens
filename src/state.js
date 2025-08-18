@@ -25,7 +25,7 @@ export const cultivationRealms = [
 export function initializeGameState() {
     gameState = {
         age: 0,
-        attributes: { health: 100, maxHealth: 100, body: 10, mind: 10, soul: 10, luck: 5 },
+        attributes: { health: 100, maxHealth: 100, energy: 100, maxEnergy: 100, body: 10, mind: 10, soul: 10, luck: 5 },
         cultivation: { realmIndex: 0, qi: 0 },
         resources: { money: 10, reputation: 0 },
         inventory: [],
@@ -71,4 +71,33 @@ export function setGameData(data) {
 export function setCombatState(state) {
     combatState = state;
     gameState.combat = state; // Mantém a referência no gameState principal
+}
+
+/**
+ * Salva o estado atual do jogo no localStorage.
+ */
+export function saveGame() {
+    try {
+        localStorage.setItem('wuxiaGameState', JSON.stringify(gameState));
+    } catch (e) {
+        console.error("Falha ao salvar o jogo:", e);
+    }
+}
+
+/**
+ * Carrega o estado do jogo do localStorage, se existir.
+ */
+export function loadGame() {
+    try {
+        const savedState = localStorage.getItem('wuxiaGameState');
+        if (savedState) {
+            const loadedState = JSON.parse(savedState);
+            // Mescla o estado carregado com o estado inicial
+            // Isso garante que novas propriedades no estado inicial não sejam perdidas
+            Object.assign(gameState, loadedState);
+        }
+    } catch (e) {
+        console.error("Falha ao carregar o jogo salvo:", e);
+        // Se houver um erro, o jogo começará do zero.
+    }
 }
