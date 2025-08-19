@@ -248,3 +248,38 @@ span {
     background-color: #5a5a5a;
     border-color: #888;
 }
+
+/* Estilos da Árvore de Talentos */
+#talents-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.talent {
+    padding: 10px;
+    border: 1px solid #444;
+    border-radius: 5px;
+}
+
+.talent.locked {
+    background-color: #333;
+    color: #888;
+}
+
+.talent.unlocked {
+    background-color: #4CAF50; /* Verde */
+    color: white;
+    border-color: #4CAF50;
+}
+
+.talent.unlockable {
+    background-color: #2196F3; /* Azul */
+    color: white;
+    border-color: #2196F3;
+    cursor: pointer;
+}
+
+.talent.unlockable:hover {
+    background-color: #42a5f5;
+}

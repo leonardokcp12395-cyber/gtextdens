@@ -6,7 +6,7 @@ import { initializeGame } from './game.js';
  * @returns {Promise<Object>} Uma promessa que resolve com um objeto contendo todos os dados do jogo.
  */
 async function loadGameData() {
-    const dataSources = ['strings', 'events', 'items', 'sects', 'enemies', 'random_events', 'regions'];
+    const dataSources = ['strings', 'events', 'items', 'sects', 'enemies', 'random_events', 'regions', 'talents'];
     // Ajuste no caminho para refletir a estrutura de pastas correta
     const dataPromises = dataSources.map(source => fetch(`data/${source}.json`));
 
@@ -45,7 +45,7 @@ async function main() {
         loadGame();
         // Passa os dados carregados para o módulo de estado
         setGameData(gameData);
-        // Inicia a lógica principal do jogo e a UI
+        // Inicia os listeners do jogo
         initializeGame(gameData);
     }
 }

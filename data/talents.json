@@ -1,0 +1,34 @@
+[
+    {
+        "id": "vitality_1",
+        "name": "Vitalidade Aumentada",
+        "description": "Sua constituição física melhora, concedendo-lhe mais saúde.",
+        "cost": 1,
+        "effects": { "attributes": { "maxHealth": 20 } },
+        "requirements": []
+    },
+    {
+        "id": "sharp_mind_1",
+        "name": "Mente Afiada",
+        "description": "Sua capacidade de compreensão se aprofunda, aguçando sua mente.",
+        "cost": 1,
+        "effects": { "attributes": { "mind": 2 } },
+        "requirements": []
+    },
+    {
+        "id": "innate_luck_1",
+        "name": "Sorte Inata",
+        "description": "Você nasceu sob uma estrela de sorte, e o destino parece sorrir para você.",
+        "cost": 2,
+        "effects": { "attributes": { "luck": 2 } },
+        "requirements": []
+    },
+    {
+        "id": "critical_focus_1",
+        "name": "Foco Crítico",
+        "description": "Você aprende a mirar nos pontos fracos. Aumenta sua chance de acerto crítico.",
+        "cost": 2,
+        "effects": { "attributes": { "critChance": 0.05 } },
+        "requirements": ["sharp_mind_1"]
+    }
+]

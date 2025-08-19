@@ -16,6 +16,13 @@
         ]
     },
     {
+        "age": 6,
+        "text": "Você completa 6 anos. Seus pais notam que você é mais brilhante que as outras crianças. Você sente uma nova compreensão sobre o mundo.",
+        "choices": [
+            { "text": "Contemplar suas novas percepções.", "effects": { "special": "gain_talent_point" }, "resultKey": "gain_talent_point_success" }
+        ]
+    },
+    {
         "age": 8,
         "text": "Durante uma brincadeira, você tropeça e cai perto de um riacho. Algo brilhante chama sua atenção na lama.",
         "choices": [

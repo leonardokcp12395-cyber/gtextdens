@@ -37,5 +37,6 @@
     "random_insight_failure": "Você força demais e a epifania se desfaz em confusão, deixando-o com uma leve dor de cabeça. (-1 Mente)",
     "random_insight_ignore": "Você reconhece que não está preparado e permite que a sensação se dissipe. A prudência é uma virtude.",
     "random_rumor_investigate": "A jornada é árdua, mas a experiência fortalece seu corpo e espírito. Você não encontra a flor, mas se sente mais forte. (+1 Corpo, +1 Alma)",
-    "random_rumor_ignore": "Você tem coisas mais importantes para fazer do que perseguir rumores de bêbados."
+    "random_rumor_ignore": "Você tem coisas mais importantes para fazer do que perseguir rumores de bêbados.",
+    "gain_talent_point_success": "Você sente sua compreensão sobre o mundo se aprofundar. (Você ganhou 1 Ponto de Talento!)"
 }

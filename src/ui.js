@@ -1,12 +1,7 @@
 import { gameState, allGameData, cultivationRealms } from './state.js';
 import { travelToRegion } from './game.js';
-// As importações de handlers e game serão adicionadas depois
-// import { advanceYear } from './game.js';
-// import { showSectActions } from './handlers.js';
+import { unlockTalent, takeCombatTurn, endCombat } from './handlers.js';
 
-/**
- * Cache de elementos do DOM para acesso rápido.
- */
 export const elements = {
     name: document.getElementById('char-name'),
     age: document.getElementById('char-age'),
@@ -29,13 +24,15 @@ export const elements = {
     sectContribution: document.getElementById('sect-contribution'),
     inventoryList: document.getElementById('inventory-list'),
     relationshipsList: document.getElementById('relationships-list'),
-    // Elements for the new tab system
     resourcesTab: document.getElementById('resources-tab'),
     historyTab: document.getElementById('history-tab'),
+    talentsTab: document.getElementById('talents-tab'),
     resourcesContent: document.getElementById('resources-content'),
     historyLogContent: document.getElementById('history-log-content'),
+    talentsContent: document.getElementById('talents-content'),
     actionLogList: document.getElementById('action-log-list'),
-    // Map and event views
+    talentPoints: document.getElementById('talent-points'),
+    talentsContainer: document.getElementById('talents-container'),
     mapView: document.getElementById('map-view'),
     eventView: document.getElementById('event-view'),
     regionsContainer: document.getElementById('regions-container'),
@@ -45,11 +42,6 @@ export const elements = {
     sectActionsBtn: document.getElementById('sect-actions-btn')
 };
 
-/**
- * Aplica uma animação CSS a um elemento para indicar mudança.
- * @param {HTMLElement} element - O elemento do DOM a ser animado.
- * @param {'increase' | 'decrease'} changeType - O tipo de mudança para a animação.
- */
 export function flashStat(element, changeType) {
     const className = changeType === 'increase' ? 'stat-increased' : 'stat-decreased';
     element.classList.add(className);
@@ -58,9 +50,6 @@ export function flashStat(element, changeType) {
     }, 700);
 }
 
-/**
- * Atualiza a lista de inventário na UI.
- */
 function updateInventoryList() {
     elements.inventoryList.innerHTML = '';
     const allStoreItems = allGameData.sects.flatMap(sect => sect.store || []);
@@ -77,10 +66,9 @@ function updateInventoryList() {
             const useButton = document.createElement('button');
             useButton.textContent = `Usar ${itemData.name}`;
             useButton.onclick = () => {
-                // A lógica de usar o item será movida para handlers.js
-                // applyEffects(itemData.effects);
+                applyEffects(itemData.effects);
                 gameState.inventory.splice(index, 1);
-                updateUI(); // Re-renderiza a UI
+                updateUI();
             };
             li.appendChild(useButton);
         } else {
@@ -90,9 +78,6 @@ function updateInventoryList() {
     });
 }
 
-/**
- * Atualiza a lista de relacionamentos na UI.
- */
 function updateRelationshipsList() {
     elements.relationshipsList.innerHTML = '';
     if (gameState.relationships.length === 0) {
@@ -106,16 +91,13 @@ function updateRelationshipsList() {
     }
 }
 
-/**
- * Atualiza todos os elementos da UI com base no gameState atual.
- */
 export function updateUI() {
     if (!gameState || !gameState.attributes) return;
 
-    if (!gameState.combat) {
+    if (!combatState) {
         elements.nextYearBtn.style.display = 'block';
     }
-    renderMap(); // Atualiza o mapa com regiões desbloqueadas
+    renderMap();
     const currentRealm = cultivationRealms[gameState.cultivation.realmIndex];
     const subRealmName = currentRealm.subRealms[gameState.cultivation.subRealmIndex];
     elements.age.textContent = gameState.age;
@@ -132,6 +114,7 @@ export function updateUI() {
     elements.cultQiMax.textContent = currentRealm.qiMax;
     elements.resMoney.textContent = `${gameState.resources.money} Moedas de Cobre`;
     elements.resReputation.textContent = gameState.resources.reputation;
+    elements.talentPoints.textContent = gameState.talentPoints;
 
     if (gameState.sect.id) {
         const sectData = allGameData.sects.find(s => s.id === gameState.sect.id);
@@ -150,7 +133,6 @@ export function updateUI() {
     updateInventoryList();
     updateRelationshipsList();
 
-    // Lógica do legado que afeta a UI
     const legacyData = localStorage.getItem('wuxiaLegacy');
     if (legacyData) {
         const legacyBonus = JSON.parse(legacyData);
@@ -163,9 +145,6 @@ export function updateUI() {
     }
 }
 
-/**
- * Mostra a tela de morte com o resumo da vida do jogador.
- */
 export function showDeathScreen() {
     if (gameState.cultivation.realmIndex >= 2) {
         const legacyBonus = { attribute: 'luck', value: 1 };
@@ -179,7 +158,7 @@ export function showDeathScreen() {
         <p>Seu cultivo alcançou o reino de <strong>${finalRealm}</strong>.</p>
         <p>Sua reputação final foi de <strong>${gameState.resources.reputation}</strong>.</p>
         <hr>
-        <h3 id="life-log-header">Diário de Vida:</h3>
+        <h3>Diário de Vida:</h3>
         <ul>${lifeLogHTML}</ul>
         <hr>
         <p>O Dao é eterno, e o ciclo recomeça. Uma nova vida o aguarda.</p>
@@ -194,14 +173,48 @@ export function showDeathScreen() {
     elements.sectActionsBtn.style.display = 'none';
 }
 
-/**
- * Controla qual visão principal (mapa ou evento) está ativa.
- * @param {'map' | 'event'} viewName - O nome da visão a ser exibida.
- */
+function handleCombatTurn(action) {
+    const result = takeCombatTurn(action);
+    if (result === 'win' || result === 'loss') {
+        const resultText = endCombat(result);
+        elements.eventContent.innerHTML = `<p>${resultText}</p>`;
+        const backToMapButton = document.createElement('button');
+        backToMapButton.textContent = "Voltar ao Mapa";
+        backToMapButton.onclick = () => {
+            showView('map');
+            updateUI();
+        };
+        elements.choicesContainer.innerHTML = '';
+        elements.choicesContainer.appendChild(backToMapButton);
+    } else {
+        showCombatUI();
+    }
+}
+
+export function showCombatUI() {
+    if (!combatState) return;
+    showView('event');
+    const combatLog = combatState.log.map(entry => `<p>${entry}</p>`).join('');
+    const combatHTML = `
+        <h2>Combate!</h2>
+        <p><strong>${combatState.enemy.name}</strong> - Saúde: ${combatState.enemyHealth}</p>
+        <p><strong>Você</strong> - Saúde: ${gameState.attributes.health}</p>
+        <hr><div class="combat-log">${combatLog}</div>`;
+    elements.eventContent.innerHTML = combatHTML;
+    elements.choicesContainer.innerHTML = '';
+    const attackButton = document.createElement('button');
+    attackButton.textContent = "Ataque Físico";
+    attackButton.onclick = () => handleCombatTurn('attack');
+    elements.choicesContainer.appendChild(attackButton);
+    const defendButton = document.createElement('button');
+    defendButton.textContent = "Defender";
+    defendButton.onclick = () => handleCombatTurn('defend');
+    elements.choicesContainer.appendChild(defendButton);
+}
+
 export function showView(viewName) {
     elements.mapView.classList.remove('active');
     elements.eventView.classList.remove('active');
-
     if (viewName === 'map') {
         elements.mapView.classList.add('active');
     } else {
@@ -209,15 +222,10 @@ export function showView(viewName) {
     }
 }
 
-/**
- * Renderiza as regiões desbloqueadas no mapa.
- */
 export function renderMap() {
     if (!allGameData.regions) return;
     elements.regionsContainer.innerHTML = '';
-
     allGameData.regions.forEach(region => {
-        // Checa se a região está desbloqueada
         let isUnlocked = region.unlocked;
         if (region.unlockRequirements) {
             if (region.unlockRequirements.age && gameState.age >= region.unlockRequirements.age) {
@@ -227,7 +235,6 @@ export function renderMap() {
                 isUnlocked = true;
             }
         }
-
         if (isUnlocked) {
             const regionButton = document.createElement('button');
             regionButton.className = 'region-button';
@@ -240,13 +247,9 @@ export function renderMap() {
     });
 }
 
-/**
- * Renderiza o histórico de ações na UI.
- */
 export function updateActionLogUI() {
     if (!elements.actionLogList) return;
     elements.actionLogList.innerHTML = '';
-    // Mostra as ações mais recentes primeiro
     [...gameState.actionLog].reverse().forEach(log => {
         const li = document.createElement('li');
         li.innerHTML = `
@@ -259,24 +262,48 @@ export function updateActionLogUI() {
     });
 }
 
-
-/**
- * Configura os event listeners para o sistema de abas.
- */
 export function setupTabs() {
-    elements.resourcesTab.addEventListener('click', () => {
-        elements.resourcesTab.classList.add('active');
-        elements.historyTab.classList.remove('active');
-        elements.resourcesContent.classList.add('active');
-        elements.historyLogContent.classList.remove('active');
+    const tabs = [
+        { button: elements.resourcesTab, content: elements.resourcesContent },
+        { button: elements.historyTab, content: elements.historyLogContent, onOpen: updateActionLogUI },
+        { button: elements.talentsTab, content: elements.talentsContent, onOpen: renderTalents }
+    ];
+    tabs.forEach(tab => {
+        tab.button.addEventListener('click', () => {
+            tabs.forEach(t => {
+                t.button.classList.remove('active');
+                t.content.classList.remove('active');
+            });
+            tab.button.classList.add('active');
+            tab.content.classList.add('active');
+            if (tab.onOpen) {
+                tab.onOpen();
+            }
+        });
     });
+}
 
-    elements.historyTab.addEventListener('click', () => {
-        elements.historyTab.classList.add('active');
-        elements.resourcesTab.classList.remove('active');
-        elements.historyLogContent.classList.add('active');
-        elements.resourcesContent.classList.remove('active');
-        // Atualiza o log sempre que a aba é aberta
-        updateActionLogUI();
+export function renderTalents() {
+    if (!allGameData.talents) return;
+    elements.talentsContainer.innerHTML = '';
+    allGameData.talents.forEach(talent => {
+        const talentDiv = document.createElement('div');
+        talentDiv.className = 'talent';
+        let status = 'locked';
+        const isUnlocked = gameState.unlockedTalents.includes(talent.id);
+        const canAfford = gameState.talentPoints >= talent.cost;
+        const meetsReqs = talent.requirements.every(req => gameState.unlockedTalents.includes(req));
+        if (isUnlocked) status = 'unlocked';
+        else if (canAfford && meetsReqs) status = 'unlockable';
+        talentDiv.classList.add(status);
+        talentDiv.innerHTML = `<strong>${talent.name}</strong> (Custo: ${talent.cost})<br><small>${talent.description}</small>`;
+        if (status === 'unlockable') {
+            talentDiv.onclick = () => {
+                unlockTalent(talent.id);
+                updateUI();
+                renderTalents();
+            };
+        }
+        elements.talentsContainer.appendChild(talentDiv);
     });
 }

@@ -3,7 +3,7 @@
  */
 
 // O estado principal do jogo, contendo os dados do jogador e da sessão.
-export let gameState = {};
+export const gameState = {};
 
 // Dados carregados dos arquivos JSON.
 export let allGameData = {};
@@ -42,7 +42,11 @@ export const cultivationRealms = [
  * Inicializa ou reseta o gameState para um novo jogo.
  */
 export function initializeGameState() {
-    gameState = {
+    // Limpa o estado antigo para garantir que não haja propriedades residuais
+    Object.keys(gameState).forEach(key => delete gameState[key]);
+
+    // Define o estado inicial usando Object.assign para modificar o objeto existente
+    Object.assign(gameState, {
         age: 0,
         attributes: {
             health: 100, maxHealth: 100,
@@ -56,14 +60,16 @@ export function initializeGameState() {
         relationships: [],
         lifeLog: [],
         actionLog: [],
+        unlockedTalents: [],
+        talentPoints: 0,
         sect: {
             id: null,
             rankIndex: 0,
             contribution: 0
         },
-        combat: null, // Referência ao combatState
+        combat: null,
         currentRegionId: "vila_inicial"
-    };
+    });
 
     // Aplica bônus de legado de jogos anteriores
     const legacyData = localStorage.getItem('wuxiaLegacy');
@@ -72,7 +78,6 @@ export function initializeGameState() {
             const legacyBonus = JSON.parse(legacyData);
             if (legacyBonus && legacyBonus.attribute && legacyBonus.value) {
                 gameState.attributes[legacyBonus.attribute] += legacyBonus.value;
-                // A parte de UI disso será movida para ui.js
             }
         } catch (e) {
             console.error("Erro ao processar o legado:", e);
@@ -84,7 +89,6 @@ export function initializeGameState() {
 
 /**
  * Define os dados do jogo carregados para que possam ser acessados globalmente.
- * @param {object} data - O objeto de dados do jogo carregado dos JSONs.
  */
 export function setGameData(data) {
     allGameData = data;
@@ -92,11 +96,10 @@ export function setGameData(data) {
 
 /**
  * Define o estado de combate.
- * @param {object | null} state - O novo estado de combate.
  */
 export function setCombatState(state) {
     combatState = state;
-    gameState.combat = state; // Mantém a referência no gameState principal
+    gameState.combat = state;
 }
 
 /**
@@ -115,15 +118,14 @@ export function saveGame() {
  */
 export function loadGame() {
     try {
-        const savedState = localStorage.getItem('wuxiaGameState');
-        if (savedState) {
-            const loadedState = JSON.parse(savedState);
-            // Mescla o estado carregado com o estado inicial
-            // Isso garante que novas propriedades no estado inicial não sejam perdidas
-            Object.assign(gameState, loadedState);
+        const savedStateJSON = localStorage.getItem('wuxiaGameState');
+        if (savedStateJSON) {
+            const savedState = JSON.parse(savedStateJSON);
+            // Sobrescreve completamente o estado inicial com o estado salvo
+            Object.keys(gameState).forEach(key => delete gameState[key]);
+            Object.assign(gameState, savedState);
         }
     } catch (e) {
         console.error("Falha ao carregar o jogo salvo:", e);
-        // Se houver um erro, o jogo começará do zero.
     }
 }

@@ -1,6 +1,6 @@
 import { gameState, allGameData, setGameData, cultivationRealms, combatState, saveGame } from './state.js';
-import { elements, updateUI, showDeathScreen, setupTabs, showView } from './ui.js';
-import { applyEffects, handleSpecialEffects, logLifeEvent, showSectActions, logAction } from './handlers.js';
+import { elements, updateUI, showDeathScreen, setupTabs, showView, showCombatUI } from './ui.js';
+import { applyEffects, handleSpecialEffects, logLifeEvent, showSectActions, logAction, startCombat } from './handlers.js';
 
 const TRAVEL_ENERGY_COST = 10;
 
@@ -71,6 +71,12 @@ export function showEvent(event) {
                 success = handleSpecialEffects(choice.effects.special);
             } else {
                 applyEffects(choice.effects);
+            }
+
+            if (choice.effects.special === 'duel_lian') {
+                startCombat('rival_lian_14');
+                showCombatUI();
+                return;
             }
 
             if (gameState.combat) { return; }
