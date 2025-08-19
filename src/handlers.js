@@ -106,6 +106,10 @@ export function handleSpecialEffects(specialKey) {
             gameState.talentPoints++;
             success = true;
             break;
+        case "mission_patrol_forest":
+            startCombat('weak_demon_beast');
+            success = true; // The combat outcome will be handled separately
+            break;
         default:
             success = true;
     }
@@ -211,7 +215,8 @@ export function attemptPromotion() {
 export function acceptSectMission() {
     const sect = getSect();
     if (!sect || !sect.missions || sect.missions.length === 0) return null;
-    return sect.missions[Math.floor(Math.random() * sect.missions.length)];
+    // Força a missão de patrulha para o teste
+    return sect.missions.find(m => m.id === 'mission_patrol_forest');
 }
 
 export function attemptMission(mission) {

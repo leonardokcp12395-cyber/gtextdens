@@ -9,5 +9,16 @@
             "critChance": 0.05,
             "dodgeChance": 0.05
         }
+    },
+    {
+        "id": "weak_demon_beast",
+        "name": "Besta Demoníaca Fraca",
+        "attributes": {
+            "health": 20,
+            "body": 10,
+            "defense": 2,
+            "critChance": 0.05,
+            "dodgeChance": 0.02
+        }
     }
 ]
