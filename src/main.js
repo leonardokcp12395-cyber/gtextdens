@@ -47,6 +47,10 @@ async function main() {
         setGameData(gameData);
         // Inicia os listeners do jogo
         initializeGame(gameData);
+        // A UI inicial precisa ser renderizada após tudo estar carregado
+        updateUI();
+        // Sinaliza que o jogo está pronto para testes
+        document.body.classList.add('game-loaded');
     }
 }
 

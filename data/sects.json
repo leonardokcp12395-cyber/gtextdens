@@ -15,10 +15,10 @@
             "Discípulo de Elite",
             "Ancião"
         ],
-        "contribution_needed": [
-            100,
-            500,
-            2000
+        "promotion_requirements": [
+            { "contribution": 100, "reputation": 10 },
+            { "contribution": 500, "reputation": 50 },
+            { "contribution": 2000, "reputation": 200 }
         ],
         "store": [
             {
@@ -87,10 +87,10 @@
             "Lorde de Sangue",
             "Patriarca"
         ],
-        "contribution_needed": [
-            120,
-            600,
-            2500
+        "promotion_requirements": [
+            { "contribution": 120, "reputation": -10 },
+            { "contribution": 600, "reputation": -50 },
+            { "contribution": 2500, "reputation": -200 }
         ],
         "store": [
             {

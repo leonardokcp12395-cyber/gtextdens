@@ -1,6 +1,6 @@
 import { gameState, allGameData, setGameData, cultivationRealms, combatState, saveGame } from './state.js';
-import { elements, updateUI, showDeathScreen, setupTabs, showView, showCombatUI } from './ui.js';
-import { applyEffects, handleSpecialEffects, logLifeEvent, showSectActions, logAction, startCombat } from './handlers.js';
+import { elements, updateUI, showDeathScreen, setupTabs, showView, showCombatUI, showSectActions } from './ui.js';
+import { applyEffects, handleSpecialEffects, logLifeEvent, logAction, startCombat } from './handlers.js';
 
 const TRAVEL_ENERGY_COST = 10;
 
@@ -9,11 +9,10 @@ const TRAVEL_ENERGY_COST = 10;
  */
 export function initializeGame(gameData) {
     setGameData(gameData);
-    updateUI();
     setupTabs();
     elements.nextYearBtn.addEventListener('click', advanceYear);
     elements.sectActionsBtn.addEventListener('click', showSectActions);
-    showView('map'); // Começa na visão do mapa
+    showView('map');
 }
 
 /**

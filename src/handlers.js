@@ -1,5 +1,7 @@
+// This is a complete rewrite of the file to ensure all functions are present
+// and to re-introduce the sect mission logic that was removed.
+
 import { gameState, allGameData, combatState, setCombatState } from './state.js';
-// No longer importing from ui.js
 
 // --- LÓGICA DE ESTADO E EFEITOS ---
 
@@ -72,10 +74,6 @@ export function handleSpecialEffects(specialKey) {
                 success = true;
             }
             break;
-        case "gain_talent_point":
-            gameState.talentPoints++;
-            success = true;
-            break;
         case "insight_meditation":
             if (gameState.attributes.mind > 15) {
                 applyEffects({ attributes: { mind: 3, soul: 1 } });
@@ -104,6 +102,10 @@ export function handleSpecialEffects(specialKey) {
                 success = true;
             }
             break;
+        case "gain_talent_point":
+            gameState.talentPoints++;
+            success = true;
+            break;
         default:
             success = true;
     }
@@ -125,7 +127,7 @@ export function startCombat(enemyId) {
 }
 
 export function takeCombatTurn(actionType) {
-    if (!combatState) return;
+    if (!combatState) return 'loss';
     combatState.log = [];
 
     if (actionType === 'attack') {
@@ -146,9 +148,7 @@ export function takeCombatTurn(actionType) {
         combatState.log.push("Você se prepara para defender o próximo ataque.");
     }
 
-    if (combatState.enemyHealth <= 0) {
-        return 'win';
-    }
+    if (combatState.enemyHealth <= 0) return 'win';
 
     if (Math.random() < gameState.attributes.dodgeChance) {
         combatState.log.push(`Você se esquiva do ataque de ${combatState.enemy.name}!`);
@@ -167,9 +167,7 @@ export function takeCombatTurn(actionType) {
         combatState.log.push(`${combatState.enemy.name} ataca e causa ${enemyDamage} de dano.`);
     }
 
-    if (gameState.attributes.health <= 0) {
-        return 'loss';
-    }
+    if (gameState.attributes.health <= 0) return 'loss';
 
     return 'continue';
 }
@@ -185,6 +183,54 @@ export function endCombat(outcome) {
     }
     setCombatState(null);
     return resultText;
+}
+
+// --- FUNÇÕES DE SEITA ---
+export function getSect() {
+    return allGameData.sects.find(s => s.id === gameState.sect.id);
+}
+
+export function attemptPromotion() {
+    const sect = getSect();
+    if (!sect) return;
+    const currentRankIndex = gameState.sect.rankIndex;
+    const nextRankIndex = currentRankIndex + 1;
+    if (nextRankIndex >= sect.ranks.length) return; // Já está no rank máximo
+
+    const reqs = sect.promotion_requirements[currentRankIndex];
+    if (gameState.sect.contribution >= reqs.contribution && gameState.resources.reputation >= reqs.reputation) {
+        gameState.sect.contribution -= reqs.contribution;
+        gameState.sect.rankIndex++;
+        const newRank = sect.ranks[gameState.sect.rankIndex];
+        logLifeEvent(`Foi promovido para ${newRank} na seita.`);
+        return true;
+    }
+    return false;
+}
+
+export function acceptSectMission() {
+    const sect = getSect();
+    if (!sect || !sect.missions || sect.missions.length === 0) return null;
+    return sect.missions[Math.floor(Math.random() * sect.missions.length)];
+}
+
+export function attemptMission(mission) {
+    if (!mission) return;
+    let missionSuccess = false;
+    if (mission.check.attribute) {
+        const playerStat = gameState.attributes[mission.check.attribute];
+        const successChance = 0.5 + ((playerStat - mission.check.difficulty) * 0.05);
+        missionSuccess = Math.random() < successChance;
+    } else {
+        missionSuccess = true; // Missões sem check são sucesso automático por enquanto
+    }
+
+    if (missionSuccess) {
+        applyEffects(mission.rewards.success);
+    } else {
+        applyEffects(mission.rewards.failure);
+    }
+    return missionSuccess;
 }
 
 
@@ -204,10 +250,3 @@ export function unlockTalent(talentId) {
         logLifeEvent(`Você desbloqueou o talento: ${talent.name}!`);
     }
 }
-// NOTE: Sect functions were removed as they were not part of the core refactoring and added complexity.
-// They can be added back later if needed.
-// I have removed showSectStore, showSectActions, acceptSectMission
-// This is a major simplification to reduce dependencies.
-// I will need to update the UI to remove the buttons that call these.
-// For now, I will focus on fixing the talent bug.
-// The sect button is already hidden by default, so this is not a breaking change for the user.
