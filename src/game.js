@@ -190,7 +190,18 @@ export function advanceYear() {
     // Restaura a energia e avança a idade
     gameState.attributes.energy = gameState.attributes.maxEnergy;
     gameState.age++;
-    if (gameState.age > 50) gameState.attributes.health--;
+
+    // Lógica de Perda de Saúde por Idade (baseado no reino)
+    const currentRealmIndex = gameState.cultivation.realmIndex;
+    let naturalDeclineAge = 100; // Idade base para mortais
+    if (currentRealmIndex === 1) naturalDeclineAge = 150; // Condensação de Qi
+    else if (currentRealmIndex >= 2) naturalDeclineAge = 250; // Estabelecimento de Fundação e acima
+
+    if (gameState.age > naturalDeclineAge) {
+        const agePenalty = Math.floor((gameState.age - naturalDeclineAge) / 10);
+        applyEffects({ attributes: { health: -(1 + agePenalty) } });
+    }
+
     if (gameState.attributes.health <= 0) {
         showDeathScreen();
         return;

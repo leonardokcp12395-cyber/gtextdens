@@ -58,7 +58,24 @@ function updateInventoryList() {
         elements.inventoryList.innerHTML = '<li>Nenhum</li>';
         return;
     }
-    // Implement item usage logic if needed
+    gameState.inventory.forEach((itemId, index) => {
+        const itemData = allItems.find(i => i.id === itemId);
+        if (!itemData) return;
+        const li = document.createElement('li');
+        if (itemData.type === 'pill') {
+            const useButton = document.createElement('button');
+            useButton.textContent = `Usar ${itemData.name}`;
+            useButton.onclick = () => {
+                applyEffects(itemData.effects);
+                gameState.inventory.splice(index, 1);
+                updateUI(); // Re-renderiza a UI
+            };
+            li.appendChild(useButton);
+        } else {
+            li.textContent = itemData.name;
+        }
+        elements.inventoryList.appendChild(li);
+    });
 }
 
 function updateRelationshipsList() {

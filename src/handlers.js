@@ -47,7 +47,7 @@ export function applyEffects(effects) {
     }
 }
 
-export function handleSpecialEffects(specialKey) {
+export function handleSpecialEffects(specialKey, mission = null) {
     let success = false;
     switch (specialKey) {
         case "monk_disciple":
@@ -107,7 +107,7 @@ export function handleSpecialEffects(specialKey) {
             success = true;
             break;
         case "mission_patrol_forest":
-            startCombat('weak_demon_beast');
+            startCombat('weak_demon_beast', mission ? mission.id : null);
             success = true; // The combat outcome will be handled separately
             break;
         default:
@@ -118,14 +118,15 @@ export function handleSpecialEffects(specialKey) {
 
 // --- FUNÇÕES DE COMBATE ---
 
-export function startCombat(enemyId) {
+export function startCombat(enemyId, missionId = null) {
     const enemyData = allGameData.enemies.find(e => e.id === enemyId);
     if (!enemyData) return;
     const newCombatState = {
         enemy: enemyData,
         enemyHealth: enemyData.attributes.health,
         log: [],
-        playerIsDefending: false
+        playerIsDefending: false,
+        missionId: missionId // Store the mission ID
     };
     setCombatState(newCombatState);
 }
@@ -177,14 +178,36 @@ export function takeCombatTurn(actionType) {
 }
 
 export function endCombat(outcome) {
-    const originalEvent = allGameData.events.find(e => e.age === gameState.age && e.choices.some(c => c.effects.special === 'duel_lian'));
     let resultText = '';
-    if (outcome === 'win') {
-        logLifeEvent(`Derrotou ${combatState.enemy.name} em um duelo.`);
-        resultText = allGameData.strings[originalEvent.choices[0].successKey];
+    const missionId = combatState.missionId;
+
+    if (missionId) {
+        const sect = getSect();
+        const mission = sect.missions.find(m => m.id === missionId);
+        if (mission) {
+            if (outcome === 'win') {
+                applyEffects(mission.rewards.success);
+                resultText = `Você completou a missão '${mission.name}' com sucesso!`;
+            } else {
+                applyEffects(mission.rewards.failure);
+                resultText = `Você falhou na missão '${mission.name}'.`;
+            }
+        }
     } else {
-        resultText = allGameData.strings[originalEvent.choices[0].failureKey];
+        // Handle non-mission combat like duels
+        const originalEvent = allGameData.events.find(e => e.age === gameState.age && e.choices.some(c => c.effects.special === 'duel_lian'));
+        if (originalEvent) {
+             if (outcome === 'win') {
+                logLifeEvent(`Derrotou ${combatState.enemy.name} em um duelo.`);
+                resultText = allGameData.strings[originalEvent.choices[0].successKey];
+            } else {
+                resultText = allGameData.strings[originalEvent.choices[0].failureKey];
+            }
+        } else {
+            resultText = (outcome === 'win') ? `Você derrotou ${combatState.enemy.name}!` : `Você foi derrotado por ${combatState.enemy.name}.`;
+        }
     }
+
     setCombatState(null);
     return resultText;
 }
