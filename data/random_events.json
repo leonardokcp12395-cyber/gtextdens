@@ -47,5 +47,59 @@
                 "resultKey": "random_rumor_ignore"
             }
         ]
+    },
+    {
+        "id": "random_004",
+        "text": "Você se depara com um canteiro de 'Flores da Névoa' selvagens enquanto explora. Elas são conhecidas por suas propriedades calmantes.",
+        "choices": [
+            {
+                "text": "Colher as flores com cuidado.",
+                "effects": { "item": "flor_da_nevoa" },
+                "resultKey": "random_ingredient_gather_success"
+            },
+            {
+                "text": "Deixá-las em paz.",
+                "effects": {},
+                "resultKey": "random_ingredient_gather_ignore"
+            }
+        ]
+    },
+    {
+        "id": "random_005_chasm",
+        "text": "Você chega a um abismo largo enquanto explora uma montanha. Parece impossível de cruzar, mas você vê algo brilhando do outro lado.",
+        "choices": [
+            {
+                "text": "Tentar saltar o abismo.",
+                "effects": { "attributes": { "health": -20 } },
+                "resultKey": "chasm_jump_fail"
+            },
+            {
+                "text": "Usar o Passo da Nuvem para cruzar.",
+                "effects": { "item": "spirit_stone" },
+                "resultKey": "chasm_jump_success",
+                "conditions": { "equippedTechnique": "tech_cloud_step" }
+            },
+            {
+                "text": "Ir embora. É muito perigoso.",
+                "effects": {},
+                "resultKey": "chasm_ignore"
+            }
+        ]
+    },
+    {
+        "id": "random_006_mine",
+        "text": "Você encontra uma velha mina abandonada. Parece instável, mas pode conter minérios valiosos.",
+        "choices": [
+            {
+                "text": "Entrar com cuidado.",
+                "effects": { "item": "minerio_ferro", "quantity": 3 },
+                "resultKey": "mine_success"
+            },
+            {
+                "text": "Não arriscar.",
+                "effects": {},
+                "resultKey": "mine_ignore"
+            }
+        ]
     }
 ]

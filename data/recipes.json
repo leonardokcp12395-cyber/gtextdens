@@ -1,0 +1,22 @@
+[
+    {
+        "id": "receita_pilula_cura_fraca",
+        "name": "Receita: Pílula de Cura Fraca",
+        "ingredients": [
+            { "id": "erva_brilhante", "quantity": 2 },
+            { "id": "flor_da_nevoa", "quantity": 1 }
+        ],
+        "result": "pilula_cura_fraca",
+        "skillRequired": 5
+    },
+    {
+        "id": "receita_pilula_qi_basica",
+        "name": "Receita: Pílula de Qi Básica",
+        "ingredients": [
+            { "id": "nucleo_besta_fraca", "quantity": 1 },
+            { "id": "erva_brilhante", "quantity": 1 }
+        ],
+        "result": "pilula_qi_basica",
+        "skillRequired": 10
+    }
+]

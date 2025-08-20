@@ -1,8 +1,8 @@
 /* Estilos Gerais */
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #1a1a1a;
-    color: #e0e0e0;
+    font-family: 'Noto Serif SC', serif;
+    background-color: #f5f1e8; /* Um tom de papel antigo */
+    color: #3a3a3a; /* Texto escuro, mas não preto puro */
     margin: 0;
     padding: 20px;
 }
@@ -15,21 +15,21 @@ body {
 
 /* Estilos dos Painéis */
 .panel {
-    background-color: #2c2c2c;
-    border: 1px solid #444;
-    border-radius: 8px;
+    background-color: #ffffff;
+    border: 1px solid #dcdcdc;
+    border-radius: 4px;
     padding: 20px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
 }
 
 #character-panel, #right-panel {
-    flex: 1; /* Painéis laterais ocupam 1 parte do espaço */
+    flex: 1;
 }
 
 /* Estilos do Sistema de Abas */
 .tabs {
     display: flex;
-    border-bottom: 1px solid #444;
+    border-bottom: 1px solid #dcdcdc;
     margin-bottom: 20px;
 }
 
@@ -38,41 +38,48 @@ body {
     cursor: pointer;
     background-color: transparent;
     border: none;
-    color: #e0e0e0;
+    color: #555;
     font-size: 1em;
+    font-family: 'Noto Serif SC', serif;
     border-bottom: 2px solid transparent;
+    transition: color 0.3s, border-color 0.3s;
+}
+
+.tab-button:hover {
+    color: #333;
 }
 
 .tab-button.active {
-    color: #a29bfe;
-    border-bottom: 2px solid #a29bfe;
+    color: #a84300; /* Um vermelho/laranja queimado */
+    border-bottom: 2px solid #a84300;
 }
 
 .tab-content {
-    display: none; /* Esconde todo o conteúdo da aba por padrão */
+    display: none;
 }
 
 .tab-content.active {
-    display: block; /* Mostra apenas o conteúdo da aba ativa */
+    display: block;
 }
 
 #event-panel {
-    flex: 3; /* Painel central ocupa 3 partes, sendo maior */
+    flex: 3;
     display: flex;
     flex-direction: column;
 }
 
 /* Títulos e Separadores */
 h2, h3 {
-    color: #a29bfe;
-    border-bottom: 1px solid #444;
+    color: #a84300;
+    border-bottom: 1px solid #eee;
     padding-bottom: 10px;
     margin-top: 0;
+    font-weight: 700;
 }
 
 hr {
     border: none;
-    border-top: 1px solid #444;
+    border-top: 1px solid #eee;
     margin: 20px 0;
 }
 
@@ -83,19 +90,21 @@ ul {
 
 li {
     margin-bottom: 8px;
+    line-height: 1.5;
 }
 
 /* Log de Eventos e Escolhas */
 #event-log {
     flex-grow: 1;
     margin-bottom: 20px;
-    background-color: #1f1f1f;
+    background-color: #f9f9f9;
     padding: 15px;
     border-radius: 4px;
+    border: 1px solid #eee;
     overflow-y: auto;
 }
 
-#event-text {
+#event-content {
     font-size: 1.1em;
     line-height: 1.6;
 }
@@ -105,62 +114,59 @@ li {
     width: 100%;
     padding: 12px;
     margin-top: 10px;
-    background-color: #6c5ce7;
+    background-color: #8c3800;
     color: white;
     border: none;
     border-radius: 5px;
     cursor: pointer;
     font-size: 1em;
+    font-family: 'Noto Serif SC', serif;
     transition: background-color 0.3s;
 }
 
 #choices-container button:hover {
-    background-color: #a29bfe;
+    background-color: #a84300;
 }
 
-/* Botão Principal */
-#next-year-btn {
-    padding: 15px;
-    width: 100%;
-    background-color: #00b894;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 1.2em;
-    font-weight: bold;
-    margin-top: auto; /* Empurra o botão para o fundo do painel de eventos */
-}
-
-#next-year-btn:hover {
-    background-color: #55efc4;
-}
-
+/* Botões de Ação Globais */
 .action-buttons-container {
     display: flex;
     gap: 10px;
     margin-top: auto;
 }
 
-#sect-actions-btn {
+#sect-actions-btn, #alchemy-btn, #next-year-btn {
     padding: 15px;
-    background-color: #a29bfe;
     color: white;
     border: none;
     border-radius: 5px;
     cursor: pointer;
     font-size: 1.2em;
     font-weight: bold;
+    font-family: 'Noto Serif SC', serif;
     flex-grow: 1;
 }
 
-#next-year-btn {
-    flex-grow: 2; /* Botão de avançar ano maior */
+#sect-actions-btn, #alchemy-btn {
+    background-color: #6a6a6a;
 }
+#sect-actions-btn:hover, #alchemy-btn:hover {
+    background-color: #8a8a8a;
+}
+
+#next-year-btn {
+    background-color: #006a4e; /* Verde Jade escuro */
+    flex-grow: 2;
+}
+
+#next-year-btn:hover {
+    background-color: #008a6e;
+}
+
 
 /* Spans com dados */
 span {
-    color: #55efc4;
+    color: #006a4e; /* Verde Jade escuro */
     font-weight: bold;
     transition: all 0.3s ease-in-out;
 }
@@ -174,22 +180,22 @@ span {
 }
 
 @keyframes flash-green {
-    0% { color: #55efc4; transform: scale(1); }
-    50% { color: #00b894; transform: scale(1.1); }
-    100% { color: #55efc4; transform: scale(1); }
+    0% { color: #006a4e; transform: scale(1); }
+    50% { color: #008a6e; transform: scale(1.1); }
+    100% { color: #006a4e; transform: scale(1); }
 }
 
 @keyframes flash-red {
-    0% { color: #e0e0e0; transform: scale(1); }
-    50% { color: #d63031; transform: scale(1.1); }
-    100% { color: #e0e0e0; transform: scale(1); }
+    0% { color: #3a3a3a; transform: scale(1); }
+    50% { color: #c0392b; transform: scale(1.1); }
+    100% { color: #3a3a3a; transform: scale(1); }
 }
 
 /* Estilos para Tooltips */
 .tooltip {
     position: relative;
     cursor: help;
-    border-bottom: 1px dotted #a29bfe;
+    border-bottom: 1px dotted #a84300;
 }
 
 .tooltip::after {
@@ -200,7 +206,7 @@ span {
     bottom: 125%;
     z-index: 1;
 
-    background-color: #333;
+    background-color: #3a3a3a;
     color: #fff;
     padding: 10px 15px;
     border-radius: 6px;
@@ -235,9 +241,9 @@ span {
     width: 100%;
     padding: 15px;
     margin-bottom: 10px;
-    background-color: #4a4a4a;
-    color: #e0e0e0;
-    border: 1px solid #666;
+    background-color: #f9f9f9;
+    color: #3a3a3a;
+    border: 1px solid #ddd;
     border-radius: 5px;
     cursor: pointer;
     text-align: left;
@@ -245,8 +251,8 @@ span {
 }
 
 #regions-container .region-button:hover {
-    background-color: #5a5a5a;
-    border-color: #888;
+    background-color: #fff;
+    border-color: #ccc;
 }
 
 /* Estilos da Árvore de Talentos */
@@ -258,13 +264,13 @@ span {
 
 .talent {
     padding: 10px;
-    border: 1px solid #444;
+    border: 1px solid #ddd;
     border-radius: 5px;
 }
 
 .talent.locked {
-    background-color: #333;
-    color: #888;
+    background-color: #f5f5f5;
+    color: #aaa;
 }
 
 .talent.unlocked {
@@ -282,4 +288,37 @@ span {
 
 .talent.unlockable:hover {
     background-color: #42a5f5;
+}
+
+
+/* --- Design Responsivo --- */
+@media (max-width: 768px) {
+    body {
+        padding: 10px; /* Menos preenchimento em telas pequenas */
+        font-size: 16px; /* Garante uma boa base de leitura */
+    }
+
+    .game-container {
+        flex-direction: column;
+        gap: 10px; /* Espaçamento menor entre os painéis */
+    }
+
+    .panel {
+        padding: 15px;
+    }
+
+    #event-panel {
+        /* Garante que o painel de eventos não seja desproporcionalmente grande em telas pequenas */
+        flex-basis: auto;
+    }
+
+    /* Botões maiores para facilitar o toque */
+    #choices-container button, #next-year-btn, #sect-actions-btn, #alchemy-btn {
+        padding: 15px;
+        font-size: 1.1em;
+    }
+
+    .tab-button {
+        padding: 12px 15px;
+    }
 }

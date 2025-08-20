@@ -1,0 +1,32 @@
+[
+    {
+        "type": "Jovem Cultivador",
+        "firstNames": ["Wei", "Bao", "Chen", "Feng", "Jian"],
+        "lastNames": ["Li", "Wang", "Zhang", "Liu", "Chen"],
+        "description": "[NOME], um(a) jovem cultivador(a) que você conheceu durante seus treinos.",
+        "ageRange": [12, 20],
+        "maxAgeRange": [70, 100],
+        "relationshipRange": [-15, 15],
+        "moods": ["Ambicioso", "Ingênuo", "Disciplinado", "Preguiçoso"]
+    },
+    {
+        "type": "Comerciante Viajante",
+        "firstNames": ["Jin", "Hui", "Liang", "Ming", "Shan"],
+        "lastNames": ["Gao", "Lin", "He", "Guo", "Ma"],
+        "description": "[NOME], um(a) comerciante que viaja entre as cidades vendendo mercadorias exóticas.",
+        "ageRange": [30, 50],
+        "maxAgeRange": [80, 110],
+        "relationshipRange": [-5, 20],
+        "moods": ["Ganancioso", "Astuto", "Amigável", "Cansado"]
+    },
+    {
+        "type": "Discípulo de Seita",
+        "firstNames": ["An", "Cong", "Hai", "Kang", "Long"],
+        "lastNames": ["Sun", "Zhu", "Wu", "Xu", "Yuan"],
+        "description": "[NOME], um(a) discípulo(a) da sua seita com quem você ocasionalmente interage.",
+        "ageRange": [16, 25],
+        "maxAgeRange": [90, 130],
+        "relationshipRange": [-10, 10],
+        "moods": ["Leal", "Invejoso", "Estudioso", "Orgulhoso"]
+    }
+]

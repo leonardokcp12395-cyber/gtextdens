@@ -3,24 +3,68 @@
         "id": "basic_breathing_technique",
         "name": "Técnica de Respiração Básica",
         "type": "technique",
-        "effects": {}
+        "effects": {},
+        "value": 200
     },
     {
         "id": "body_refining_pill",
         "name": "Pílula de Refinamento Corporal",
         "type": "pill",
-        "effects": { "attributes": { "body": 2, "maxHealth": 5 } }
+        "effects": { "attributes": { "body": 2, "maxHealth": 5 } },
+        "value": 15
     },
     {
         "id": "clear_mind_pill",
         "name": "Pílula da Mente Clara",
         "type": "pill",
-        "effects": { "attributes": { "mind": 2 } }
+        "effects": { "attributes": { "mind": 2 } },
+        "value": 15
     },
     {
-    "id": "foundation_pill",
-    "name": "Pílula do Estabelecimento de Fundação",
-    "type": "pill",
-    "effects": {}
+        "id": "foundation_pill",
+        "name": "Pílula do Estabelecimento de Fundação",
+        "type": "pill",
+        "effects": {},
+        "value": 100
+    },
+    {
+        "id": "pilula_cura_fraca",
+        "name": "Pílula de Cura Fraca",
+        "type": "pill",
+        "description": "Uma pílula simples que restaura uma pequena quantidade de saúde.",
+        "effects": { "attributes": { "health": 20 } },
+        "value": 10
+    },
+    {
+        "id": "pilula_qi_basica",
+        "name": "Pílula de Qi Básica",
+        "type": "pill",
+        "description": "Uma pílula feita com energia impura, restaura um pouco de Qi.",
+        "effects": { "cultivation": { "qi": 15 } },
+        "value": 20
+    },
+    {
+        "id": "spirit_stone",
+        "name": "Pedra Espiritual",
+        "type": "valuable",
+        "description": "Uma pedra que pulsa com Qi puro. Pode ser vendida por um bom preço ou usada para outros fins misteriosos.",
+        "value": 100
+    },
+    {
+        "id": "pilula_cinco_espiritos",
+        "name": "Pílula dos Cinco Espíritos",
+        "type": "pill",
+        "description": "Uma pílula de alta qualidade que nutre os cinco atributos fundamentais.",
+        "effects": { "attributes": { "body": 1, "mind": 1, "soul": 1, "luck": 1, "maxHealth": 10 } },
+        "value": 75,
+        "cost": 150
+    },
+    {
+        "id": "semente_lotus_dourado",
+        "name": "Semente de Lótus Dourado",
+        "type": "ingredient",
+        "description": "Um ingrediente de alquimia extremamente raro, dito ser a chave para pílulas lendárias.",
+        "value": 200,
+        "cost": 400
     }
 ]

@@ -1,38 +1,43 @@
 [
     {
-        "age": 3,
+        "id": "first_steps_3",
         "text": "Você começa a andar e balbuciar suas primeiras palavras. Seus pais notam sua curiosidade.",
+        "conditions": { "minAge": 3, "maxAge": 3 },
         "choices": [
             { "text": "Tentar explorar o quintal.", "effects": { "attributes": { "body": 1 } }, "resultKey": "explore_yard_success" },
             { "text": "Ouvir atentamente as conversas dos adultos.", "effects": { "attributes": { "mind": 1 } }, "resultKey": "listen_adults_success" }
         ]
     },
     {
-        "age": 5,
+        "id": "meet_monk_5",
         "text": "Um velho monge viajante passa pela sua vila. Ele olha para você com um brilho nos olhos e diz: 'Jovem, vejo um potencial extraordinário em você. Mas o caminho do cultivo é árduo. O que você fará?'",
+        "conditions": { "minAge": 5, "maxAge": 5 },
         "choices": [
             { "text": "Pedir para se tornar seu discípulo.", "effects": { "special": "monk_disciple" }, "successKey": "monk_success", "failureKey": "monk_failure" },
             { "text": "Ignorá-lo.", "effects": {}, "resultKey": "monk_ignore" }
         ]
     },
     {
-        "age": 6,
+        "id": "talent_point_6",
         "text": "Você completa 6 anos. Seus pais notam que você é mais brilhante que as outras crianças. Você sente uma nova compreensão sobre o mundo.",
+        "conditions": { "minAge": 6, "maxAge": 6 },
         "choices": [
             { "text": "Contemplar suas novas percepções.", "effects": { "special": "gain_talent_point" }, "resultKey": "gain_talent_point_success" }
         ]
     },
     {
-        "age": 8,
+        "id": "shiny_object_8",
         "text": "Durante uma brincadeira, você tropeça e cai perto de um riacho. Algo brilhante chama sua atenção na lama.",
+        "conditions": { "minAge": 8, "maxAge": 8 },
         "choices": [
             { "text": "Pegar o objeto brilhante.", "effects": { "resources": { "money": 5 } }, "resultKey": "shiny_object_success" },
             { "text": "Ignorar e voltar para casa.", "effects": {}, "resultKey": "shiny_object_ignore" }
         ]
     },
     {
-        "age": 10,
+        "id": "bully_fight_10",
         "text": "Durante o treino na praça da vila, um dos garotos mais velhos te desafia para um combate de treino. 'Vamos ver do que você é feito, novato!', ele provoca.",
+        "conditions": { "minAge": 10, "maxAge": 10 },
         "choices": [
             { "text": "Aceitar e lutar de forma agressiva.", "effects": { "attributes": { "body": 2 }, "resources": { "reputation": 1 } }, "resultKey": "bully_fight_aggro" },
             { "text": "Aceitar e lutar de forma defensiva.", "effects": { "attributes": { "mind": 2 }, "resources": { "reputation": 1 } }, "resultKey": "bully_fight_def" },
@@ -40,68 +45,233 @@
         ]
     },
     {
-        "age": 12,
+        "id": "explore_cave_12",
         "text": "Explorando a floresta perto da vila, você encontra a entrada de uma caverna escura e úmida, escondida atrás de uma cortina de vinhas.",
+        "conditions": { "minAge": 12, "maxAge": 12 },
         "choices": [
-            { "text": "Entrar e explorar a caverna.", "effects": { "special": "explore_cave" }, "successKey": "explore_cave_success", "failureKey": "explore_cave_failure" },
+            { "text": "Entrar e explorar a caverna.", "effects": { "special": "explore_cave" }, "successKey": "explore_cave_success_ingredient", "failureKey": "explore_cave_failure" },
             { "text": "Marcar o local e voltar mais tarde.", "effects": {}, "resultKey": "explore_cave_ignore" }
         ]
     },
-    {
-        "age": 14,
-        "text": "Outro jovem da sua vila, Lian, começa a mostrar um talento para o cultivo quase tão grande quanto o seu. Ele te encara com uma mistura de admiração e rivalidade.",
+     {
+        "id": "meet_xiao_mei_13",
+        "text": "Você encontra Xiao Mei, uma amiga de infância, chorando perto do rio. Ela diz que perdeu o grampo de cabelo que sua mãe lhe deu.",
+        "conditions": { "minAge": 13, "maxAge": 13 },
         "choices": [
-            { "text": "Oferecer amizade e treinar junto.", "effects": { "relationships": { "Lian": 20 }, "attributes": { "mind": 1 } }, "resultKey": "rivalry_friend" },
-            { "text": "Declarar abertamente que você será o melhor.", "effects": { "relationships": { "Lian": -15 }, "attributes": { "body": 1 } }, "resultKey": "rivalry_aggro" }
+            { "text": "Ajudá-la a procurar o grampo.", "effects": { "relationships": { "xiao_mei": 15 }, "attributes": { "soul": 1 } }, "resultKey": "xiao_mei_help" },
+            { "text": "Dizer a ela para ser mais cuidadosa.", "effects": { "relationships": { "xiao_mei": -10 } }, "resultKey": "xiao_mei_scold" }
         ]
     },
     {
-        "age": 15,
+        "id": "meet_lian_14",
+        "text": "Outro jovem da sua vila, Lian, começa a mostrar um talento para o cultivo quase tão grande quanto o seu. Ele te encara com uma mistura de admiração e rivalidade.",
+        "conditions": { "minAge": 14, "maxAge": 14 },
+        "choices": [
+            { "text": "Oferecer amizade e treinar junto.", "effects": { "relationships": { "lian": 20 }, "attributes": { "mind": 1 } }, "resultKey": "rivalry_friend" },
+            { "text": "Declarar abertamente que você será o melhor.", "effects": { "relationships": { "lian": -15 }, "attributes": { "body": 1 } }, "resultKey": "rivalry_aggro" }
+        ]
+    },
+    {
+        "id": "sect_exam_news_15",
         "text": "Chega a notícia de que a prestigiosa 'Seita da Nuvem Oculta' realizará seu exame anual de recrutamento em uma cidade próxima no próximo ano. Esta é uma chance de ouro.",
+        "conditions": { "minAge": 15, "maxAge": 15 },
         "choices": [
             { "text": "Começar a treinar o dobro para o exame.", "effects": { "attributes": { "soul": 2 }, "cultivation": { "qi": 10 } }, "resultKey": "sect_exam_prep" },
             { "text": "Achar que é impossível e não se esforçar.", "effects": { "attributes": { "soul": -1 } }, "resultKey": "sect_exam_slump" }
         ]
     },
     {
-        "age": 16,
+        "id": "sect_exam_16",
         "text": "É o dia do exame de recrutamento da Seita da Nuvem Oculta. Discípulos de toda a província estão aqui. A primeira fase testa a força da mente e da alma para resistir a uma ilusão.",
+        "conditions": { "minAge": 16, "maxAge": 16 },
         "choices": [
             { "text": "Enfrentar o teste com tudo o que você tem.", "effects": { "special": "sect_exam_hidden_cloud" }, "successKey": "sect_exam_success", "failureKey": "sect_exam_failure" },
             { "text": "Desistir. A competição é forte demais.", "effects": { "attributes": { "soul": -2 } }, "resultKey": "sect_exam_giveup" }
         ]
     },
     {
-        "age": 17,
-        "sectId": "hidden_cloud_sect",
+        "id": "sect_elder_gift_17",
         "text": "Um ancião da Seita da Nuvem Oculta te vê treinando e, impressionado com sua dedicação, te oferece uma Pílula de Qi de baixo grau como incentivo.",
+        "conditions": { "minAge": 17, "maxAge": 17, "sectId": "hidden_cloud_sect" },
         "choices": [
-            { "text": "Agradecer e aceitar a pílula.", "effects": { "cultivation": { "qi": 20 }, "relationships": {"Ancião da Seita": 5} }, "resultKey": "sect_elder_accept" },
-            { "text": "Recusar educadamente, dizendo que prefere avançar com seu próprio esforço.", "effects": { "attributes": { "soul": 1 }, "relationships": {"Ancião da Seita": 10} }, "resultKey": "sect_elder_refuse" }
+            { "text": "Agradecer e aceitar a pílula.", "effects": { "cultivation": { "qi": 20 }, "relationships": {"ancião_da_seita": 5} }, "resultKey": "sect_elder_accept" },
+            { "text": "Recusar educadamente, dizendo que prefere avançar com seu próprio esforço.", "effects": { "attributes": { "soul": 1 }, "relationships": {"ancião_da_seita": 10} }, "resultKey": "sect_elder_refuse" }
         ]
     },
     {
-        "age": 18,
+        "id": "buy_pill_18",
         "text": "Um alquimista de passagem ouve sobre seu potencial e lhe oferece uma 'Pílula de Aceleração do Qi' por 25 moedas. Ele afirma que ela pode impulsionar seu cultivo em meses.",
+        "conditions": { "minAge": 18, "maxAge": 18 },
         "choices": [
             { "text": "Comprar a pílula (requer 25 moedas).", "effects": { "special": "buy_qi_pill" }, "successKey": "buy_pill_success", "failureKey": "buy_pill_failure" },
             { "text": "Desconfiar do alquimista e recusar.", "effects": {}, "resultKey": "buy_pill_ignore" }
         ]
     },
     {
-        "age": 20,
+        "id": "power_spot_20",
         "text": "Você descobre uma clareira escondida onde a energia espiritual do mundo parece ser anormalmente densa. É um local perfeito para meditar.",
+        "conditions": { "minAge": 20, "maxAge": 20 },
         "choices": [
             { "text": "Meditar no local por um dia inteiro.", "effects": { "special": "meditate_power_spot" }, "successKey": "power_spot_success", "failureKey": "power_spot_failure" },
             { "text": "É muito arriscado. Deixar o local.", "effects": {}, "resultKey": "power_spot_ignore" }
         ]
     },
     {
-        "age": 22,
+        "id": "lian_duel_22",
         "text": "Seu rival, Lian, agora no mesmo reino que você, te desafia para um duelo amigável na arena da seita para 'trocar dicas'. Muitos discípulos param para assistir.",
+        "conditions": { "minAge": 22, "maxAge": 22, "sectId": "hidden_cloud_sect" },
         "choices": [
             { "text": "Aceitar o duelo.", "effects": { "special": "duel_lian" }, "successKey": "duel_lian_win", "failureKey": "duel_lian_loss" },
-            { "text": "Recusar educadamente.", "effects": { "relationships": { "Lian": -10 } }, "resultKey": "duel_lian_refuse" }
+            { "text": "Recusar educadamente.", "effects": { "relationships": { "lian": -10 } }, "resultKey": "duel_lian_refuse" }
+        ]
+    },
+    {
+        "id": "sect_injustice_19",
+        "text": "Você vê um discípulo sênior da sua seita, conhecido por sua arrogância, secretamente roubando uma pílula espiritual valiosa do depósito da seita.",
+        "conditions": { "minAge": 19, "maxAge": 19, "sectId": "hidden_cloud_sect" },
+        "choices": [
+            { "text": "Reportar o roubo aos anciãos.", "effects": { "storyFlags": { "reportedInjustice": true }, "attributes": { "soul": 1 } }, "resultKey": "injustice_reported" },
+            { "text": "Confrontar o discípulo e exigir um suborno.", "effects": { "storyFlags": { "blackmailedDisciple": true }, "resources": { "money": 50 }, "attributes": { "reputation": -5 } }, "resultKey": "injustice_blackmail" },
+            { "text": "Fingir que não viu nada.", "effects": {}, "resultKey": "injustice_ignored" }
+        ]
+    },
+    {
+        "id": "injustice_consequence_good_21",
+        "text": "Os anciãos agradecem publicamente por sua honestidade em relação ao roubo. Sua posição na seita é solidificada.",
+        "conditions": { "minAge": 21, "maxAge": 21, "storyFlags": { "reportedInjustice": true } },
+        "choices": [
+            { "text": "Aceitar o elogio humildemente.", "effects": { "resources": { "reputation": 20 }, "relationships": { "ancião_da_seita": 10 } }, "resultKey": "consequence_good_humble" }
+        ]
+    },
+    {
+        "id": "injustice_consequence_shady_21",
+        "text": "Você recebe uma mensagem anônima, entregue por um falcão negro. A mensagem elogia sua 'praticidade' e o convida para uma reunião secreta com um representante da Seita da Montanha Ardente, um rival conhecido da sua seita.",
+        "conditions": { "minAge": 21, "maxAge": 21, "storyFlags": { "blackmailedDisciple": true } },
+        "choices": [
+            { "text": "Ir para a reunião.", "effects": { "storyFlags": { "acceptedMeeting": true } }, "resultKey": "consequence_shady_accept" },
+            { "text": "Ignorar a mensagem e queimá-la.", "effects": { "storyFlags": { "rejectedMeeting": true }, "relationships": { "feng_zhi": -10 } }, "resultKey": "consequence_shady_reject" }
+        ]
+    },
+    {
+        "id": "scorching_mountain_offer_22",
+        "text": "Na reunião secreta, Feng Zhi, o Primeiro Ancião da Seita da Montanha Ardente, oferece a você uma posição em sua seita. 'Temos observado você. Sua ambição é desperdiçada com eles. Junte-se a nós e você terá poder de verdade.'",
+        "conditions": { "minAge": 22, "maxAge": 22, "storyFlags": { "acceptedMeeting": true } },
+        "choices": [
+            { "text": "Aceitar a oferta e se juntar a eles.", "effects": { "special": "defect_to_scorching_mountain" }, "resultKey": "defect_success" },
+            { "text": "Recusar. 'Sou leal à minha seita.'", "effects": { "relationships": { "feng_zhi": -50 }, "storyFlags": { "remainedLoyal": true } }, "resultKey": "defect_reject" }
+        ]
+    },
+    {
+        "id": "sect_war_spark_25",
+        "text": "A tensão entre sua seita e seus rivais explode. Um vale neutro, rico em ervas espirituais, foi palco de uma batalha sangrenta após ambos os lados o reivindicarem. A guerra parece inevitável.",
+        "conditions": { "minAge": 25, "maxAge": 25, "sectId": ["hidden_cloud_sect", "scorching_mountain_sect"] },
+        "choices": [
+            { "text": "A guerra é uma ferramenta necessária para o poder.", "effects": { "attributes": { "body": 2 } }, "resultKey": "war_spark_pragmatic" },
+            { "text": "Lamentar a perda de vidas e a destruição.", "effects": { "attributes": { "soul": 2 } }, "resultKey": "war_spark_idealistic" }
+        ]
+    },
+    {
+        "id": "sect_war_path_choice_26",
+        "text": "O líder de sua seita o convoca. 'A guerra está sobre nós. Cada um deve contribuir com sua força. Como você servirá à seita nesta hora sombria?'",
+        "conditions": { "minAge": 26, "maxAge": 26, "sectId": ["hidden_cloud_sect", "scorching_mountain_sect"] },
+        "choices": [
+            { "text": "Lutarei na linha de frente como um Guerreiro.", "effects": { "storyFlags": { "warPath": "warrior" } }, "resultKey": "path_choice_warrior" },
+            { "text": "Usarei minha mente como um Estrategista.", "effects": { "storyFlags": { "warPath": "strategist" } }, "resultKey": "path_choice_strategist" },
+            { "text": "Servirei melhor nas sombras, como um Espião.", "effects": { "storyFlags": { "warPath": "spy" } }, "resultKey": "path_choice_spy" }
+        ]
+    },
+    {
+        "id": "warrior_path_1_28",
+        "text": "Sua primeira missão na guerra é interceptar um batedor inimigo de elite que foi visto perto de seu território. Você o encontra em uma floresta densa. Ele sorri, seu corpo emanando uma aura de sangue.",
+        "conditions": { "minAge": 28, "maxAge": 28, "storyFlags": { "warPath": "warrior" } },
+        "choices": [
+            { "text": "Lutar!", "effects": { "special": "start_combat_elite_blood" }, "resultKey": "warrior_path_1_combat_start" }
+        ]
+    },
+    {
+        "id": "strategist_path_1_28",
+        "text": "Seu líder lhe entrega um lote de mensagens interceptadas do inimigo. 'São codificadas', ele diz. 'Veja se consegue encontrar alguma fraqueza que possamos explorar.'",
+        "conditions": { "minAge": 28, "maxAge": 28, "storyFlags": { "warPath": "strategist" } },
+        "choices": [
+            { "text": "Dedicar a noite para decifrar os códigos.", "effects": { "special": "decipher_codes" }, "successKey": "strategist_path_1_success", "failureKey": "strategist_path_1_failure"},
+            { "text": "É inútil, os códigos são muito complexos.", "effects": { "resources": { "reputation": -5 } }, "resultKey": "strategist_path_1_giveup" }
+        ]
+    },
+    {
+        "id": "spy_path_1_28",
+        "text": "Sua primeira missão como espião é se infiltrar em um acampamento inimigo e roubar seus planos de batalha. A noite é escura, mas o acampamento está bem guardado.",
+        "conditions": { "minAge": 28, "maxAge": 28, "storyFlags": { "warPath": "spy" } },
+        "choices": [
+            { "text": "Usar a escuridão a seu favor e se esgueirar.", "effects": { "special": "infiltrate_camp" }, "successKey": "spy_path_1_success", "failureKey": "spy_path_1_failure" },
+            { "text": "Achar a missão muito arriscada e recuar.", "effects": { "resources": { "reputation": -5 } }, "resultKey": "spy_path_1_giveup" }
+        ]
+    },
+    {
+        "id": "warrior_path_2_30",
+        "text": "Sua seita o envia para a linha de frente para deter um comandante inimigo que está rompendo suas defesas. Você o encontra no campo de batalha, gritando ordens e inspirando seus soldados.",
+        "conditions": { "minAge": 30, "maxAge": 30, "storyFlags": { "warPath": "warrior" } },
+        "choices": [
+            { "text": "Desafiar o comandante para um duelo.", "effects": { "special": "start_combat_elite_commander" }, "successKey": "warrior_path_2_success", "failureKey": "warrior_path_2_failure" }
+        ]
+    },
+    {
+        "id": "strategist_path_2_30",
+        "text": "Usando as informações que você decifrou, você tem a chance de liderar uma emboscada na rota de suprimentos do inimigo. É uma operação arriscada que depende de um planejamento perfeito.",
+        "conditions": { "minAge": 30, "maxAge": 30, "storyFlags": { "warPath": "strategist", "enemySupplyRouteDiscovered": true } },
+        "choices": [
+            { "text": "Planejar e executar a emboscada.", "effects": { "special": "ambush_supply_route" }, "successKey": "strategist_path_2_success", "failureKey": "strategist_path_2_failure" },
+            { "text": "Apenas entregar as informações aos generais.", "effects": { "resources": { "reputation": 5 } }, "resultKey": "strategist_path_2_safe" }
+        ]
+    },
+    {
+        "id": "specialization_choice_event",
+        "text": "Ao formar seu Núcleo Dourado, você sente que pode direcionar seu poder de uma forma nunca antes possível. Em qual caminho você se especializará?",
+        "conditions": { "realmIndex": 3, "storyFlags": { "specialization": { "exists": false } } },
+        "choices": [
+            { "text": "Caminho do Corpo Tirânico", "effects": { "storyFlags": { "specialization": "body" } }, "resultKey": "spec_choice_body" },
+            { "text": "Caminho da Mente Inescrutável", "effects": { "storyFlags": { "specialization": "mind" } }, "resultKey": "spec_choice_mind" },
+            { "text": "Caminho da Alma Eterna", "effects": { "storyFlags": { "specialization": "soul" } }, "resultKey": "spec_choice_soul" }
+        ]
+    },
+    {
+        "id": "spy_path_2_30",
+        "text": "Com os planos de batalha inimigos em mãos, você tem uma oportunidade única. Você pode alterá-los para enviar as tropas inimigas para uma armadilha, ou pode simplesmente passá-los para seus generais. Alterá-los é arriscado, mas a recompensa pode ser imensa.",
+        "conditions": { "minAge": 30, "maxAge": 30, "storyFlags": { "warPath": "spy", "battlePlansStolen": true } },
+        "choices": [
+            { "text": "Alterar os planos para criar uma armadilha.", "effects": { "special": "doctor_battle_plans" }, "successKey": "spy_path_2_success", "failureKey": "spy_path_2_failure" },
+            { "text": "Entregar os planos originais sem alterações.", "effects": { "resources": { "reputation": 10 } }, "resultKey": "spy_path_2_safe" }
+        ]
+    },
+    {
+        "id": "sect_war_climax_35",
+        "text": "A guerra atinge seu ponto culminante. O vale central se torna o palco da batalha final que decidirá o destino de ambas as seitas. O resultado agora depende das vantagens que você conseguiu conquistar para o seu lado.",
+        "conditions": { "minAge": 35, "maxAge": 35, "storyFlags": { "warPath": { "exists": true } } },
+        "choices": [
+            { "text": "Enfrentar o destino.", "effects": { "special": "resolve_sect_war" }, "resultKey": "sect_war_resolved" }
+        ]
+    },
+    {
+        "id": "sect_war_aftermath_victory",
+        "text": "Sua seita saiu vitoriosa! As forças inimigas foram esmagadas, e sua contribuição foi fundamental. Você é saudado como um herói. O futuro da sua seita é brilhante.",
+        "conditions": { "minAge": 36, "maxAge": 36, "storyFlags": { "warOutcome": "victory" } },
+        "choices": [
+            { "text": "Aceitar a glória.", "effects": { "resources": { "reputation": 100 }, "sectContribution": 500 }, "resultKey": "aftermath_victory_glory" }
+        ]
+    },
+    {
+        "id": "sect_war_aftermath_stalemate",
+        "text": "A guerra termina em um impasse sangrento. Ambas as seitas, enfraquecidas, assinam um tratado de paz tenso. Você sobreviveu, mas o mundo do cultivo está mais instável do que nunca.",
+        "conditions": { "minAge": 36, "maxAge": 36, "storyFlags": { "warOutcome": "stalemate" } },
+        "choices": [
+            { "text": "Refletir sobre o custo da guerra.", "effects": { "resources": { "reputation": 10 }, "attributes": { "soul": 3 } }, "resultKey": "aftermath_stalemate_reflect" }
+        ]
+    },
+    {
+        "id": "sect_war_aftermath_defeat",
+        "text": "Sua seita foi derrotada. Seus salões são saqueados e seus membros, dispersos ou absorvidos pela seita vitoriosa. Você é marcado como um fracasso e exilado.",
+        "conditions": { "minAge": 36, "maxAge": 36, "storyFlags": { "warOutcome": "defeat" } },
+        "choices": [
+            { "text": "Vagar pelo mundo como um cultivador solitário.", "effects": { "special": "exile_from_sect" }, "resultKey": "aftermath_defeat_exile" }
         ]
     }
 ]

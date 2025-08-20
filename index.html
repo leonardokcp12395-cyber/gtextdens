@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Jornada do Dao Imortal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -53,8 +56,54 @@
                 </div>
             </div>
 
+            <!-- Visão de Interação com NPC -->
+            <div id="interaction-view" class="view-container">
+                <h2 id="interaction-npc-name"></h2>
+                <p><strong>Humor:</strong> <span id="interaction-npc-mood"></span></p>
+                <p><strong>Reino:</strong> <span id="interaction-npc-realm"></span></p>
+                <p><strong>Atributos:</strong> Corpo: <span id="interaction-npc-body"></span>, Mente: <span id="interaction-npc-mind"></span>, Alma: <span id="interaction-npc-soul"></span></p>
+                <div id="interaction-social-container">
+                    <!-- Status social, parceiro, filhos, etc. aqui -->
+                </div>
+                <div id="interaction-options-container">
+                    <!-- Botões de interação (Conversar, etc.) aparecerão aqui -->
+                </div>
+                <hr>
+                <div id="interaction-result-container">
+                    <!-- Resultado da interação (diálogo, log) aparecerá aqui -->
+                </div>
+            </div>
+
+            <!-- Visão de Hub (Cidade) -->
+            <div id="hub-view" class="view-container">
+                <h2 id="hub-name"></h2>
+                <p id="hub-description"></p>
+                <div id="hub-locations-container">
+                    <!-- Botões de locais (Mercado, etc.) aparecerão aqui -->
+                </div>
+                 <div id="hub-content-container">
+                    <!-- Conteúdo do local selecionado aparecerá aqui -->
+                </div>
+            </div>
+
+            <!-- Visão de Alquimia -->
+            <div id="alchemy-view" class="view-container">
+                <h2>Bancada de Alquimia</h2>
+                <p><strong>Nível de Alquimia:</strong> <span id="alchemy-skill-level">0</span></p>
+                <div id="recipes-container">
+                    <!-- Receitas serão renderizadas aqui -->
+                </div>
+                <hr>
+                <h3>Seus Ingredientes</h3>
+                <ul id="alchemy-ingredients-list">
+                    <!-- Ingredientes do jogador serão listados aqui -->
+                </ul>
+            </div>
+
             <!-- Botões de Ação Globais -->
             <div class="action-buttons-container">
+                <button id="meditate-btn">Meditação Isolada</button>
+                <button id="alchemy-btn">Alquimia</button>
                 <button id="sect-actions-btn" style="display: none;">Ações da Seita</button>
                 <button id="next-year-btn">Descansar (Avançar Ano)</button>
             </div>
@@ -66,6 +115,8 @@
                 <button id="resources-tab" class="tab-button active">Recursos</button>
                 <button id="history-tab" class="tab-button">Histórico</button>
                 <button id="talents-tab" class="tab-button">Talentos</button>
+                <button id="techniques-tab" class="tab-button">Técnicas</button>
+                <button id="equipment-tab" class="tab-button">Equipamento</button>
             </div>
 
             <div id="resources-content" class="tab-content active">
@@ -106,6 +157,33 @@
                 <div id="talents-container">
                     <!-- Talentos serão renderizados aqui -->
                 </div>
+            </div>
+
+            <div id="techniques-content" class="tab-content">
+                <h2>Técnicas de Cultivo</h2>
+                <p><strong>Slots de Técnica:</strong> <span id="tech-slots">1</span></p>
+                <hr>
+                <h3>Técnicas Equipadas</h3>
+                <ul id="equipped-techniques-list">
+                    <!-- Técnicas equipadas aqui -->
+                </ul>
+                <hr>
+                <h3>Técnicas Aprendidas</h3>
+                <ul id="learned-techniques-list">
+                    <!-- Técnicas aprendidas (não equipadas) aqui -->
+                </ul>
+            </div>
+
+            <div id="equipment-content" class="tab-content">
+                <h2>Equipamento</h2>
+                <div id="equipment-slots-container">
+                    <!-- Slots de equipamento (Arma, Armadura) aqui -->
+                </div>
+                <hr>
+                <h3>Equipamento no Inventário</h3>
+                <ul id="inventory-equipment-list">
+                    <!-- Equipamentos no inventário aqui -->
+                </ul>
             </div>
         </div>
     </div>

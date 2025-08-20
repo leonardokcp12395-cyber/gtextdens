@@ -1,0 +1,32 @@
+[
+    {
+        "id": "espada_ferro",
+        "name": "Espada de Ferro",
+        "type": "equipment",
+        "equipmentType": "weapon",
+        "description": "Uma espada de ferro simples, mas confiável. Afiada o suficiente para o trabalho.",
+        "effects": { "body": 5 },
+        "value": 50,
+        "cost": 100
+    },
+    {
+        "id": "tunica_couro",
+        "name": "Túnica de Couro",
+        "type": "equipment",
+        "equipmentType": "armor",
+        "description": "Uma túnica feita de couro de besta endurecido. Oferece proteção modesta.",
+        "effects": { "defense": 5, "maxHealth": 10 },
+        "value": 40,
+        "cost": 80
+    },
+    {
+        "id": "amuleto_sorte",
+        "name": "Amuleto da Sorte",
+        "type": "equipment",
+        "equipmentType": "accessory",
+        "description": "Um pequeno amuleto de jade que parece estranhamente quente ao toque.",
+        "effects": { "luck": 2 },
+        "value": 75,
+        "cost": 150
+    }
+]

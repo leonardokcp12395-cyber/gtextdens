@@ -6,7 +6,7 @@ import { initializeGame } from './game.js';
  * @returns {Promise<Object>} Uma promessa que resolve com um objeto contendo todos os dados do jogo.
  */
 async function loadGameData() {
-    const dataSources = ['strings', 'events', 'items', 'sects', 'enemies', 'random_events', 'regions', 'talents'];
+    const dataSources = ['strings', 'events', 'items', 'sects', 'enemies', 'random_events', 'regions', 'talents', 'npcs', 'npc_templates', 'npc_life_events', 'dialogue', 'ingredients', 'recipes', 'rumors', 'equipment', 'forging_ingredients', 'forging_recipes'];
     // Ajuste no caminho para refletir a estrutura de pastas correta
     const dataPromises = dataSources.map(source => fetch(`data/${source}.json`));
 

@@ -4,6 +4,7 @@
         "name": "Vila Inicial",
         "description": "Sua casa. Um lugar humilde, mas seguro, cheio de rostos familiares.",
         "unlocked": true,
+        "type": "events",
         "unlockRequirements": null,
         "eventIds": ["age_3", "age_5", "age_8", "age_10", "age_14"]
     },
@@ -12,6 +13,7 @@
         "name": "Floresta Próxima",
         "description": "Uma floresta densa e antiga nos arredores de sua vila. Dizem que contém tanto perigos quanto tesouros.",
         "unlocked": false,
+        "type": "events",
         "unlockRequirements": { "age": 12 },
         "eventIds": ["age_12"]
     },
@@ -20,6 +22,7 @@
         "name": "Cidade Provincial",
         "description": "A capital da província. Um centro de comércio e cultivo, onde as grandes seitas recrutam novos discípulos.",
         "unlocked": false,
+        "type": "events",
         "unlockRequirements": { "age": 15 },
         "eventIds": ["age_15", "age_16", "age_18"]
     },
@@ -28,7 +31,30 @@
         "name": "Montanhas da Seita",
         "description": "Uma área remota e cheia de energia espiritual, o lar da sua seita.",
         "unlocked": false,
+        "type": "events",
         "unlockRequirements": { "sect": true },
         "eventIds": ["age_17", "age_20", "age_22"]
+    },
+    {
+        "id": "cidade_dragao_azul",
+        "name": "Cidade do Dragão Azul",
+        "description": "Uma metrópole movimentada, o coração do comércio e da política do império.",
+        "unlocked": false,
+        "type": "hub",
+        "unlockRequirements": { "age": 20, "reputation": 50 },
+        "locations": [
+            {
+                "id": "market",
+                "name": "Mercado",
+                "inventory": [
+                    "pilula_cinco_espiritos",
+                    "semente_lotus_dourado",
+                    "minerio_ferro",
+                    "tiras_couro"
+                ]
+            },
+            { "id": "tea_house", "name": "Casa de Chá" },
+            { "id": "blacksmith", "name": "Ferreiro" }
+        ]
     }
 ]

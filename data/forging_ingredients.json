@@ -1,0 +1,23 @@
+[
+    {
+        "id": "minerio_ferro",
+        "name": "Minério de Ferro",
+        "type": "ingredient",
+        "description": "Um pedaço de minério de ferro bruto. A base para muitas armas e armaduras.",
+        "value": 10
+    },
+    {
+        "id": "tiras_couro",
+        "name": "Tiras de Couro",
+        "type": "ingredient",
+        "description": "Restos de couro de besta, úteis para criar punhos de espadas e armaduras leves.",
+        "value": 4
+    },
+    {
+        "id": "essencia_espiritual",
+        "name": "Essência Espiritual",
+        "type": "ingredient",
+        "description": "Uma energia residual encontrada em locais com Qi denso, usada para imbuir equipamentos com poder.",
+        "value": 20
+    }
+]

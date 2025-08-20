@@ -1,0 +1,57 @@
+{
+    "Amigo": {
+        "Amigável": [
+            "É bom ver você! Como tem passado?",
+            "O tempo está ótimo para treinar hoje, não acha?",
+            "Sempre alegra meu dia encontrar um rosto amigo."
+        ],
+        "Feliz": [
+            "Estou tendo um dia maravilhoso! Espero que o seu esteja sendo bom também.",
+            "Boas notícias! Consegui um pequeno avanço no meu cultivo."
+        ],
+        "Frustrado": [
+            "Hoje não é meu dia... O caminho do cultivo é mais difícil do que eu pensava.",
+            "Desculpe, não estou com cabeça para conversar agora."
+        ],
+        "Hostil": [
+            "O que você quer? Me deixe em paz."
+        ],
+        "Default": [
+            "Olá.",
+            "Tudo em ordem?"
+        ]
+    },
+    "Rival": {
+        "Competitivo": [
+            "Hmph. Vejo que você ainda está por aqui.",
+            "Não pense que vou facilitar para você. Estou treinando mais duro do que nunca.",
+            "Espero que esteja se esforçando. Não quero uma vitória fácil."
+        ],
+        "Hostil": [
+            "Saia da minha frente. Não tenho tempo para os fracos.",
+            "Olha só quem está aqui... tentando alcançar o inalcançável."
+        ],
+        "Default": [
+            "...",
+            "O que foi?"
+        ]
+    },
+    "Inimigo": {
+        "Hostil": [
+            "Você tem coragem de aparecer na minha frente?",
+            "Um dia, eu vou superar você. Escreva o que estou dizendo.",
+            "Nossas contas ainda não foram acertadas."
+        ],
+        "Default": [
+            "...",
+            "Hmph."
+        ]
+    },
+    "Default": {
+        "Default": [
+            "Olá.",
+            "Precisa de algo?",
+            "O dia está calmo."
+        ]
+    }
+}

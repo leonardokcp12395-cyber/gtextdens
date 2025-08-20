@@ -1,0 +1,21 @@
+[
+    {
+        "id": "receita_espada_ferro",
+        "name": "Receita: Espada de Ferro",
+        "ingredients": [
+            { "id": "minerio_ferro", "quantity": 5 },
+            { "id": "tiras_couro", "quantity": 2 }
+        ],
+        "result": "espada_ferro",
+        "skillRequired": 5
+    },
+    {
+        "id": "receita_tunica_couro",
+        "name": "Receita: Túnica de Couro",
+        "ingredients": [
+            { "id": "tiras_couro", "quantity": 8 }
+        ],
+        "result": "tunica_couro",
+        "skillRequired": 5
+    }
+]

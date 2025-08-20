@@ -57,11 +57,29 @@ export function initializeGameState() {
         cultivation: { realmIndex: 0, subRealmIndex: 0, qi: 0 },
         resources: { money: 10, reputation: 0 },
         inventory: [],
-        relationships: [],
+        relationships: {},
         lifeLog: [],
         actionLog: [],
         unlockedTalents: [],
         talentPoints: 0,
+        triggeredEvents: [],
+        storyFlags: {},
+        skills: {
+            alchemy: 0,
+            alchemyXp: 0,
+            alchemyXpToNextLevel: 10,
+            forging: 0,
+            forgingXp: 0,
+            forgingXpToNextLevel: 10
+        },
+        techniqueSlots: 1,
+        equippedTechniques: [],
+        heardRumors: [],
+        equipment: {
+            weapon: null,
+            armor: null,
+            accessory: null
+        },
         sect: {
             id: null,
             rankIndex: 0,
@@ -88,10 +106,20 @@ export function initializeGameState() {
 }
 
 /**
- * Define os dados do jogo carregados para que possam ser acessados globalmente.
+ * Define os dados do jogo carregados e inicializa os NPCs no estado.
  */
 export function setGameData(data) {
     allGameData = data;
+    // Inicializa os NPCs no estado do jogo (para um novo jogo)
+    if (Object.keys(gameState.relationships).length === 0 && allGameData.npcs) {
+        allGameData.npcs.forEach(npc => {
+            // Adiciona apenas NPCs que começam desbloqueados
+            if (npc.unlocked) {
+                // Cria uma cópia profunda para evitar mutação do estado original
+                gameState.relationships[npc.id] = JSON.parse(JSON.stringify(npc));
+            }
+        });
+    }
 }
 
 /**
@@ -113,6 +141,33 @@ export function saveGame() {
     }
 }
 
+export function getEffectiveAttributes() {
+    const effective = { ...gameState.attributes };
+    const allItems = [...(allGameData.items || []), ...(allGameData.equipment || []), ...(allGameData.sects.flatMap(s => s.store) || [])];
+
+    for (const slot in gameState.equipment) {
+        const itemId = gameState.equipment[slot];
+        if (itemId) {
+            const itemData = allItems.find(i => i.id === itemId);
+            if (itemData && itemData.effects) {
+                for (const attr in itemData.effects) {
+                    if (effective[attr] !== undefined) {
+                        effective[attr] += itemData.effects[attr];
+                    }
+                }
+            }
+        }
+    }
+
+    // Aplica bônus de especialização
+    const spec = gameState.storyFlags.specialization;
+    if (spec && effective[spec]) {
+        effective[spec] = Math.floor(effective[spec] * 1.20); // Bônus de 20%
+    }
+
+    return effective;
+}
+
 /**
  * Carrega o estado do jogo do localStorage, se existir.
  */
@@ -121,11 +176,31 @@ export function loadGame() {
         const savedStateJSON = localStorage.getItem('wuxiaGameState');
         if (savedStateJSON) {
             const savedState = JSON.parse(savedStateJSON);
-            // Sobrescreve completamente o estado inicial com o estado salvo
+
+            // Tratamento especial para relacionamentos para fundir com dados base
+            const savedRelationships = savedState.relationships || {};
+            delete savedState.relationships;
+
+            // Carrega o resto do estado do jogo
             Object.keys(gameState).forEach(key => delete gameState[key]);
             Object.assign(gameState, savedState);
+
+            // Funde os dados de relacionamento salvos com os dados base de NPCs
+            gameState.relationships = {}; // Reseta antes de popular
+            if (allGameData.npcs) {
+                allGameData.npcs.forEach(baseNpc => {
+                    const savedNpc = savedRelationships[baseNpc.id];
+                    // Funde o NPC salvo sobre o NPC base
+                    gameState.relationships[baseNpc.id] = {
+                        ...JSON.parse(JSON.stringify(baseNpc)),
+                        ...(savedNpc || {})
+                    };
+                });
+            }
         }
     } catch (e) {
         console.error("Falha ao carregar o jogo salvo:", e);
+        // Em caso de erro, re-inicializa para evitar um estado quebrado
+        initializeGameState();
     }
 }

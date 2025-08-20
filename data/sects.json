@@ -22,12 +22,19 @@
         ],
         "store": [
             {
-            "id": "tech_cloud_step",
-            "name": "Técnica do Passo da Nuvem",
-            "type": "technique",
-            "cost": 50,
-            "description": "Uma técnica de movimento que aumenta a agilidade e a capacidade de esquiva.",
-            "effects": { "attributes": { "body": 5 } }
+                "id": "tech_cloud_step",
+                "name": "Técnica do Passo da Nuvem",
+                "type": "technique",
+                "cost": 50,
+                "description": "Uma técnica de movimento que aumenta a agilidade e a capacidade de esquiva.",
+                "activeEffect": {
+                    "type": "combat_buff",
+                    "target": "player",
+                    "stat": "dodgeChance",
+                    "value": 0.25,
+                    "duration": 3,
+                    "energyCost": 15
+                }
             },
             {
             "id": "pill_spirit_cleansing",
@@ -45,7 +52,7 @@
                 "description": "Um ancião pede que você patrulhe a floresta ao redor da seita para garantir que nenhuma fera demoníaca ou cultivador suspeito se aproxime.",
                 "check": { "special": "mission_patrol_forest" },
                 "rewards": {
-                    "success": { "contribution": 15, "reputation": 1, "item": "body_refining_pill" },
+                    "success": { "contribution": 15, "reputation": 1, "item": "nucleo_besta_fraca" },
                     "failure": { "health": -5 }
                 }
             },
@@ -67,6 +74,46 @@
                 "rewards": {
                     "success": { "contribution": 20, "item": "clear_mind_pill" },
                     "failure": { "reputation": -1 }
+                }
+            }
+        ]
+    },
+    {
+        "id": "scorching_mountain_sect",
+        "name": "Seita da Montanha Ardente",
+        "alignment": "Implacável",
+        "description": "Uma seita pragmática e ambiciosa que valoriza o poder acima de tudo. Eles não são abertamente maus, mas usam de todos os meios para atingir seus objetivos.",
+        "benefit": {
+            "type": "reputation_gain_boost",
+            "value": 0.1,
+            "description": "+10% de ganho de Reputação em missões."
+        },
+        "ranks": [
+            "Associado",
+            "Agente",
+            "Executor",
+            "Conselheiro"
+        ],
+        "promotion_requirements": [
+            { "contribution": 150, "reputation": 20 },
+            { "contribution": 700, "reputation": 80 },
+            { "contribution": 2500, "reputation": 250 }
+        ],
+        "store": [
+            {
+                "id": "tech_heartfire",
+                "name": "Técnica do Fogo Cardíaco",
+                "type": "technique",
+                "cost": 70,
+                "description": "Uma técnica que queima a energia espiritual para criar ataques poderosos e intimidadores.",
+                "activeEffect": {
+                    "type": "combat_damage",
+                    "target": "enemy",
+                    "damageType": "mind",
+                    "baseValue": 15,
+                    "scalingStat": "mind",
+                    "scalingFactor": 0.5,
+                    "energyCost": 20
                 }
             }
         ]
@@ -94,12 +141,20 @@
         ],
         "store": [
             {
-            "id": "tech_blood_fury",
-            "name": "Técnica da Fúria de Sangue",
-            "type": "technique",
-            "cost": 60,
-            "description": "Uma arte secreta que usa a essência vital para aumentar o poder de ataque.",
-            "effects": { "attributes": { "body": 8, "soul": -2 } }
+                "id": "tech_blood_fury",
+                "name": "Técnica da Fúria de Sangue",
+                "type": "technique",
+                "cost": 60,
+                "description": "Uma arte secreta que usa a essência vital para aumentar o poder de ataque.",
+                "activeEffect": {
+                    "type": "combat_buff",
+                    "target": "player",
+                    "stat": "body",
+                    "value": 10,
+                    "duration": 3,
+                    "energyCost": 0,
+                    "healthCost": 15
+                }
             },
             {
                 "id": "pill_soul_devouring",
