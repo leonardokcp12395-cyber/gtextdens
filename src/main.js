@@ -7,7 +7,34 @@ import * as handlers from './handlers.js';
  * @returns {Promise<Object>} Uma promessa que resolve com um objeto contendo todos os dados do jogo.
  */
 async function loadGameData() {
-    const dataSources = ['strings', 'events', 'items', 'sects', 'enemies', 'random_events', 'regions', 'talents', 'npcs', 'npc_templates', 'npc_life_events', 'dialogue', 'ingredients', 'recipes', 'rumors', 'equipment', 'forging_ingredients', 'forging_recipes', 'config', 'quest_whispering_blade', 'legacies', 'world_events', 'points_of_interest', 'sect_skills', 'tutorials', 'quest_blood_cult'];
+    // DEBUG: Return a minimal object to bypass file loading
+    return {
+        strings: { factions: {} },
+        events: [],
+        items: [],
+        sects: [],
+        enemies: [],
+        random_events: [],
+        regions: [],
+        talents: [],
+        npcs: [],
+        npc_templates: [],
+        npc_life_events: [],
+        dialogue: {},
+        ingredients: [],
+        recipes: [],
+        rumors: [],
+        equipment: [],
+        forging_ingredients: [],
+        forging_recipes: [],
+        config: { costs: { manor_upgrades: {} }, chances: {}, rewards: {}, penalties: {}, combat: { damage: {} }, aging: { declineAge: {} }, npc: { cultivation: {}, relationships: {}, lifeEvent: {} }, xp: { alchemy: {}, forging: {} } },
+        quest_whispering_blade: [],
+        legacies: [],
+        world_events: [],
+        points_of_interest: [],
+        sect_skills: [],
+        tutorials: [],
+    const dataSources = ['strings', 'events', 'items', 'sects', 'enemies', 'random_events', 'regions', 'talents', 'npcs', 'npc_templates', 'npc_life_events', 'dialogue', 'ingredients', 'recipes', 'rumors', 'equipment', 'forging_ingredients', 'forging_recipes', 'config', 'quest_whispering_blade', 'legacies'];
     const dataPromises = dataSources.map(source => fetch(`data/${source}.json`));
 
     try {
@@ -50,7 +77,7 @@ async function main() {
         initializeGame(gameData);
         // Expose necessary handlers to the window object for dynamic UI
         window.unlockSectSkill = handlers.unlockSectSkill;
-        window.advanceMonth = advanceMonth;
+        window.advanceMonth = handlers.advanceMonth;
 
         updateUI();
         document.body.classList.add('game-loaded');

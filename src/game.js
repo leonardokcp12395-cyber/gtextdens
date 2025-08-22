@@ -390,9 +390,12 @@ function simulateNpcLife() {
                 // Rival Growth Bonus
                 if (npc.isRival) {
                     qiGain *= 1.2; // 20% faster Qi gain
-                    npc.attributes.body += 0.2;
-                    npc.attributes.mind += 0.2;
-                    npc.attributes.soul += 0.2;
+                    // Add 1 point every 5 months to avoid floating point issues
+                    if (gameState.month % 5 === 0) {
+                        npc.attributes.body += 1;
+                        npc.attributes.mind += 1;
+                        npc.attributes.soul += 1;
+                    }
                 }
 
                 npc.cultivation.qi += qiGain;
