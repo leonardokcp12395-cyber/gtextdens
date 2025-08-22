@@ -3,6 +3,7 @@
         "id": "minerio_ferro",
         "name": "Minério de Ferro",
         "type": "ingredient",
+        "category": "forging_ingredient",
         "description": "Um pedaço de minério de ferro bruto. A base para muitas armas e armaduras.",
         "value": 10
     },
@@ -10,6 +11,7 @@
         "id": "tiras_couro",
         "name": "Tiras de Couro",
         "type": "ingredient",
+        "category": "forging_ingredient",
         "description": "Restos de couro de besta, úteis para criar punhos de espadas e armaduras leves.",
         "value": 4
     },
@@ -17,7 +19,16 @@
         "id": "essencia_espiritual",
         "name": "Essência Espiritual",
         "type": "ingredient",
+        "category": "forging_ingredient",
         "description": "Uma energia residual encontrada em locais com Qi denso, usada para imbuir equipamentos com poder.",
         "value": 20
+    },
+    {
+        "id": "aco",
+        "name": "Aço",
+        "type": "ingredient",
+        "category": "forging_ingredient",
+        "description": "Ferro refinado, muito mais resistente e durável. Essencial para equipamentos de qualidade.",
+        "value": 25
     }
 ]

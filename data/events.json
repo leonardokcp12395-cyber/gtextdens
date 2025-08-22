@@ -39,9 +39,9 @@
         "text": "Durante o treino na praça da vila, um dos garotos mais velhos te desafia para um combate de treino. 'Vamos ver do que você é feito, novato!', ele provoca.",
         "conditions": { "minAge": 10, "maxAge": 10 },
         "choices": [
-            { "text": "Aceitar e lutar de forma agressiva.", "effects": { "attributes": { "body": 2 }, "resources": { "reputation": 1 } }, "resultKey": "bully_fight_aggro" },
-            { "text": "Aceitar e lutar de forma defensiva.", "effects": { "attributes": { "mind": 2 }, "resources": { "reputation": 1 } }, "resultKey": "bully_fight_def" },
-            { "text": "Recusar o desafio.", "effects": { "resources": { "reputation": -1 } }, "resultKey": "bully_refuse" }
+            { "text": "Aceitar e lutar de forma agressiva.", "effects": { "attributes": { "body": 2 }, "resources": { "reputation": { "secular_world": 1 } } }, "resultKey": "bully_fight_aggro" },
+            { "text": "Aceitar e lutar de forma defensiva.", "effects": { "attributes": { "mind": 2 }, "resources": { "reputation": { "secular_world": 1 } } }, "resultKey": "bully_fight_def" },
+            { "text": "Recusar o desafio.", "effects": { "resources": { "reputation": { "secular_world": -1 } } }, "resultKey": "bully_refuse" }
         ]
     },
     {
@@ -131,7 +131,7 @@
         "conditions": { "minAge": 19, "maxAge": 19, "sectId": "hidden_cloud_sect" },
         "choices": [
             { "text": "Reportar o roubo aos anciãos.", "effects": { "storyFlags": { "reportedInjustice": true }, "attributes": { "soul": 1 } }, "resultKey": "injustice_reported" },
-            { "text": "Confrontar o discípulo e exigir um suborno.", "effects": { "storyFlags": { "blackmailedDisciple": true }, "resources": { "money": 50 }, "attributes": { "reputation": -5 } }, "resultKey": "injustice_blackmail" },
+            { "text": "Confrontar o discípulo e exigir um suborno.", "effects": { "storyFlags": { "blackmailedDisciple": true }, "resources": { "money": 50, "reputation": { "hidden_cloud": -5 } } }, "resultKey": "injustice_blackmail" },
             { "text": "Fingir que não viu nada.", "effects": {}, "resultKey": "injustice_ignored" }
         ]
     },
@@ -140,7 +140,7 @@
         "text": "Os anciãos agradecem publicamente por sua honestidade em relação ao roubo. Sua posição na seita é solidificada.",
         "conditions": { "minAge": 21, "maxAge": 21, "storyFlags": { "reportedInjustice": true } },
         "choices": [
-            { "text": "Aceitar o elogio humildemente.", "effects": { "resources": { "reputation": 20 }, "relationships": { "ancião_da_seita": 10 } }, "resultKey": "consequence_good_humble" }
+            { "text": "Aceitar o elogio humildemente.", "effects": { "resources": { "reputation": { "hidden_cloud": 20 } }, "relationships": { "ancião_da_seita": 10 } }, "resultKey": "consequence_good_humble" }
         ]
     },
     {
@@ -165,6 +165,7 @@
         "id": "sect_war_spark_25",
         "text": "A tensão entre sua seita e seus rivais explode. Um vale neutro, rico em ervas espirituais, foi palco de uma batalha sangrenta após ambos os lados o reivindicarem. A guerra parece inevitável.",
         "conditions": { "minAge": 25, "maxAge": 25, "sectId": ["hidden_cloud_sect", "scorching_mountain_sect"] },
+        "priority": 10,
         "choices": [
             { "text": "A guerra é uma ferramenta necessária para o poder.", "effects": { "attributes": { "body": 2 } }, "resultKey": "war_spark_pragmatic" },
             { "text": "Lamentar a perda de vidas e a destruição.", "effects": { "attributes": { "soul": 2 } }, "resultKey": "war_spark_idealistic" }
@@ -174,6 +175,7 @@
         "id": "sect_war_path_choice_26",
         "text": "O líder de sua seita o convoca. 'A guerra está sobre nós. Cada um deve contribuir com sua força. Como você servirá à seita nesta hora sombria?'",
         "conditions": { "minAge": 26, "maxAge": 26, "sectId": ["hidden_cloud_sect", "scorching_mountain_sect"] },
+        "priority": 10,
         "choices": [
             { "text": "Lutarei na linha de frente como um Guerreiro.", "effects": { "storyFlags": { "warPath": "warrior" } }, "resultKey": "path_choice_warrior" },
             { "text": "Usarei minha mente como um Estrategista.", "effects": { "storyFlags": { "warPath": "strategist" } }, "resultKey": "path_choice_strategist" },
@@ -194,7 +196,7 @@
         "conditions": { "minAge": 28, "maxAge": 28, "storyFlags": { "warPath": "strategist" } },
         "choices": [
             { "text": "Dedicar a noite para decifrar os códigos.", "effects": { "special": "decipher_codes" }, "successKey": "strategist_path_1_success", "failureKey": "strategist_path_1_failure"},
-            { "text": "É inútil, os códigos são muito complexos.", "effects": { "resources": { "reputation": -5 } }, "resultKey": "strategist_path_1_giveup" }
+            { "text": "É inútil, os códigos são muito complexos.", "effects": { "special": "lose_current_sect_reputation_5" }, "resultKey": "strategist_path_1_giveup" }
         ]
     },
     {
@@ -203,7 +205,7 @@
         "conditions": { "minAge": 28, "maxAge": 28, "storyFlags": { "warPath": "spy" } },
         "choices": [
             { "text": "Usar a escuridão a seu favor e se esgueirar.", "effects": { "special": "infiltrate_camp" }, "successKey": "spy_path_1_success", "failureKey": "spy_path_1_failure" },
-            { "text": "Achar a missão muito arriscada e recuar.", "effects": { "resources": { "reputation": -5 } }, "resultKey": "spy_path_1_giveup" }
+            { "text": "Achar a missão muito arriscada e recuar.", "effects": { "special": "lose_current_sect_reputation_5" }, "resultKey": "spy_path_1_giveup" }
         ]
     },
     {
@@ -220,7 +222,7 @@
         "conditions": { "minAge": 30, "maxAge": 30, "storyFlags": { "warPath": "strategist", "enemySupplyRouteDiscovered": true } },
         "choices": [
             { "text": "Planejar e executar a emboscada.", "effects": { "special": "ambush_supply_route" }, "successKey": "strategist_path_2_success", "failureKey": "strategist_path_2_failure" },
-            { "text": "Apenas entregar as informações aos generais.", "effects": { "resources": { "reputation": 5 } }, "resultKey": "strategist_path_2_safe" }
+            { "text": "Apenas entregar as informações aos generais.", "effects": { "special": "gain_current_sect_reputation_5" }, "resultKey": "strategist_path_2_safe" }
         ]
     },
     {
@@ -239,13 +241,14 @@
         "conditions": { "minAge": 30, "maxAge": 30, "storyFlags": { "warPath": "spy", "battlePlansStolen": true } },
         "choices": [
             { "text": "Alterar os planos para criar uma armadilha.", "effects": { "special": "doctor_battle_plans" }, "successKey": "spy_path_2_success", "failureKey": "spy_path_2_failure" },
-            { "text": "Entregar os planos originais sem alterações.", "effects": { "resources": { "reputation": 10 } }, "resultKey": "spy_path_2_safe" }
+            { "text": "Entregar os planos originais sem alterações.", "effects": { "special": "gain_current_sect_reputation_10" }, "resultKey": "spy_path_2_safe" }
         ]
     },
     {
         "id": "sect_war_climax_35",
         "text": "A guerra atinge seu ponto culminante. O vale central se torna o palco da batalha final que decidirá o destino de ambas as seitas. O resultado agora depende das vantagens que você conseguiu conquistar para o seu lado.",
         "conditions": { "minAge": 35, "maxAge": 35, "storyFlags": { "warPath": { "exists": true } } },
+        "priority": 10,
         "choices": [
             { "text": "Enfrentar o destino.", "effects": { "special": "resolve_sect_war" }, "resultKey": "sect_war_resolved" }
         ]
@@ -254,6 +257,7 @@
         "id": "sect_war_aftermath_victory",
         "text": "Sua seita saiu vitoriosa! As forças inimigas foram esmagadas, e sua contribuição foi fundamental. Você é saudado como um herói. O futuro da sua seita é brilhante.",
         "conditions": { "minAge": 36, "maxAge": 36, "storyFlags": { "warOutcome": "victory" } },
+        "priority": 10,
         "choices": [
             { "text": "Aceitar a glória.", "effects": { "resources": { "reputation": 100 }, "sectContribution": 500 }, "resultKey": "aftermath_victory_glory" }
         ]
@@ -262,6 +266,7 @@
         "id": "sect_war_aftermath_stalemate",
         "text": "A guerra termina em um impasse sangrento. Ambas as seitas, enfraquecidas, assinam um tratado de paz tenso. Você sobreviveu, mas o mundo do cultivo está mais instável do que nunca.",
         "conditions": { "minAge": 36, "maxAge": 36, "storyFlags": { "warOutcome": "stalemate" } },
+        "priority": 10,
         "choices": [
             { "text": "Refletir sobre o custo da guerra.", "effects": { "resources": { "reputation": 10 }, "attributes": { "soul": 3 } }, "resultKey": "aftermath_stalemate_reflect" }
         ]
@@ -270,8 +275,120 @@
         "id": "sect_war_aftermath_defeat",
         "text": "Sua seita foi derrotada. Seus salões são saqueados e seus membros, dispersos ou absorvidos pela seita vitoriosa. Você é marcado como um fracasso e exilado.",
         "conditions": { "minAge": 36, "maxAge": 36, "storyFlags": { "warOutcome": "defeat" } },
+        "priority": 10,
         "choices": [
             { "text": "Vagar pelo mundo como um cultivador solitário.", "effects": { "special": "exile_from_sect" }, "resultKey": "aftermath_defeat_exile" }
+        ]
+    },
+    {
+        "id": "discover_golden_pavilion",
+        "text": "Em uma cidade movimentada, você ouve rumores sobre uma organização poderosa que controla grande parte do comércio local: o Pavilhão Dourado. Eles não se importam com o Dao, apenas com o lucro. Um de seus agentes se aproxima de você, notando sua aura de poder e sua bolsa de moedas.",
+        "priority": 5,
+        "conditions": {
+            "minAge": 20,
+            "storyFlags": { "sectId": { "exists": false } },
+            "resources": { "money": 500 }
+        },
+        "choices": [
+            {
+                "text": "Expressar interesse em se juntar a eles.",
+                "effects": { "special": "join_golden_pavilion" },
+                "resultKey": "join_golden_pavilion_success"
+            },
+            {
+                "text": "Recusar a oferta.",
+                "effects": {},
+                "resultKey": "join_golden_pavilion_reject"
+            }
+        ]
+    },
+    {
+        "id": "friendship_xiao_mei_gift",
+        "text": "Xiao Mei o procura com um sorriso tímido. 'Eu vi o quanto você tem treinado', ela diz. 'Encontrei isto em uma de minhas viagens e pensei que poderia ajudá-lo.' Ela lhe entrega uma pílula de aparência potente.",
+        "priority": 8,
+        "conditions": {
+            "relationships": { "xiao_mei": { "greaterThan": 50 } }
+        },
+        "choices": [
+            {
+                "text": "Agradecer calorosamente.",
+                "effects": { "item": "pilula_cinco_espiritos", "relationships": { "xiao_mei": 10 } },
+                "resultKey": "xiao_mei_gift_accept"
+            }
+        ]
+    },
+    {
+        "id": "rivalry_lian_duel",
+        "text": "Lian o confronta na arena de treino, com uma expressão séria. 'Nossa rivalidade só pode ser resolvida de uma maneira', ele declara. 'Lute comigo, com tudo o que tem! O vencedor levará este manual de técnica que encontrei.'",
+        "priority": 8,
+        "conditions": {
+            "relationships": { "lian": { "lessThan": -50 } }
+        },
+        "choices": [
+            {
+                "text": "Aceitar o duelo de vida ou morte.",
+                "effects": { "special": "start_combat_lian_rival_duel" },
+                "resultKey": "lian_duel_accept"
+            }
+        ]
+    },
+    {
+        "id": "manor_purchase_opportunity",
+        "priority": 50,
+        "text": "Enquanto passeia pela Capital Imperial, um corretor de imóveis se aproxima de você. 'Vejo que você é uma pessoa de posses. Tenho a propriedade perfeita para um cultivador de seu calibre - uma mansão isolada nos arredores da cidade. É sua por 2000 moedas.'",
+        "conditions": {
+            "currentRegionId": "capital_imperial",
+            "resources": { "money": 2000 },
+            "manor.owned": false
+        },
+        "choices": [
+            {
+                "text": "Comprar a mansão.",
+                "effects": { "resources": { "money": -2000 }, "storyFlags": { "manor.owned": true } },
+                "resultKey": "manor_purchase_success"
+            },
+            {
+                "text": "Recusar a oferta por enquanto.",
+                "effects": {},
+                "resultKey": "manor_purchase_decline"
+            }
+        ]
+    },
+    {
+        "id": "challenge_for_sect_leadership",
+        "priority": 200,
+        "text": "Você alcançou o auge de sua seita. Seu poder e influência são inegáveis. Os anciãos se reúnem, e o ar fica pesado de expectativa. Chegou a hora de desafiar a liderança atual e reivindicar o manto de Mestre da Seita.",
+        "conditions": {
+            "sectId": "hidden_cloud_sect",
+            "sect.rankIndex": 3,
+            "sect.favor": 100
+        },
+        "choices": [
+            {
+                "text": "Desafiar o Mestre da Seita pelo controle.",
+                "effects": { "special": "start_sect_leader_duel" },
+                "resultKey": "sect_leader_duel_start"
+            },
+            {
+                "text": "Recuar. Ainda não é a hora.",
+                "effects": {},
+                "resultKey": "sect_leader_duel_decline"
+            }
+        ]
+    },
+    {
+        "id": "rival_reacts_to_leadership",
+        "priority": 300,
+        "text": "Após sua ascensão a Mestre da Seita, seu rival o procura. Ele o encara por um longo tempo, uma mistura complexa de ressentimento, respeito e determinação em seus olhos. 'Você conseguiu...', ele finalmente diz. 'Parece que eu tenho um novo objetivo a alcançar.' Ele se vira e vai embora, mais focado do que nunca.",
+        "conditions": {
+            "storyFlags": { "isSectLeader": true, "rivalId": { "exists": true } }
+        },
+        "choices": [
+            {
+                "text": "Um rival digno.",
+                "effects": { "relationships": { "rivalId": 10 } },
+                "resultKey": "rival_reacts_respect"
+            }
         ]
     }
 ]

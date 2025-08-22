@@ -1,0 +1,80 @@
+[
+    {
+        "id": "quest_wb_start",
+        "text": "Explorando uma antiga ruína, você encontra um baú de madeira apodrecido. Dentro, envolto em seda desbotada, repousa o cabo de uma espada primorosamente trabalhado. A lâmina se foi há muito tempo, mas o cabo pulsa com uma energia fraca e adormecida.",
+        "choices": [
+            {
+                "text": "Pegar o cabo.",
+                "effects": {
+                    "item": "cabo_lamina_antiga",
+                    "storyFlags": { "whispering_blade_started": true }
+                },
+                "resultKey": "quest_wb_start_success"
+            }
+        ]
+    },
+    {
+        "id": "quest_wb_frag1",
+        "text": "Seguindo a ressonância fraca do cabo, você chega a uma caverna escondida nas montanhas. No centro, um fragmento de lâmina flutua sobre um pedestal. Quando você se aproxima, as pedras ao redor se unem, formando um Golem Guardião que se move para te impedir.",
+        "priority": 10,
+        "conditions": {
+            "storyFlags": { "whispering_blade_started": true },
+            "inventory": { "cabo_lamina_antiga": 1 },
+            "not_inventory": { "fragmento_lamina_1": 1 }
+        },
+        "choices": [
+            {
+                "text": "Enfrentar o guardião.",
+                "effects": { "special": "start_combat_golem_guardian" },
+                "resultKey": "quest_wb_frag1_combat"
+            },
+            {
+                "text": "Recuar por agora.",
+                "effects": {},
+                "resultKey": "quest_wb_frag1_retreat"
+            }
+        ]
+    },
+    {
+        "id": "quest_wb_frag2",
+        "text": "Um mercador misterioso em uma casa de chá ouve sobre sua busca. Ele oferece informações sobre o segundo fragmento em troca de uma grande soma de Pedras Espirituais.",
+        "priority": 10,
+        "conditions": {
+            "inventory": { "fragmento_lamina_1": 1 },
+            "not_inventory": { "fragmento_lamina_2": 1 }
+        },
+        "choices": [
+            {
+                "text": "Pagar 5 Pedras Espirituais pela informação.",
+                "effects": {
+                    "item": { "id": "fragmento_lamina_2", "quantity": 1 },
+                    "storyFlags": { "whispering_blade_ready_to_forge": true }
+                },
+                "resultKey": "quest_wb_frag2_success",
+                "conditions": { "inventory": { "spirit_stone": 5 } }
+            },
+            {
+                "text": "Tentar intimidá-lo para conseguir a informação.",
+                "effects": { "special": "intimidate_merchant_wb" },
+                "successKey": "quest_wb_frag2_intimidate_success",
+                "failureKey": "quest_wb_frag2_intimidate_fail"
+            }
+        ]
+    },
+    {
+        "id": "quest_wb_forge",
+        "text": "Com o cabo e os dois fragmentos em sua posse, você sente uma poderosa ressonância guiando-o para as montanhas mais altas, onde encontra a forja isolada do Mestre Kaito. Ele olha para as peças em suas mãos. 'O destino te trouxe aqui', diz ele. 'Estou pronto. Você está?'",
+        "priority": 15,
+        "conditions": {
+            "storyFlags": { "whispering_blade_ready_to_forge": true },
+            "relationships": { "mestre_kaito": { "exists": true } }
+        },
+        "choices": [
+            {
+                "text": "Pedir para ele reforjar a lâmina.",
+                "effects": { "special": "reforge_whispering_blade" },
+                "resultKey": "quest_wb_forge_success"
+            }
+        ]
+    }
+]

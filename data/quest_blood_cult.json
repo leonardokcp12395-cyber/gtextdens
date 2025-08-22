@@ -1,0 +1,53 @@
+[
+    {
+        "id": "blood_cult_investigation_start",
+        "priority": 15,
+        "text": "Em uma cidade remota, você encontra um corpo drenado de sangue, com um estranho símbolo desenhado ao lado. Os locais estão apavorados, falando de um 'culto de sangue'.",
+        "conditions": {
+            "minAge": 25,
+            "storyFlags": { "blood_cult_quest_active": { "exists": false } }
+        },
+        "choices": [
+            {
+                "text": "Investigar o símbolo.",
+                "effects": { "storyFlags": { "blood_cult_quest_active": true, "blood_cult_stage": 1 } },
+                "resultKey": "blood_cult_start_investigation"
+            },
+            {
+                "text": "Isso não é da sua conta.",
+                "effects": {},
+                "resultKey": "blood_cult_ignore"
+            }
+        ]
+    },
+    {
+        "id": "blood_cult_investigation_2",
+        "priority": 100,
+        "text": "Sua investigação o leva a um armazém abandonado. Dentro, você encontra um fanático do Culto de Sangue realizando um ritual sombrio. Ele o vê e ataca!",
+        "conditions": {
+            "storyFlags": { "blood_cult_quest_active": true, "blood_cult_stage": 1 }
+        },
+        "choices": [
+            {
+                "text": "Lutar contra o fanático.",
+                "effects": { "special": "start_combat", "enemyId": "blood_cult_fanatic" },
+                "resultKey": "blood_cult_fanatic_fight"
+            }
+        ]
+    },
+    {
+        "id": "blood_cult_investigation_3",
+        "priority": 100,
+        "text": "O diário do fanático revela planos perturbadores sobre um ritual para invocar uma entidade de sangue em uma data futura. Você interrompeu este plano, mas o culto ainda está à espreita. Você ganhou um grande reconhecimento por seus esforços.",
+        "conditions": {
+            "storyFlags": { "blood_cult_quest_active": true, "blood_cult_stage": 2 }
+        },
+        "choices": [
+            {
+                "text": "Continuar vigilante.",
+                "effects": { "resources": { "reputation": { "secular_world": 50 } }, "storyFlags": { "blood_cult_quest_complete": true, "blood_cult_quest_active": false } },
+                "resultKey": "blood_cult_complete"
+            }
+        ]
+    }
+]

@@ -1,0 +1,20 @@
+[
+    {
+        "id": "tutorial_manor",
+        "trigger": { "storyFlags": { "manor.owned": true } },
+        "title": "Guia: Sua Nova Mansão",
+        "text": "Parabéns por adquirir sua mansão! Este é o seu refúgio pessoal. Você pode gastar moedas para construir e melhorar instalações aqui. Cada melhoria oferece bônus passivos permanentes para o seu cultivo, como bônus de alquimia ou ganho de Qi mais rápido. Volte sempre para continuar aprimorando seu domínio."
+    },
+    {
+        "id": "tutorial_favor",
+        "trigger": { "sect.favor": { "greaterThan": 0 } },
+        "title": "Guia: Favor dos Anciãos",
+        "text": "Você ganhou seu primeiro ponto de Favor com os anciãos! O favor é um recurso especial que mede sua influência e confiança dentro da seita. Acumule favor suficiente completando tarefas difíceis para desbloquear itens poderosos no Tesouro da Seita e, eventualmente, desafiar a liderança."
+    },
+    {
+        "id": "tutorial_heir",
+        "trigger": { "children": { "length_greaterThan": 0 } },
+        "title": "Guia: Sua Linhagem",
+        "text": "Seu primeiro filho nasceu! As crianças podem herdar um de seus talentos. Se o seu personagem morrer, você terá a opção de continuar o jogo como um de seus herdeiros, continuando a jornada de sua família através das gerações."
+    }
+]

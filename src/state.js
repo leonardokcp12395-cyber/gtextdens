@@ -35,6 +35,18 @@ export const cultivationRealms = [
         qiMax: 10000,
         subRealms: ["Estágio Inicial", "Estágio Intermediário", "Estágio Avançado"],
         breakthroughRequirements: { soul: 30, luck: 10 }
+    },
+    {
+        name: "Alma Nascente",
+        qiMax: 50000,
+        subRealms: ["Estágio Inicial", "Estágio Intermediário", "Estágio Avançado"],
+        breakthroughRequirements: { "soul": 80, "daoComprehension": 50 }
+    },
+    {
+        name: "Rei Divino",
+        qiMax: 200000,
+        subRealms: ["Estágio Inicial", "Estágio Intermediário", "Estágio Avançado"],
+        breakthroughRequirements: { "body": 100, "mind": 100, "soul": 100, "daoComprehension": 200 }
     }
 ];
 
@@ -48,14 +60,24 @@ export function initializeGameState() {
     // Define o estado inicial usando Object.assign para modificar o objeto existente
     Object.assign(gameState, {
         age: 0,
+        month: 0,
         attributes: {
             health: 100, maxHealth: 100,
             energy: 100, maxEnergy: 100,
             body: 10, mind: 10, soul: 10, luck: 5,
             defense: 5, critChance: 0.05, dodgeChance: 0.05
         },
-        cultivation: { realmIndex: 0, subRealmIndex: 0, qi: 0 },
-        resources: { money: 10, reputation: 0 },
+        cultivation: { realmIndex: 0, subRealmIndex: 0, qi: 0, daoComprehension: 0 },
+        resources: {
+            money: 10,
+            reputation: {
+                hidden_cloud: 0,
+                scorching_mountain: 0,
+                golden_pavilion: 0,
+                blood_demon: 0,
+                secular_world: 0
+            }
+        },
         inventory: [],
         relationships: {},
         lifeLog: [],
@@ -64,6 +86,16 @@ export function initializeGameState() {
         talentPoints: 0,
         triggeredEvents: [],
         storyFlags: {},
+        discoveredPoIs: [],
+        spouseId: null,
+        children: [],
+        shownTutorials: [],
+        manor: {
+            owned: false,
+            alchemyLabLevel: 0,
+            spiritGatheringFormationLevel: 0,
+            sparringGroundLevel: 0
+        },
         skills: {
             alchemy: 0,
             alchemyXp: 0,
@@ -83,24 +115,67 @@ export function initializeGameState() {
         sect: {
             id: null,
             rankIndex: 0,
-            contribution: 0
+            contribution: 0,
+            favor: 0,
+            discipleCount: 10,
+            unlockedSkills: [],
+            missionTimer: 0
         },
         combat: null,
         currentRegionId: "vila_inicial"
     });
 
     // Aplica bônus de legado de jogos anteriores
-    const legacyData = localStorage.getItem('wuxiaLegacy');
+    const legacyData = localStorage.getItem('wuxiaLegacyChoice');
     if (legacyData) {
         try {
-            const legacyBonus = JSON.parse(legacyData);
-            if (legacyBonus && legacyBonus.attribute && legacyBonus.value) {
-                gameState.attributes[legacyBonus.attribute] += legacyBonus.value;
+            const legacyEffects = JSON.parse(legacyData);
+            if (legacyEffects) {
+                // A função applyEffects ainda não está disponível aqui, então aplicamos manualmente.
+                if (legacyEffects.resources) {
+                    for (const res in legacyEffects.resources) {
+                        gameState.resources[res] += legacyEffects.resources[res];
+                    }
+                }
+                if (legacyEffects.attributes) {
+                    for (const attr in legacyEffects.attributes) {
+                        gameState.attributes[attr] += legacyEffects.attributes[attr];
+                    }
+                }
+                if (legacyEffects.skills) {
+                    for (const skill in legacyEffects.skills) {
+                        gameState.skills[skill] += legacyEffects.skills[skill];
+                    }
+                }
             }
         } catch (e) {
             console.error("Erro ao processar o legado:", e);
         } finally {
-            localStorage.removeItem('wuxiaLegacy');
+            localStorage.removeItem('wuxiaLegacyChoice');
+        }
+    }
+
+    // Aplica herança se o jogador continuar como herdeiro
+    const heirDataJSON = localStorage.getItem('wuxiaHeirInheritance');
+    if (heirDataJSON) {
+        try {
+            const heirData = JSON.parse(heirDataJSON);
+            const npcData = heirData.heirData;
+
+            // Sobrepõe o estado inicial com os dados do herdeiro
+            gameState.age = npcData.age;
+            Object.assign(gameState.attributes, npcData.attributes);
+            gameState.resources.money = heirData.money;
+            gameState.unlockedTalents.push(...heirData.talents);
+            gameState.storyFlags.playerIsHeir = true;
+
+            // Log do evento de herança
+            console.log(`Iniciando como herdeiro: ${npcData.name}, Idade: ${npcData.age}`);
+
+        } catch (e) {
+            console.error("Erro ao processar a herança:", e);
+        } finally {
+            localStorage.removeItem('wuxiaHeirInheritance');
         }
     }
 }
@@ -164,6 +239,11 @@ export function getEffectiveAttributes() {
     if (spec && effective[spec]) {
         effective[spec] = Math.floor(effective[spec] * 1.20); // Bônus de 20%
     }
+
+    // Calcula atributos secundários
+    effective.attackPower = Math.floor(effective.body * 1.5 + effective.mind * 0.5);
+    effective.magicDefense = Math.floor(effective.soul * 1.2);
+    effective.critDamage = 1.5 + Math.floor(effective.luck / 10) * 0.1; // 150% base + 10% per 10 luck
 
     return effective;
 }

@@ -79,5 +79,13 @@
     "aftermath_defeat_exile": "Sem lar e sem honra, você começa uma nova vida como um andarilho. O futuro é incerto.",
     "mine_success": "Sua cautela é recompensada! Você encontra um veio rico e coleta alguns Minérios de Ferro.",
     "mine_ignore": "Você decide que a segurança vem em primeiro lugar.",
-    "gain_talent_point_success": "Você sente sua compreensão sobre o mundo se aprofundar. (Você ganhou 1 Ponto de Talento!)"
+    "gain_talent_point_success": "Você sente sua compreensão sobre o mundo se aprofundar. (Você ganhou 1 Ponto de Talento!)",
+
+    "factions": {
+        "hidden_cloud": "Seita da Nuvem Oculta",
+        "scorching_mountain": "Seita da Montanha Ardente",
+        "golden_pavilion": "Pavilhão Dourado",
+        "blood_demon": "Seita do Demônio de Sangue",
+        "secular_world": "Mundo Secular"
+    }
 }

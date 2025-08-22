@@ -1,0 +1,29 @@
+[
+    {
+        "id": "improved_forging_techniques",
+        "name": "Técnicas de Forja Aprimoradas",
+        "description": "Todos os membros da seita ganham uma pequena chance de sucesso bônus ao forjar itens.",
+        "cost": { "contribution": 750, "favor": 10 },
+        "effects": {
+            "forgingSuccessBonus": 0.05
+        }
+    },
+    {
+        "id": "efficient_alchemy",
+        "name": "Alquimia Eficiente",
+        "description": "Os alquimistas da seita aprendem a usar melhor os ingredientes, aumentando a chance de sucesso.",
+        "cost": { "contribution": 750, "favor": 10 },
+        "effects": {
+            "alchemySuccessBonus": 0.05
+        }
+    },
+    {
+        "id": "intensive_qi_gathering",
+        "name": "Coleta de Qi Intensiva",
+        "description": "O ganho de Qi passivo para todos os membros da seita é aumentado.",
+        "cost": { "contribution": 1500, "favor": 25 },
+        "effects": {
+            "passiveQiGainBonus": 2
+        }
+    }
+]

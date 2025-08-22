@@ -31,7 +31,8 @@
                 "id": "blood_siphon",
                 "name": "Sifão de Sangue",
                 "chance": 0.3,
-                "description": "Ataca o alvo, curando-se por uma parte do dano causado."
+                "description": "Ataca o alvo, curando-se por uma parte do dano causado e potencialmente envenenando-o.",
+                "effect": { "type": "special_damage_heal", "statusEffect": { "type": "poison", "damage": 5, "duration": 2, "chance": 0.5 } }
             }
         ]
     },
@@ -67,5 +68,105 @@
                 "effect": { "type": "damage", "baseDamage": 40 }
             }
         ]
+    },
+    {
+        "id": "stone_golem_guardian",
+        "name": "Golem de Pedra Guardião",
+        "description": "Um construto antigo animado por Qi da terra. Lento, mas incrivelmente resistente.",
+        "attributes": { "health": 150, "defense": 30, "body": 40, "critChance": 0.05, "dodgeChance": 0 },
+        "resistances": { "physical": 0.5 },
+        "vulnerabilities": { "spiritual": 1.5 },
+        "abilities": []
+    },
+    {
+        "id": "bandit_leader",
+        "name": "Líder Bandido",
+        "description": "Um lutador astuto e experiente que lidera um bando de ladrões de estrada.",
+        "attributes": { "health": 80, "defense": 10, "body": 25, "critChance": 0.1, "dodgeChance": 0.1 },
+        "abilities": []
+    },
+    {
+        "id": "rival_lian_duel",
+        "name": "Rival Lian (Duelo Sério)",
+        "description": "Lian, agora mais forte e determinado a provar seu valor.",
+        "attributes": { "health": 120, "defense": 15, "body": 30, "critChance": 0.1, "dodgeChance": 0.15 },
+        "abilities": []
+    },
+    {
+        "id": "young_master_arrogant",
+        "name": "Jovem Mestre Arrogante",
+        "attributes": { "health": 150, "energy": 100, "body": 25, "mind": 15, "soul": 20, "luck": 10, "defense": 10, "critChance": 0.1, "dodgeChance": 0.1 },
+        "resistances": { "physical": 1.1 },
+        "vulnerabilities": { "spiritual": 1.1 }
+    },
+    {
+        "id": "wandering_swordsman_skilled",
+        "name": "Espadachim Errante Habilidoso",
+        "attributes": { "health": 120, "energy": 120, "body": 22, "mind": 22, "soul": 20, "luck": 5, "defense": 12, "critChance": 0.15, "dodgeChance": 0.15 },
+        "abilities": [
+            { "id": "swift_blade", "name": "Lâmina Veloz", "chance": 0.2, "effect": {"type": "combat_extra_attack"} }
+        ]
+    },
+    {
+        "id": "brute_force_cultivator",
+        "name": "Cultivador da Força Bruta",
+        "attributes": { "health": 200, "energy": 80, "body": 35, "mind": 10, "soul": 15, "luck": 5, "defense": 15, "critChance": 0.05, "dodgeChance": 0.05 },
+        "resistances": { "physical": 0.8 }
+    },
+    {
+        "id": "sect_elder_wise",
+        "name": "Ancião de Seita Sábio",
+        "attributes": { "health": 400, "energy": 300, "body": 50, "mind": 70, "soul": 80, "luck": 10, "defense": 30, "critChance": 0.1, "dodgeChance": 0.1 },
+        "damageType": "spiritual"
+    },
+    {
+        "id": "demonic_cultivator_ruthless",
+        "name": "Cultivador Demoníaco Impiedoso",
+        "attributes": { "health": 350, "energy": 250, "body": 75, "mind": 40, "soul": 60, "luck": 5, "defense": 25, "critChance": 0.2, "dodgeChance": 0.1 },
+        "abilities": [ { "id": "blood_siphon", "name": "Sifão de Sangue", "chance": 0.2 } ]
+    },
+    {
+        "id": "reigning_champion_invincible",
+        "name": "Campeão Reinante",
+        "attributes": { "health": 800, "energy": 500, "body": 100, "mind": 80, "soul": 90, "luck": 15, "defense": 40, "critChance": 0.2, "dodgeChance": 0.2 },
+        "description": "O guerreiro mais forte do reino, invicto por uma década."
+    },
+    {
+        "id": "blood_cult_fanatic",
+        "name": "Fanático do Culto de Sangue",
+        "attributes": { "health": 300, "energy": 200, "body": 60, "mind": 30, "soul": 50, "luck": 5, "defense": 20, "critChance": 0.15, "dodgeChance": 0.1 },
+        "description": "Um cultista enlouquecido que usa artes de sangue para fortalecer seu corpo e atacar sem piedade.",
+        "damageType": "physical",
+        "abilities": [ { "id": "blood_siphon", "name": "Sifão de Sangue", "chance": 0.25 } ]
+    },
+    {
+        "id": "guan_family_disciple",
+        "name": "Discípulo da Família Guan",
+        "attributes": { "health": 180, "energy": 100, "body": 30, "mind": 20, "soul": 25, "luck": 5, "defense": 15, "critChance": 0.1, "dodgeChance": 0.1 },
+        "description": "Um jovem arrogante que confia no nome de sua família para intimidar os outros."
+    },
+    {
+        "id": "sect_leader_hidden_cloud",
+        "name": "Líder da Seita da Nuvem Oculta",
+        "attributes": { "health": 1000, "energy": 800, "body": 80, "mind": 120, "soul": 150, "luck": 20, "defense": 50, "critChance": 0.2, "dodgeChance": 0.2 },
+        "description": "O mestre da Seita da Nuvem Oculta. Um cultivador que alcançou um nível de poder que poucos podem compreender.",
+        "abilities": [
+            { "id": "heavenly_smite", "name": "Punição Celestial", "chance": 0.3, "effect": { "type": "damage", "baseDamage": 100 } },
+            { "id": "cloud_sanctuary", "name": "Santuário de Nuvens", "chance": 0.2, "effect": { "type": "heal", "baseValue": 200 } }
+        ]
+    },
+    {
+        "id": "smuggler_guard",
+        "name": "Guarda Contrabandista",
+        "attributes": { "health": 250, "energy": 150, "body": 45, "mind": 30, "soul": 30, "luck": 5, "defense": 20, "critChance": 0.1, "dodgeChance": 0.1 },
+        "description": "Um mercenário contratado para proteger os bens dos contrabandistas. Ele não faz perguntas."
+    },
+    {
+        "id": "beast_matriarch",
+        "name": "Matriarca das Bestas",
+        "attributes": { "health": 600, "energy": 300, "body": 90, "mind": 20, "soul": 50, "luck": 5, "defense": 35, "critChance": 0.15, "dodgeChance": 0.05 },
+        "description": "Uma besta demoníaca antiga e poderosa que lidera seu bando com ferocidade.",
+        "resistances": { "physical": 0.7 },
+        "vulnerabilities": { "spiritual": 1.2 }
     }
 ]

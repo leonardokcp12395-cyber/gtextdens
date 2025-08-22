@@ -66,5 +66,79 @@
         "description": "Um ingrediente de alquimia extremamente raro, dito ser a chave para pílulas lendárias.",
         "value": 200,
         "cost": 400
+    },
+    {
+        "id": "cabo_lamina_antiga",
+        "name": "Cabo da Lâmina Antiga",
+        "type": "quest",
+        "description": "O cabo de uma espada que parece incrivelmente antiga. A lâmina está faltando, mas você sente um poder latente dentro dela."
+    },
+    {
+        "id": "fragmento_lamina_1",
+        "name": "Fragmento da Lâmina (1/2)",
+        "type": "quest",
+        "description": "Um grande fragmento de uma lâmina quebrada. Ele emite um zumbido baixo e ressoa com o cabo antigo que você carrega."
+    },
+    {
+        "id": "fragmento_lamina_2",
+        "name": "Fragmento da Lâmina (2/2)",
+        "type": "quest",
+        "description": "O segundo fragmento da lâmina. Ele parece se atrair magneticamente para o outro pedaço e para o cabo."
+    },
+    {
+        "id": "pilula_fortuna",
+        "name": "Pílula da Fortuna",
+        "type": "pill",
+        "description": "Uma pílula rara que, dizem, alinha o destino a seu favor por um breve período.",
+        "effects": { "attributes": { "luck": 3 } },
+        "value": 200,
+        "cost": 400
+    },
+    {
+        "id": "selo_jade_imperial",
+        "name": "Selo de Jade Imperial",
+        "type": "valuable",
+        "description": "Um selo de jade de artesanato requintado, claramente de origem nobre. Um item de grande valor para colecionadores.",
+        "value": 500
+    },
+    {
+        "id": "tech_swift_blade",
+        "name": "Técnica da Lâmina Veloz",
+        "type": "technique",
+        "cost": 0,
+        "description": "Uma técnica de espada que foca em velocidade pura, permitindo um ataque extra.",
+        "activeEffect": {
+            "type": "combat_extra_attack"
+        }
+    },
+    {
+        "id": "pilula_percepcao",
+        "name": "Pílula da Percepção",
+        "type": "pill",
+        "description": "Uma pílula complexa que aguça os sentidos e a mente, revelando detalhes que outros não veem.",
+        "effects": { "attributes": { "mind": 2, "soul": 2, "luck": 1 } },
+        "value": 300
+    },
+    {
+        "id": "cristal_alma_pura",
+        "name": "Cristal de Alma Pura",
+        "type": "ingredient",
+        "description": "Um cristal que pulsa com uma energia anímica pura. Usado em alquimia de alto nível para criar pílulas que fortalecem a alma.",
+        "value": 250
+    },
+    {
+        "id": "peach_of_immortality",
+        "name": "Pêssego da Imortalidade",
+        "type": "pill",
+        "description": "Um pêssego celestial que, segundo a lenda, concede um grande impulso à vitalidade e ao cultivo.",
+        "effects": { "attributes": { "maxHealth": 50, "body": 5, "soul": 5 } },
+        "value": 1500
+    },
+    {
+        "id": "ancient_tome",
+        "name": "Tomo Antigo",
+        "type": "valuable",
+        "description": "Um livro pesado, encadernado em couro, cheio de escrituras que você não consegue decifrar. Parece valioso para um estudioso.",
+        "value": 400
     }
 ]

@@ -4,6 +4,7 @@
         "name": "Espada de Ferro",
         "type": "equipment",
         "equipmentType": "weapon",
+        "damageType": "physical",
         "description": "Uma espada de ferro simples, mas confiável. Afiada o suficiente para o trabalho.",
         "effects": { "body": 5 },
         "value": 50,
@@ -28,5 +29,54 @@
         "effects": { "luck": 2 },
         "value": 75,
         "cost": 150
+    },
+    {
+        "id": "espada_aco",
+        "name": "Espada de Aço",
+        "type": "equipment",
+        "equipmentType": "weapon",
+        "damageType": "physical",
+        "description": "Uma espada de aço bem balanceada. Um grande avanço em relação ao ferro.",
+        "effects": { "body": 8, "critChance": 0.02 },
+        "value": 120,
+        "cost": 240
+    },
+    {
+        "id": "armadura_ferro",
+        "name": "Armadura de Ferro",
+        "type": "equipment",
+        "equipmentType": "armor",
+        "description": "Placas de ferro sobre uma base de couro. Pesada, mas protetora.",
+        "effects": { "defense": 10, "maxHealth": 20, "body": -1 },
+        "value": 100,
+        "cost": 200
+    },
+    {
+        "id": "lamina_sussurrante",
+        "name": "Lâmina Sussurrante",
+        "type": "equipment",
+        "equipmentType": "weapon",
+        "damageType": "spiritual",
+        "description": "Uma lâmina antiga reforjada, que parece sussurrar com o vento. É incrivelmente leve e afiada, imbuída com a intenção de seu portador.",
+        "effects": { "body": 15, "mind": 5, "critChance": 0.10 },
+        "value": 1000
+    },
+    {
+        "id": "amuleto_artesao",
+        "name": "Amuleto do Artesão",
+        "type": "equipment",
+        "equipmentType": "accessory",
+        "description": "Um amuleto que pulsa com a energia da criação. Aumenta a habilidade de forja e alquimia de quem o usa.",
+        "effects": { "skills": { "forging": 5, "alchemy": 5 } },
+        "value": 800
+    },
+    {
+        "id": "alabarda_dragao_celestial",
+        "name": "Alabarda do Dragão Celestial",
+        "type": "equipment",
+        "equipmentType": "weapon",
+        "description": "Uma arma lendária, dizem conter o poder de um dragão. Concedida apenas ao maior guerreiro do reino.",
+        "damageType": "spiritual",
+        "effects": { "body": 20, "mind": 10, "soul": 15, "critChance": 0.1 }
     }
 ]

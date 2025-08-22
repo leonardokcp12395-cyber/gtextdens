@@ -1,0 +1,35 @@
+[
+    {
+        "id": "legacy_wealth",
+        "name": "Herdeiro Abastado",
+        "description": "Sua fama como uma pessoa de grandes posses precede você. Você começa sua próxima vida com uma herança considerável.",
+        "unlockConditions": {
+            "resources": { "money": 5000 }
+        },
+        "effects": {
+            "resources": { "money": 500 }
+        }
+    },
+    {
+        "id": "legacy_cultivation",
+        "name": "Alma Desperta",
+        "description": "Sua profunda compreensão do Dao em uma vida passada deixou uma marca em sua alma, tornando seu caminho no cultivo um pouco mais fácil.",
+        "unlockConditions": {
+            "cultivation": { "realmIndex": 3 }
+        },
+        "effects": {
+            "attributes": { "soul": 3 }
+        }
+    },
+    {
+        "id": "legacy_forging",
+        "name": "Artesão Nato",
+        "description": "As memórias de incontáveis horas na forja ecoam em seus ossos. Você nasce com um talento natural para o artesanato.",
+        "unlockConditions": {
+            "skills": { "forging": 20 }
+        },
+        "effects": {
+            "skills": { "forging": 5 }
+        }
+    }
+]

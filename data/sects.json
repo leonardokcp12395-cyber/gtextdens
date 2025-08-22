@@ -45,7 +45,21 @@
             "effects": { "attributes": { "soul": 10 } }
             }
         ],
+        "treasury": [
+            { "id": "manual_coracao_nuvem", "type": "technique", "name": "Manual do Coração da Nuvem", "description": "Um manual profundo que detalha um método de cultivo para acalmar a mente e fortalecer a alma.", "cost": 50, "costType": "favor", "effects": { "mind": 2, "soul": 2 } }
+        ],
         "missions": [
+            {
+                "id": "mission_impress_elder",
+                "name": "Impressionar o Ancião da Seita",
+                "description": "O Ancião da Seita está procurando por discípulos promissores para tarefas especiais. Demonstre seu valor.",
+                "rankRequired": 2,
+                "check": { "type": "attribute", "attribute": "mind", "difficulty": 30 },
+                "rewards": {
+                    "success": { "sect": { "favor": 5 }, "resources": { "reputation": { "hidden_cloud_sect": 15 } } },
+                    "failure": { "resources": { "reputation": { "hidden_cloud_sect": -5 } } }
+                }
+            },
             {
                 "id": "mission_patrol_forest",
                 "name": "Patrulhar a Floresta",
@@ -109,7 +123,7 @@
                 "activeEffect": {
                     "type": "combat_damage",
                     "target": "enemy",
-                    "damageType": "mind",
+                    "damageType": "spiritual",
                     "baseValue": 15,
                     "scalingStat": "mind",
                     "scalingFactor": 0.5,
@@ -163,6 +177,73 @@
                 "cost": 120,
                 "description": "Uma pílula proibida que consome a energia de outros para fortalecer a própria alma.",
                 "effects": { "attributes": { "soul": 15, "reputation": -10 } }
+            },
+            {
+                "id": "tech_toxic_blade",
+                "name": "Técnica da Lâmina Tóxica",
+                "type": "technique",
+                "cost": 80,
+                "description": "Uma arte vil que reveste a arma com um veneno que corrói a força vital do inimigo.",
+                "activeEffect": {
+                    "type": "combat_status_effect",
+                    "energyCost": 20,
+                    "statusEffect": { "type": "poison", "damage": 10, "duration": 3 }
+                }
+            }
+        ]
+    },
+    {
+        "id": "golden_pavilion_sect",
+        "name": "Pavilhão Dourado",
+        "alignment": "Neutra",
+        "description": "Uma organização focada em comércio e riqueza. Eles acreditam que o dinheiro é a verdadeira fonte de poder no mundo do cultivo.",
+        "benefit": {
+            "type": "money_gain_boost",
+            "value": 0.1,
+            "description": "+10% de ganho de dinheiro em missões e vendas."
+        },
+        "ranks": [
+            "Associado",
+            "Mercador",
+            "Conselheiro",
+            "Mestre do Pavilhão"
+        ],
+        "promotion_requirements": [
+            { "contribution": 200, "reputation": 20, "money": 1000 },
+            { "contribution": 800, "reputation": 100, "money": 5000 },
+            { "contribution": 3000, "reputation": 300, "money": 20000 }
+        ],
+        "store": [
+            {
+                "id": "pilula_fortuna",
+                "name": "Pílula da Fortuna",
+                "type": "pill",
+                "cost": 400,
+                "rankRequired": 1,
+                "description": "Uma pílula rara que, dizem, alinha o destino a seu favor por um breve período.",
+                "effects": { "attributes": { "luck": 3 } }
+            },
+            {
+                "id": "selo_jade_imperial",
+                "name": "Selo de Jade Imperial",
+                "type": "valuable",
+                "cost": 1000,
+                "rankRequired": 2,
+                "description": "Um selo de jade de artesanato requintado, claramente de origem nobre. Um item de grande valor para colecionadores.",
+                "value": 500
+            }
+        ],
+        "missions": [
+            {
+                "id": "mission_caravan_escort",
+                "name": "Escolta de Caravana",
+                "description": "Proteja uma caravana de mercadorias valiosas através de território perigoso.",
+                "rankRequired": 0,
+                "check": { "type": "combat", "enemyId": "bandit_leader" },
+                "rewards": {
+                    "success": { "resources": { "money": 150, "reputation": 5 }, "contribution": 20 },
+                    "failure": { "resources": { "money": -50, "reputation": -5 }, "contribution": 5 }
+                }
             }
         ]
     }

@@ -18,5 +18,26 @@
         ],
         "result": "pilula_qi_basica",
         "skillRequired": 10
+    },
+    {
+        "id": "receita_pilula_cinco_espiritos",
+        "name": "Receita: Pílula dos Cinco Espíritos",
+        "ingredients": [
+            { "id": "flor_da_nevoa", "quantity": 2 },
+            { "id": "raiz_de_terra", "quantity": 2 }
+        ],
+        "result": "pilula_cinco_espiritos",
+        "skillRequired": 15
+    },
+    {
+        "id": "receita_pilula_percepcao",
+        "name": "Receita: Pílula da Percepção",
+        "ingredients": [
+            { "id": "flor_da_nevoa", "quantity": 3 },
+            { "id": "essencia_espiritual", "quantity": 1 }
+        ],
+        "result": "pilula_percepcao",
+        "skillRequired": 25,
+        "isSecret": true
     }
 ]

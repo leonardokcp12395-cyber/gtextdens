@@ -1,7 +1,7 @@
 // This is a full overwrite to ensure the file is correct after many changes.
 import { gameState, allGameData, cultivationRealms, combatState, getEffectiveAttributes } from './state.js';
 import { travelToRegion } from './game.js';
-import { unlockTalent, takeCombatTurn, endCombat, getSect, attemptPromotion, acceptSectMission, attemptMission, applyEffects, giveGiftToNpc, sparWithNpc, craftItem, equipTechnique, unequipTechnique, sellItem, buyMarketItem, listenForRumors, equipItem, unequipItem, forgeItem } from './handlers.js';
+import { unlockTalent, takeCombatTurn, endCombat, getSect, attemptPromotion, acceptSectMission, attemptMission, applyEffects, giveGiftToNpc, sparWithNpc, craftItem, equipTechnique, unequipTechnique, sellItem, buyMarketItem, listenForRumors, equipItem, unequipItem, forgeItem, selectLegacy, becomeHeir, upgradeManorFacility } from './handlers.js';
 
 export const elements = {
     name: document.getElementById('char-name'),
@@ -14,6 +14,9 @@ export const elements = {
     attrMind: document.getElementById('attr-mind'),
     attrSoul: document.getElementById('attr-soul'),
     attrLuck: document.getElementById('attr-luck'),
+    attrAttackPower: document.getElementById('attr-attack-power'),
+    attrMagicDefense: document.getElementById('attr-magic-defense'),
+    attrCritDamage: document.getElementById('attr-crit-damage'),
     cultRealm: document.getElementById('cult-realm'),
     cultQi: document.getElementById('cult-qi'),
     cultQiMax: document.getElementById('cult-qi-max'),
@@ -67,11 +70,56 @@ export const elements = {
     hubLocationsContainer: document.getElementById('hub-locations-container'),
     hubContentContainer: document.getElementById('hub-content-container'),
     choicesContainer: document.getElementById('choices-container'),
-    nextYearBtn: document.getElementById('next-year-btn'),
+    nextMonthBtn: document.getElementById('next-month-btn'),
     sectActionsBtn: document.getElementById('sect-actions-btn'),
     alchemyBtn: document.getElementById('alchemy-btn'),
-    meditateBtn: document.getElementById('meditate-btn')
+    manorBtn: document.getElementById('manor-btn'),
+    manorView: document.getElementById('manor-view'),
+    meditateBtn: document.getElementById('meditate-btn'),
+    sectManagementBtn: document.getElementById('sect-management-btn'),
+    sectManagementView: document.getElementById('sect-management-view'),
+    familyTab: document.getElementById('family-tab'),
+    familyContent: document.getElementById('family-content'),
+    familyDetailsContainer: document.getElementById('family-details-container'),
+    relationshipsTab: document.getElementById('relationships-tab'),
+    relationshipsContent: document.getElementById('relationships-content'),
+    npcSearchBar: document.getElementById('npc-search-bar')
 };
+
+function renderFamilyView() {
+    const container = elements.familyDetailsContainer;
+    container.innerHTML = '';
+
+    // Spouse Info
+    if (gameState.spouseId) {
+        const spouse = gameState.relationships[gameState.spouseId];
+        if (spouse) {
+            container.innerHTML += `
+                <h4>Cônjuge: ${spouse.name}</h4>
+                <p>Status: ${getRelationshipStatus(spouse.initialRelationship)}</p>
+            `;
+        }
+    } else {
+        container.innerHTML += '<h4>Cônjuge: Nenhum</h4>';
+    }
+
+    // Children Info
+    container.innerHTML += '<hr><h4>Filhos</h4>';
+    if (gameState.children.length > 0) {
+        const childrenList = document.createElement('ul');
+        gameState.children.forEach(childId => {
+            const child = gameState.relationships[childId];
+            if (child) {
+                const li = document.createElement('li');
+                li.textContent = `${child.name} (Idade: ${child.age})`;
+                childrenList.appendChild(li);
+            }
+        });
+        container.appendChild(childrenList);
+    } else {
+        container.innerHTML += '<p>Nenhum</p>';
+    }
+}
 
 export function flashStat(element, changeType) {
     const className = changeType === 'increase' ? 'stat-increased' : 'stat-decreased';
@@ -118,14 +166,17 @@ function getRelationshipStatus(value) {
     return "Inimigo Mortal";
 }
 
-function updateRelationshipsList() {
+function updateRelationshipsList(filterText = '') {
     elements.relationshipsList.innerHTML = '';
     const rels = Object.values(gameState.relationships);
     if (rels.length === 0) {
         elements.relationshipsList.innerHTML = '<li>Nenhum</li>';
         return;
     }
-    rels.forEach(npc => {
+
+    const filteredRels = rels.filter(npc => npc.name.toLowerCase().includes(filterText.toLowerCase()));
+
+    filteredRels.forEach(npc => {
         const li = document.createElement('li');
         li.style.display = 'flex';
         li.style.justifyContent = 'space-between';
@@ -134,9 +185,14 @@ function updateRelationshipsList() {
         const textSpan = document.createElement('span');
         if (npc.alive) {
             const status = getRelationshipStatus(npc.initialRelationship);
-            textSpan.innerHTML = `<strong>${npc.name}</strong>: ${npc.initialRelationship} (${status})`;
+            let icon = '';
+            if (npc.isRival) icon = '<span class="status-icon rival-icon">⚔️</span>';
+            else if (npc.id === gameState.spouseId) icon = '<span class="status-icon spouse-icon">❤️</span>';
+            else if (status === "Amigo de Confiança" || status === "Aliado Íntimo") icon = '<span class="status-icon friend-icon">🤝</span>';
+
+            textSpan.innerHTML = `${icon}<strong>${npc.name}</strong>: ${npc.initialRelationship} (${status})`;
         } else {
-            textSpan.innerHTML = `<strong>${npc.name}</strong> (Falecido)`;
+            textSpan.innerHTML = `<span class="status-icon">💀</span><strong>${npc.name}</strong> (Falecido)`;
             textSpan.style.color = '#aaa';
         }
         li.appendChild(textSpan);
@@ -153,13 +209,13 @@ function updateRelationshipsList() {
 }
 
 export function updateUI() {
-    if (!gameState || !gameState.attributes || !allGameData.cultivationRealms) return;
-    if (!combatState) elements.nextYearBtn.style.display = 'block';
+    if (!gameState || !gameState.attributes || !cultivationRealms) return;
+    if (!combatState) elements.nextMonthBtn.style.display = 'block';
     renderMap();
     const effectiveAttributes = getEffectiveAttributes();
     const currentRealm = allGameData.cultivationRealms[gameState.cultivation.realmIndex];
     const subRealmName = currentRealm.subRealms[gameState.cultivation.subRealmIndex];
-    elements.age.textContent = gameState.age;
+    elements.age.textContent = `${gameState.age} anos, ${gameState.month % 12} meses`;
     elements.attrHealth.textContent = effectiveAttributes.health;
     elements.attrMaxHealth.textContent = effectiveAttributes.maxHealth;
     elements.attrEnergy.textContent = effectiveAttributes.energy;
@@ -168,11 +224,31 @@ export function updateUI() {
     elements.attrMind.textContent = effectiveAttributes.mind;
     elements.attrSoul.textContent = effectiveAttributes.soul;
     elements.attrLuck.textContent = effectiveAttributes.luck;
+    elements.attrAttackPower.textContent = effectiveAttributes.attackPower;
+    elements.attrMagicDefense.textContent = effectiveAttributes.magicDefense;
+    elements.attrCritDamage.textContent = `${Math.floor(effectiveAttributes.critDamage * 100)}%`;
     elements.cultRealm.textContent = `${currentRealm.name} - ${subRealmName}`;
     elements.cultQi.textContent = gameState.cultivation.qi;
     elements.cultQiMax.textContent = currentRealm.qiMax;
     elements.resMoney.textContent = `${gameState.resources.money} Moedas de Cobre`;
-    elements.resReputation.textContent = gameState.resources.reputation;
+
+    // Renderiza Reputação de Facção
+    const repContainer = document.getElementById('reputation-container');
+    let repHTML = '<h3>Reputação</h3><ul>';
+    let hasReputation = false;
+    for (const faction in gameState.resources.reputation) {
+        if (gameState.resources.reputation[faction] !== 0) {
+            hasReputation = true;
+            const factionName = allGameData.strings.factions[faction] || faction;
+            repHTML += `<li><strong>${factionName}:</strong> ${gameState.resources.reputation[faction]}</li>`;
+        }
+    }
+    if (!hasReputation) {
+        repHTML += '<li>Nenhuma reputação ainda.</li>';
+    }
+    repHTML += '</ul>';
+    repContainer.innerHTML = repHTML;
+
     elements.talentPoints.textContent = gameState.talentPoints;
 
     if (gameState.sect.id) {
@@ -188,24 +264,136 @@ export function updateUI() {
         elements.sectInfoContainer.style.display = 'none';
         elements.sectActionsBtn.style.display = 'none';
     }
+
+    // Lógica para mostrar o botão da Mansão e Alquimia
+    if (gameState.manor.owned) {
+        elements.manorBtn.style.display = 'block';
+        elements.alchemyBtn.style.display = 'block';
+    } else {
+        elements.manorBtn.style.display = 'none';
+        elements.alchemyBtn.style.display = 'none';
+    }
+
+    // Lógica para mostrar o botão de Gestão da Seita
+    if (gameState.storyFlags.isSectLeader) {
+        elements.sectManagementBtn.style.display = 'block';
+        elements.sectActionsBtn.style.display = 'none'; // Esconde o botão normal de ações
+    } else {
+        elements.sectManagementBtn.style.display = 'none';
+    }
+
+    // Lógica para mostrar a aba Família
+    if (gameState.spouseId || gameState.children.length > 0) {
+        elements.familyTab.style.display = 'block';
+    } else {
+        elements.familyTab.style.display = 'none';
+    }
+
     updateInventoryList();
     updateRelationshipsList();
 }
 
 export function showDeathScreen() {
-    // ... implementation ...
+    const overlay = document.getElementById('death-screen-overlay');
+    const content = document.getElementById('death-screen-content');
+    if (!overlay || !content || !allGameData.legacies) return;
+
+    const finalRealm = cultivationRealms[gameState.cultivation.realmIndex];
+
+    let summaryHTML = `
+        <h2>O Fim da Jornada</h2>
+        <p>Você viveu até os <strong>${gameState.age}</strong> anos e alcançou o reino de <strong>${finalRealm.name}</strong>.</p>
+        <p>Sua maior riqueza foi <strong>${gameState.resources.money}</strong> moedas.</p>
+        <p>Sua reputação atingiu o pico de <strong>${gameState.resources.reputation}</strong>.</p>
+        <p>Suas habilidades alcançaram: Alquimia Nv. ${gameState.skills.alchemy}, Forja Nv. ${gameState.skills.forging}.</p>
+        <hr>
+        <h3>Seu legado ecoará pela eternidade. Escolha a marca que você deixará para a próxima geração.</h3>
+    `;
+
+    const unlockedLegacies = allGameData.legacies.filter(legacy => {
+        const conditions = legacy.unlockConditions;
+        if (conditions.resources) {
+            for (const resource in conditions.resources) {
+                if (gameState.resources[resource] < conditions.resources[resource]) return false;
+            }
+        }
+        if (conditions.cultivation) {
+            if (gameState.cultivation.realmIndex < conditions.cultivation.realmIndex) return false;
+        }
+        if (conditions.skills) {
+             for (const skill in conditions.skills) {
+                if (gameState.skills[skill] < conditions.skills[skill]) return false;
+            }
+        }
+        return true;
+    });
+
+    if (unlockedLegacies.length > 0) {
+        unlockedLegacies.forEach(legacy => {
+            summaryHTML += `<button class="legacy-button" data-legacy-id="${legacy.id}"><strong>${legacy.name}</strong>: ${legacy.description}</button>`;
+        });
+    } else {
+        summaryHTML += "<p>Você não desbloqueou nenhum legado especial desta vez, mas sua história não será esquecida.</p>";
+    }
+
+    summaryHTML += `<button class="legacy-button" data-legacy-id="none">Começar de novo sem um legado.</button>`;
+
+    // Opção de continuar como herdeiro
+    const livingChildren = gameState.children.map(id => gameState.relationships[id]).filter(c => c && c.alive);
+    if (livingChildren.length > 0) {
+        summaryHTML += `<hr><h3>Sua linhagem pode continuar...</h3>`;
+        livingChildren.forEach(child => {
+            summaryHTML += `<button class="legacy-button heir-button" data-heir-id="${child.id}">Continuar como ${child.name} (Idade ${child.age})</button>`;
+        });
+    }
+
+    content.innerHTML = summaryHTML;
+
+    // Add event listeners to the new buttons
+    const legacyButtons = content.querySelectorAll('.legacy-button');
+    legacyButtons.forEach(button => {
+        button.onclick = () => {
+            const legacyId = button.getAttribute('data-legacy-id');
+            if (legacyId) {
+                selectLegacy(legacyId);
+            }
+        };
+    });
+
+    const heirButtons = content.querySelectorAll('.heir-button');
+    heirButtons.forEach(button => {
+        button.onclick = () => {
+            const heirId = button.getAttribute('data-heir-id');
+            becomeHeir(heirId);
+        };
+    });
+
+    overlay.style.display = 'flex';
 }
 
 function handleCombatTurn(action) {
+    const wasMission = combatState && combatState.missionId;
     const result = takeCombatTurn(action);
+
     if (result === 'win' || result === 'loss') {
         const resultText = endCombat(result);
         elements.eventContent.innerHTML = `<p>${resultText}</p>`;
-        const backToMapButton = document.createElement('button');
-        backToMapButton.textContent = "Voltar ao Mapa";
-        backToMapButton.onclick = () => { showView('map'); updateUI(); };
         elements.choicesContainer.innerHTML = '';
-        elements.choicesContainer.appendChild(backToMapButton);
+
+        if (wasMission) {
+            const backToSectButton = document.createElement('button');
+            backToSectButton.textContent = "Retornar à Seita";
+            backToSectButton.onclick = () => {
+                showSectActions();
+                updateUI();
+            };
+            elements.choicesContainer.appendChild(backToSectButton);
+        } else {
+            const backToMapButton = document.createElement('button');
+            backToMapButton.textContent = "Voltar ao Mapa";
+            backToMapButton.onclick = () => { showView('map'); updateUI(); };
+            elements.choicesContainer.appendChild(backToMapButton);
+        }
     } else {
         showCombatUI();
     }
@@ -215,7 +403,14 @@ export function showCombatUI() {
     if (!combatState) return;
     showView('event');
     const combatLog = combatState.log.map(entry => `<p>${entry}</p>`).join('');
-    const combatHTML = `<h2>Combate!</h2><p><strong>${combatState.enemy.name}</strong> - Saúde: ${combatState.enemyHealth}</p><p><strong>Você</strong> - Saúde: ${gameState.attributes.health}</p><hr><div class="combat-log">${combatLog}</div>`;
+
+    const playerStatusText = combatState.playerStatusEffects.map(e => `${e.type} (${e.duration})`).join(', ');
+    const enemyStatusText = combatState.enemyStatusEffects.map(e => `${e.type} (${e.duration})`).join(', ');
+
+    const combatHTML = `<h2>Combate!</h2>
+        <p><strong>${combatState.enemy.name}</strong> - Saúde: ${combatState.enemyHealth} ${enemyStatusText ? `| Efeitos: ${enemyStatusText}` : ''}</p>
+        <p><strong>Você</strong> - Saúde: ${gameState.attributes.health} ${playerStatusText ? `| Efeitos: ${playerStatusText}` : ''}</p>
+        <hr><div class="combat-log">${combatLog}</div>`;
     elements.eventContent.innerHTML = combatHTML;
     elements.choicesContainer.innerHTML = '';
     const attackButton = document.createElement('button');
@@ -261,12 +456,178 @@ export function showView(viewName) {
     elements.interactionView.classList.remove('active');
     elements.alchemyView.classList.remove('active');
     elements.hubView.classList.remove('active');
+    elements.manorView.classList.remove('active');
 
     if (viewName === 'map') elements.mapView.classList.add('active');
     else if (viewName === 'event') elements.eventView.classList.add('active');
     else if (viewName === 'interaction') elements.interactionView.classList.add('active');
     else if (viewName === 'alchemy') elements.alchemyView.classList.add('active');
     else if (viewName === 'hub') elements.hubView.classList.add('active');
+    else if (viewName === 'manor') elements.manorView.classList.add('active');
+    else if (viewName === 'sect_management') elements.sectManagementView.classList.add('active');
+}
+
+export function showSectManagementView() {
+    showView('sect_management');
+    const container = document.getElementById('sect-management-container');
+    container.innerHTML = `
+        <h4>Recrutamento</h4>
+        <p><strong>Discípulos Atuais:</strong> ${gameState.sect.discipleCount}</p>
+        <button id="recruit-disciples-btn">Recrutar Discípulos (Custo: 100 Contribuição)</button>
+        <hr>
+        <h4>Missões</h4>
+        <button id="send-disciples-btn">Enviar Discípulos em Missão Genérica (Custo: 50 Contribuição)</button>
+        <hr>
+        <h4>Desenvolvimento</h4>
+        <button id="sect-skills-btn">Habilidades da Seita</button>
+        <hr>
+        <h4>Relações Exteriores</h4>
+        <button id="diplomacy-btn">Diplomacia</button>
+    `;
+
+    document.getElementById('recruit-disciples-btn').onclick = () => {
+        handleSpecialEffects('recruit_disciples');
+        showSectManagementView(); // Refresh view
+    };
+
+    document.getElementById('send-disciples-btn').onclick = () => {
+        handleSpecialEffects('send_disciples_on_mission');
+        showSectManagementView(); // Refresh view
+    };
+
+    document.getElementById('sect-skills-btn').onclick = () => {
+        showSectSkillsView();
+    };
+
+    document.getElementById('diplomacy-btn').onclick = () => {
+        showDiplomacyView();
+    };
+}
+
+function showDiplomacyView() {
+    showView('event');
+    const sect = getSect();
+    elements.eventContent.innerHTML = `<h2>Mesa de Diplomacia: ${sect.name}</h2>`;
+    elements.choicesContainer.innerHTML = '';
+
+    const otherSects = allGameData.sects.filter(s => s.id !== sect.id);
+    otherSects.forEach(otherSect => {
+        const div = document.createElement('div');
+        div.innerHTML = `<h4>${otherSect.name}</h4><p>Reputação: ${gameState.resources.reputation[otherSect.id] || 0}</p>`;
+
+        const giftButton = document.createElement('button');
+        giftButton.textContent = "Enviar Presente (Custo: 100 Contribuição)";
+        if (gameState.sect.contribution < 100) {
+            giftButton.disabled = true;
+        }
+        giftButton.onclick = () => {
+            handleSpecialEffects('send_diplomatic_gift', { targetSectId: otherSect.id });
+            showDiplomacyView();
+        };
+
+        div.appendChild(giftButton);
+        elements.choicesContainer.appendChild(div);
+    });
+
+    const backButton = document.createElement('button');
+    backButton.textContent = "Voltar à Gestão da Seita";
+    backButton.onclick = () => showSectManagementView();
+    elements.choicesContainer.appendChild(backButton);
+}
+
+function showSectSkillsView() {
+    showView('event');
+    elements.eventContent.innerHTML = `<h2>Habilidades da Seita</h2>`;
+    elements.choicesContainer.innerHTML = '';
+
+    allGameData.sect_skills.forEach(skill => {
+        const skillDiv = document.createElement('div');
+        skillDiv.className = 'sect-skill';
+
+        let buttonHTML = '';
+        if (gameState.sect.unlockedSkills.includes(skill.id)) {
+            skillDiv.classList.add('unlocked');
+            buttonHTML = '<button disabled>Desbloqueada</button>';
+        } else if (gameState.sect.contribution >= skill.cost.contribution && gameState.sect.favor >= skill.cost.favor) {
+            skillDiv.classList.add('unlockable');
+            buttonHTML = `<button onclick="window.unlockSectSkill('${skill.id}')">Desbloquear</button>`;
+        } else {
+            skillDiv.classList.add('locked');
+            buttonHTML = '<button disabled>Bloqueada</button>';
+        }
+
+        skillDiv.innerHTML = `
+            <h4>${skill.name}</h4>
+            <p>${skill.description}</p>
+            <p><strong>Custo:</strong> ${skill.cost.contribution} Contribuição, ${skill.cost.favor} Favor</p>
+            ${buttonHTML}
+        `;
+        elements.choicesContainer.appendChild(skillDiv);
+    });
+
+    const backButton = document.createElement('button');
+    backButton.textContent = "Voltar à Gestão da Seita";
+    backButton.onclick = () => showSectManagementView();
+    elements.choicesContainer.appendChild(backButton);
+}
+
+export function showManorView() {
+    showView('manor');
+    const manorContainer = document.getElementById('manor-upgrades-container');
+    manorContainer.innerHTML = '<h3>Instalações</h3>';
+
+    const facilities = [
+        { id: 'alchemyLab', name: 'Laboratório de Alquimia', description: 'Melhora a chance de sucesso na alquimia.' },
+        { id: 'spiritGatheringFormation', name: 'Formação de Coleta Espiritual', description: 'Aumenta o ganho de Qi passivo a cada ano.' },
+        { id: 'sparringGround', name: 'Campo de Treino', description: 'Permite treinar atributos físicos de forma mais eficaz.' }
+    ];
+
+    facilities.forEach(facility => {
+        const level = gameState.manor[`${facility.id}Level`];
+        const cost = (allGameData.config.costs.manor_upgrades[facility.id] || 500) * (level + 1);
+
+        const facilityDiv = document.createElement('div');
+        facilityDiv.className = 'manor-facility';
+        facilityDiv.innerHTML = `
+            <h4>${facility.name} (Nível ${level})</h4>
+            <p>${facility.description}</p>
+        `;
+
+        const upgradeButton = document.createElement('button');
+        upgradeButton.textContent = `Melhorar (Custo: ${cost} moedas)`;
+
+        if (gameState.resources.money < cost) {
+            upgradeButton.disabled = true;
+        }
+
+        upgradeButton.onclick = () => {
+            const result = upgradeManorFacility(facility.id);
+            if (!result.success) {
+                alert(result.message);
+            }
+            showManorView(); // Refresh
+            updateUI();
+        };
+
+        facilityDiv.appendChild(upgradeButton);
+        manorContainer.appendChild(facilityDiv);
+    });
+
+    const backButton = document.createElement('button');
+    backButton.textContent = "Voltar ao Mapa";
+    backButton.onclick = () => showView('map');
+    manorContainer.appendChild(backButton);
+
+    // Add Train button if sparring ground exists
+    if (gameState.manor.sparringGroundLevel > 0) {
+        const trainButton = document.createElement('button');
+        trainButton.textContent = `Treinar no Campo de Treino (Passar 1 Mês)`;
+        trainButton.onclick = () => {
+            // This will call advanceMonth with a new action type
+            window.advanceMonth('train_manor');
+        };
+        manorContainer.appendChild(trainButton);
+    }
 }
 
 export function showHubView(region) {
@@ -370,14 +731,14 @@ function showTeaHouseView() {
     elements.hubContentContainer.innerHTML += '<p>O ar está cheio do aroma de chá e conversas sussurradas.</p>';
 
     const listenButton = document.createElement('button');
-    listenButton.textContent = 'Ouvir conversas (Custa 5 moedas)';
+    listenButton.textContent = `Ouvir conversas (Custa ${allGameData.config.costs.listenToRumors} moedas)`;
 
-    if (gameState.resources.money < 5) {
+    if (gameState.resources.money < allGameData.config.costs.listenToRumors) {
         listenButton.disabled = true;
     }
 
     listenButton.onclick = () => {
-        applyEffects({ resources: { money: -5 } });
+        applyEffects({ resources: { money: -allGameData.config.costs.listenToRumors } });
         const result = listenForRumors();
         const resultDiv = document.createElement('div');
         resultDiv.innerHTML = `<p><i>${result.message}</i></p>`;
@@ -391,17 +752,39 @@ function showTeaHouseView() {
 
 function showBlacksmithView() {
     elements.hubContentContainer.innerHTML = '<h3>Forja</h3>';
-    elements.hubContentContainer.innerHTML += `<p><strong>Nível de Forja:</strong> ${gameState.skills.forging}</p>`;
+    elements.hubContentContainer.innerHTML += `<p><strong>Nível de Forja:</strong> ${gameState.skills.forging}</p><hr>`;
 
-    // Renderiza as receitas de forja
+    const playerIngredients = gameState.inventory.reduce((acc, itemId) => {
+        acc[itemId] = (acc[itemId] || 0) + 1;
+        return acc;
+    }, {});
+
     const recipesContainer = document.createElement('div');
     allGameData.forging_recipes.forEach(recipe => {
         const recipeDiv = document.createElement('div');
-        recipeDiv.className = 'recipe';
+        recipeDiv.className = 'recipe'; // Re-use alchemy style for consistency
+
+        let ingredientsText = '';
+        let canCraft = true;
+        recipe.ingredients.forEach(ing => {
+            const itemData = allGameData.forging_ingredients.find(i => i.id === ing.id);
+            const playerHas = playerIngredients[ing.id] || 0;
+            const hasEnough = playerHas >= ing.quantity;
+            if (!hasEnough) canCraft = false;
+            ingredientsText += `<span style="color: ${hasEnough ? 'green' : 'red'};">${ing.quantity}x ${itemData.name} (Você tem ${playerHas})</span><br>`;
+        });
+
         const resultItem = allGameData.equipment.find(i => i.id === recipe.result);
-        recipeDiv.innerHTML = `<h4>${resultItem.name}</h4>`;
+        recipeDiv.innerHTML = `
+            <h4>${resultItem.name}</h4>
+            <p><small>Requer (Nível de Forja ${recipe.skillRequired}):<br>${ingredientsText}</small></p>
+        `;
+
         const craftButton = document.createElement('button');
         craftButton.textContent = 'Forjar';
+        if (!canCraft || gameState.skills.forging < recipe.skillRequired) {
+            craftButton.disabled = true;
+        }
         craftButton.onclick = () => {
             const result = forgeItem(recipe.id);
             showBlacksmithView(); // Re-renderiza a view
@@ -414,6 +797,27 @@ function showBlacksmithView() {
         recipesContainer.appendChild(recipeDiv);
     });
     elements.hubContentContainer.appendChild(recipesContainer);
+
+    // Show player's forging ingredients
+    elements.hubContentContainer.innerHTML += '<hr><h3>Seus Materiais de Forja</h3>';
+    const ingredientsList = document.createElement('ul');
+    const playerForgingIngredients = gameState.inventory.filter(itemId => allGameData.forging_ingredients.some(ing => ing.id === itemId));
+    const ingredientCounts = playerForgingIngredients.reduce((acc, itemId) => {
+        acc[itemId] = (acc[itemId] || 0) + 1;
+        return acc;
+    }, {});
+
+    if (Object.keys(ingredientCounts).length === 0) {
+        ingredientsList.innerHTML = '<li>Você não possui materiais de forja.</li>';
+    } else {
+        for (const itemId in ingredientCounts) {
+            const itemData = allGameData.forging_ingredients.find(i => i.id === itemId);
+            const li = document.createElement('li');
+            li.textContent = `${ingredientCounts[itemId]}x ${itemData.name}`;
+            ingredientsList.appendChild(li);
+        }
+    }
+    elements.hubContentContainer.appendChild(ingredientsList);
 }
 
 export function showAlchemyView() {
@@ -545,6 +949,51 @@ function showInteractionView(npcId) {
     backButton.textContent = 'Voltar ao Mapa';
     backButton.onclick = () => showView('map');
     elements.interactionOptionsContainer.appendChild(backButton);
+
+    // Lógica de Mentoria
+    if (npc.mentorship && !gameState.storyFlags[`apprentice_${npc.id}`]) {
+        const reqs = npc.mentorship.requirements;
+        let meetsReqs = true;
+        let reqsText = "Requisitos: ";
+
+        if (reqs.relationship && gameState.relationships[npc.id].initialRelationship < reqs.relationship) {
+            meetsReqs = false;
+            reqsText += `Relacionamento ${reqs.relationship}, `;
+        }
+        if (reqs.skills) {
+            for (const skill in reqs.skills) {
+                if (gameState.skills[skill] < reqs.skills[skill]) {
+                    meetsReqs = false;
+                    reqsText += `${skill.charAt(0).toUpperCase() + skill.slice(1)} Nv. ${reqs.skills[skill]}, `;
+                }
+            }
+        }
+
+        const apprenticeButton = document.createElement('button');
+        apprenticeButton.textContent = 'Pedir para ser aprendiz';
+        if (meetsReqs) {
+            apprenticeButton.onclick = () => {
+                handleSpecialEffects(`become_apprentice_${npc.id}`);
+                // Refresh a view para esconder o botão
+                showInteractionView(npcId);
+            };
+        } else {
+            apprenticeButton.disabled = true;
+            apprenticeButton.title = reqsText.slice(0, -2);
+        }
+        elements.interactionOptionsContainer.appendChild(apprenticeButton);
+    }
+
+    // Lógica de Casamento
+    if (npc.canMarry && !gameState.spouseId && npc.initialRelationship >= 100) {
+        const marryButton = document.createElement('button');
+        marryButton.textContent = 'Propor Casamento';
+        marryButton.onclick = () => {
+            handleSpecialEffects(`propose_marriage`, npc);
+            showInteractionView(npcId); // Refresh view
+        };
+        elements.interactionOptionsContainer.appendChild(marryButton);
+    }
 }
 
 export function renderTechniquesView() {
@@ -742,6 +1191,24 @@ export function renderMap() {
             elements.regionsContainer.appendChild(regionButton);
         }
     });
+
+    // Add discovered Points of Interest for the current region
+    const currentRegionId = gameState.currentRegionId;
+    const discoveredPoIs = gameState.discoveredPoIs.map(poiId => allGameData.points_of_interest.find(p => p.id === poiId));
+    const poisInCurrentRegion = discoveredPoIs.filter(poi => poi && poi.regionId === currentRegionId);
+
+    if (poisInCurrentRegion.length > 0) {
+        const poiContainer = document.createElement('div');
+        poiContainer.innerHTML = '<hr><h3>Locais Descobertos</h3>';
+        poisInCurrentRegion.forEach(poi => {
+            const poiButton = document.createElement('button');
+            poiButton.className = 'poi-button';
+            poiButton.textContent = `Revisitar: ${poi.name}`;
+            poiButton.onclick = () => showEvent(poi.events[0]);
+            poiContainer.appendChild(poiButton);
+        });
+        elements.regionsContainer.appendChild(poiContainer);
+    }
 }
 
 export function updateActionLogUI() {
@@ -754,7 +1221,9 @@ export function setupTabs() {
         { button: elements.historyTab, content: elements.historyLogContent, onOpen: updateActionLogUI },
         { button: elements.talentsTab, content: elements.talentsContent, onOpen: renderTalents },
         { button: elements.techniquesTab, content: elements.techniquesContent, onOpen: renderTechniquesView },
-        { button: elements.equipmentTab, content: elements.equipmentContent, onOpen: renderEquipmentView }
+        { button: elements.equipmentTab, content: elements.equipmentContent, onOpen: renderEquipmentView },
+        { button: elements.relationshipsTab, content: elements.relationshipsContent, onOpen: updateRelationshipsList },
+        { button: elements.familyTab, content: elements.familyContent, onOpen: renderFamilyView }
     ];
     tabs.forEach(tab => {
         tab.button.addEventListener('click', () => {
@@ -767,6 +1236,25 @@ export function setupTabs() {
             if (tab.onOpen) tab.onOpen();
         });
     });
+
+    // Setup Accordion
+    const accordions = document.querySelectorAll('.accordion-header');
+    accordions.forEach(accordion => {
+        accordion.addEventListener('click', () => {
+            accordion.classList.toggle('active');
+            const content = accordion.nextElementSibling;
+            if (content.style.maxHeight) {
+                content.style.maxHeight = null;
+            } else {
+                content.style.maxHeight = content.scrollHeight + "px";
+            }
+        });
+    });
+
+    // Setup NPC Search Bar
+    elements.npcSearchBar.addEventListener('input', (e) => {
+        updateRelationshipsList(e.target.value);
+    });
 }
 
 export function renderTalents() {
@@ -776,30 +1264,35 @@ export function renderTalents() {
 export function showSectActions() {
     showView('event');
     const sect = getSect();
-    elements.eventContent.innerHTML = `<p>Você está no pátio principal da sua seita: ${sect.name}.</p>`;
+    elements.eventContent.innerHTML = `<h2>Ações da Seita: ${sect.name}</h2>`;
     elements.choicesContainer.innerHTML = '';
 
-    const missionButton = document.createElement('button');
-    missionButton.textContent = "Aceitar Missão da Seita";
-    missionButton.onclick = () => {
-        const mission = acceptSectMission();
-        let message;
-        if (mission) {
-            const success = attemptMission(mission);
-            message = `Você completou a missão '${mission.name}'. ${success ? 'Sucesso!' : 'Falha.'}`;
-        } else {
-            message = `<p>Não há missões disponíveis.</p>`;
-        }
-        elements.eventContent.innerHTML = message;
-        const backToMapButton = document.createElement('button');
-        backToMapButton.textContent = "Voltar ao Mapa";
-        backToMapButton.onclick = () => { showView('map'); updateUI(); };
-        elements.choicesContainer.innerHTML = '';
-        elements.choicesContainer.appendChild(backToMapButton);
-        updateUI();
-    };
-    elements.choicesContainer.appendChild(missionButton);
+    // Mostra missões disponíveis
+    elements.eventContent.innerHTML += '<h3>Missões Disponíveis</h3>';
+    if (sect.missions && sect.missions.length > 0) {
+        sect.missions.forEach(mission => {
+            if (gameState.sect.rankIndex >= mission.rankRequired) {
+                const missionButton = document.createElement('button');
+                missionButton.textContent = `Aceitar: ${mission.name}`;
+                missionButton.onclick = () => {
+                    attemptMission(mission.id);
+                    // For non-combat missions, we need to refresh the view to show results.
+                    // Combat missions will automatically switch to the combat UI.
+                    if (mission.check.type !== 'combat') {
+                        showSectActions(); // Simple refresh for now
+                        updateUI();
+                    }
+                };
+                elements.choicesContainer.appendChild(missionButton);
+            }
+        });
+    } else {
+        elements.eventContent.innerHTML += '<p>Não há missões disponíveis no momento.</p>';
+    }
 
+    elements.eventContent.innerHTML += '<hr>';
+
+    // Botão de Promoção
     const promotionButton = document.createElement('button');
     const nextRankIndex = gameState.sect.rankIndex + 1;
     if (nextRankIndex < sect.ranks.length) {
@@ -820,5 +1313,100 @@ export function showSectActions() {
     const backButton = document.createElement('button');
     backButton.textContent = "Voltar ao Mapa";
     backButton.onclick = () => showView('map');
+    elements.choicesContainer.appendChild(backButton);
+
+    // Botão do Tesouro da Seita
+    if (sect.treasury && sect.treasury.length > 0) {
+        const treasuryButton = document.createElement('button');
+        treasuryButton.textContent = "Ver Tesouro da Seita";
+        treasuryButton.onclick = () => showSectTreasury(sect);
+        elements.choicesContainer.appendChild(treasuryButton);
+    }
+
+    // Botão do Conselho da Seita
+    if (gameState.sect.rankIndex >= 2) { // Must be at least Elite Disciple
+        const councilButton = document.createElement('button');
+        councilButton.textContent = "Concílio da Seita";
+        councilButton.onclick = () => showSectCouncilView(sect);
+        elements.choicesContainer.appendChild(councilButton);
+    }
+}
+
+function showSectTreasury(sect) {
+    showView('event');
+    elements.eventContent.innerHTML = `<h2>Tesouro da Seita: ${sect.name}</h2>`;
+    elements.eventContent.innerHTML += `<p>Itens especiais podem ser adquiridos aqui com pontos de Contribuição ou Favor do Ancião.</p>`;
+    elements.eventContent.innerHTML += `<p>Sua Contribuição: ${gameState.sect.contribution} | Seu Favor: ${gameState.sect.favor}</p><hr>`;
+    elements.choicesContainer.innerHTML = '';
+
+    sect.treasury.forEach(item => {
+        const itemButton = document.createElement('button');
+        const costType = item.costType || 'contribution'; // Padrão para contribuição
+        const playerResource = gameState.sect[costType];
+
+        itemButton.textContent = `Comprar ${item.name} (${item.cost} ${costType})`;
+
+        if (playerResource < item.cost) {
+            itemButton.disabled = true;
+            itemButton.title = `Você precisa de ${item.cost} de ${costType}.`;
+        }
+
+        itemButton.onclick = () => {
+            gameState.sect[costType] -= item.cost;
+            gameState.inventory.push(item.id);
+            logLifeEvent(`Você adquiriu ${item.name} do tesouro da seita.`);
+            showSectTreasury(sect); // Refresh a view
+            updateUI();
+        };
+        elements.choicesContainer.appendChild(itemButton);
+    });
+
+    const backButton = document.createElement('button');
+    backButton.textContent = "Voltar às Ações da Seita";
+    backButton.onclick = () => showSectActions();
+    elements.choicesContainer.appendChild(backButton);
+}
+
+export function showTutorial(tutorial) {
+    const overlay = document.getElementById('tutorial-overlay');
+    document.getElementById('tutorial-title').textContent = tutorial.title;
+    document.getElementById('tutorial-text').textContent = tutorial.text;
+    overlay.style.display = 'flex';
+
+    document.getElementById('tutorial-close-btn').onclick = () => {
+        overlay.style.display = 'none';
+    };
+}
+
+function showSectCouncilView(sect) {
+    showView('event');
+    elements.eventContent.innerHTML = `<h2>Concílio da Seita: ${sect.name}</h2>`;
+    elements.choicesContainer.innerHTML = '';
+
+    let content = `<p>Aqui você pode ver seu progresso para se tornar o líder da seita.</p>`;
+    content += `<p><strong>Favor dos Anciãos:</strong> ${gameState.sect.favor}</p><hr>`;
+
+    if (gameState.storyFlags.isSectLeader) {
+        content += '<p>Você é o Mestre da Seita! Sua palavra é lei.</p>';
+    } else {
+        const nextRankIndex = gameState.sect.rankIndex + 1;
+        if (nextRankIndex < sect.ranks.length) {
+             content += '<p>Continue a subir nas fileiras e ganhar favor para provar seu valor.</p>';
+        } else {
+            content += '<p>Você está no auge das fileiras. Apenas um desafio final permanece.</p>';
+            const favorNeeded = 100; // Hardcoded for now, should be in config
+            if (gameState.sect.favor >= favorNeeded) {
+                content += '<p style="color: green;">Você tem favor suficiente para desafiar a liderança!</p>';
+            } else {
+                content += `<p style="color: red;">Você precisa de mais ${favorNeeded - gameState.sect.favor} de favor para desafiar a liderança.</p>`;
+            }
+        }
+    }
+
+    elements.eventContent.innerHTML += content;
+
+    const backButton = document.createElement('button');
+    backButton.textContent = "Voltar às Ações da Seita";
+    backButton.onclick = () => showSectActions();
     elements.choicesContainer.appendChild(backButton);
 }
