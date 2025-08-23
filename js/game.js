@@ -39,7 +39,10 @@ document.addEventListener('DOMContentLoaded', () => {
         combatEnemyName: document.getElementById('combat-enemy-name'),
         combatEnemyHp: document.getElementById('combat-enemy-hp'),
         combatLog: document.getElementById('combat-log'),
-        combatActions: document.getElementById('combat-actions')
+        combatActions: document.getElementById('combat-actions'),
+
+        // Relações
+        relationshipsList: document.getElementById('relationships-list')
     };
 
     // --- CARREGAMENTO DE DADOS ---
@@ -48,13 +51,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const responses = await Promise.all([
                 fetch('data/events.json'), fetch('data/items.json'), fetch('data/sects.json'),
                 fetch('data/enemies.json'), fetch('data/talents.json'), fetch('data/strings.json'),
-                fetch('data/random_events.json'), fetch('data/nomes.json')
+                fetch('data/random_events.json'), fetch('data/nomes.json'), fetch('data/personalidades.json')
             ]);
             for (const res of responses) {
                 if (!res.ok) throw new Error(`Falha ao carregar ${res.url}`);
             }
-            const [events, items, sects, enemies, talents, strings, randomEvents, nomes] = await Promise.all(responses.map(res => res.json()));
-            allGameData = { events, items, sects, enemies, talents, randomEvents, nomes };
+            const [events, items, sects, enemies, talents, strings, randomEvents, nomes, personalidades] = await Promise.all(responses.map(res => res.json()));
+            allGameData = { events, items, sects, enemies, talents, randomEvents, nomes, personalidades };
             allStrings = strings;
             initializeGame();
         } catch (error) {
@@ -69,14 +72,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function generateCharacter(id, gender) {
-        const { nomes } = allGameData;
+        const { nomes, personalidades } = allGameData;
         const firstName = getRandomElement(nomes[gender]);
         const lastName = getRandomElement(nomes.apelidos);
+        const personality = getRandomElement(personalidades);
         const baseAttributes = { body: 10, mind: 10, soul: 10, luck: 5 };
         return {
             id,
             name: `${firstName} ${lastName}`,
             gender,
+            personality,
             attributes: { ...baseAttributes },
             combat: {
                 maxHp: baseAttributes.body * 5,
@@ -218,6 +223,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 elements.meditateBtn.classList.remove('breakthrough-ready');
             }
         }
+
+        // Atualizar lista de relações
+        elements.relationshipsList.innerHTML = '';
+        for (const npcId in gameState.relationships) {
+            const npc = gameState.npcs[npcId];
+            const rel = gameState.relationships[npcId];
+            if (npc) {
+                const li = document.createElement('li');
+                li.textContent = `${npc.name}: ${rel.state} (${rel.score})`;
+                elements.relationshipsList.appendChild(li);
+            }
+        }
     }
 
     function advanceYear() {
@@ -254,6 +271,31 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         updateUI();
+        updateRelationshipStates();
+    }
+
+    // --- LÓGICA DE RELACIONAMENTOS ---
+    function updateRelationshipStates() {
+        let lowestScore = Infinity;
+        let rivalId = null;
+
+        for (const npcId in gameState.relationships) {
+            const rel = gameState.relationships[npcId];
+            if (rel.score < lowestScore) {
+                lowestScore = rel.score;
+                rivalId = npcId;
+            }
+
+            if (rel.score <= -50) {
+                rel.state = 'Inimigo';
+            } else if (rel.score > -50 && rel.score < 50) {
+                rel.state = 'Neutro';
+            } else if (rel.score >= 50) {
+                rel.state = 'Amigo';
+            }
+        }
+
+        gameState.npcs.rival = gameState.npcs[rivalId];
     }
 
     // --- LÓGICA DE CULTIVO E TALENTOS ---
