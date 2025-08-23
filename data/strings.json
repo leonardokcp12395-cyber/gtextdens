@@ -14,5 +14,7 @@
   "stumble_unlucky": "Você levanta-se, limpando o pó da sua roupa. O seu tornozelo dói, mas vai ficar bem.",
   "joined_hidden_cloud": "Você foi aceito como um discípulo da Seita da Nuvem Oculta. Um novo capítulo começa.",
   "joined_iron_body": "Você foi aceito como um discípulo da Seita do Corpo de Ferro. Um novo capítulo começa.",
-  "declined_sects": "Você decide que o seu caminho é solitário, por enquanto. As seitas retiram suas ofertas, e você continua sua jornada independente."
+  "declined_sects": "Você decide que o seu caminho é solitário, por enquanto. As seitas retiram suas ofertas, e você continua sua jornada independente.",
+  "rival_confrontation_ignored": "[RIVAL] estala a língua, irritado com a sua falta de reação, e volta ao seu treino.",
+  "rival_confrontation_insult": "Os olhos de [RIVAL] faíscam de raiva. 'Você vai se arrepender dessas palavras.' Ele se afasta, mas a tensão entre vocês é palpável."
 }

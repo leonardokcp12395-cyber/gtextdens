@@ -109,5 +109,26 @@
         "resultKey": "declined_sects"
       }
     ]
+  },
+  {
+    "id": "rival_confrontation_age_16",
+    "age": 16,
+    "text": "Você encontra [RIVAL] no campo de treino. Ele te lança um olhar de desdém. 'Saia do meu caminho, [PLAYER_NAME]. Pessoas fracas como você só me atrapalham.'",
+    "choices": [
+      {
+        "text": "Ignorá-lo.",
+        "effects": {
+          "relationships": { "rival": -5 }
+        },
+        "resultKey": "rival_confrontation_ignored"
+      },
+      {
+        "text": "'O único fraco aqui é você.'",
+        "effects": {
+          "relationships": { "rival": -10 }
+        },
+        "resultKey": "rival_confrontation_insult"
+      }
+    ]
   }
 ]

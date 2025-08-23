@@ -13,7 +13,8 @@ document.addEventListener('DOMContentLoaded', () => {
         actionsContainer: document.getElementById('actions-container'),
         combatScreen: document.getElementById('combat-screen'),
 
-        // Atributos
+        // Personagem
+        playerName: document.getElementById('player-name'),
         age: document.getElementById('char-age'),
         body: document.getElementById('attr-body'),
         mind: document.getElementById('attr-mind'),
@@ -47,13 +48,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const responses = await Promise.all([
                 fetch('data/events.json'), fetch('data/items.json'), fetch('data/sects.json'),
                 fetch('data/enemies.json'), fetch('data/talents.json'), fetch('data/strings.json'),
-                fetch('data/random_events.json')
+                fetch('data/random_events.json'), fetch('data/nomes.json')
             ]);
             for (const res of responses) {
                 if (!res.ok) throw new Error(`Falha ao carregar ${res.url}`);
             }
-            const [events, items, sects, enemies, talents, strings, randomEvents] = await Promise.all(responses.map(res => res.json()));
-            allGameData = { events, items, sects, enemies, talents, randomEvents };
+            const [events, items, sects, enemies, talents, strings, randomEvents, nomes] = await Promise.all(responses.map(res => res.json()));
+            allGameData = { events, items, sects, enemies, talents, randomEvents, nomes };
             allStrings = strings;
             initializeGame();
         } catch (error) {
@@ -62,12 +63,45 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // --- LÓGICA DE GERAÇÃO PROCESSUAL ---
+    function getRandomElement(arr) {
+        return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    function generateCharacter(id, gender) {
+        const { nomes } = allGameData;
+        const firstName = getRandomElement(nomes[gender]);
+        const lastName = getRandomElement(nomes.apelidos);
+        const baseAttributes = { body: 10, mind: 10, soul: 10, luck: 5 };
+        return {
+            id,
+            name: `${firstName} ${lastName}`,
+            gender,
+            attributes: { ...baseAttributes },
+            combat: {
+                maxHp: baseAttributes.body * 5,
+                hp: baseAttributes.body * 5,
+                attack: 5 + Math.floor(baseAttributes.body / 2),
+                defense: 2 + Math.floor(baseAttributes.mind / 5)
+            }
+        };
+    }
+
     // --- LÓGICA DE JOGO PRINCIPAL ---
+
+    function processText(text) {
+        if (!text) return '';
+        const rival = gameState.npcs.rival;
+        let processedText = text.replace(/\[RIVAL\]/g, rival ? rival.name : 'Rival');
+        processedText = processedText.replace(/\[PLAYER_NAME\]/g, gameState.player.name);
+        return processedText;
+    }
+
     function applyEffects(effects) {
         if (!effects) return;
         if (effects.attributes) {
             for (const attr in effects.attributes) {
-                if (gameState.attributes.hasOwnProperty(attr)) gameState.attributes[attr] += effects.attributes[attr];
+                if (gameState.player.attributes.hasOwnProperty(attr)) gameState.player.attributes[attr] += effects.attributes[attr];
             }
         }
         if (effects.resources) {
@@ -77,7 +111,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (effects.combat) {
             for (const stat in effects.combat) {
-                if (gameState.combat.hasOwnProperty(stat)) gameState.combat[stat] += effects.combat[stat];
+                if (gameState.player.combat.hasOwnProperty(stat)) gameState.player.combat[stat] += effects.combat[stat];
+            }
+        }
+        if (effects.relationships) {
+            for (const npcId in effects.relationships) {
+                if (gameState.relationships.hasOwnProperty(npcId)) {
+                    gameState.relationships[npcId].score += effects.relationships[npcId];
+                }
             }
         }
         if (effects.special) handleSpecialEffects(effects.special);
@@ -92,18 +133,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const joinSectMatch = effect.match(/^join_sect_(.+)/);
         if (joinSectMatch) {
             gameState.sect.id = joinSectMatch[1];
-            // Futuramente, podemos adicionar mais efeitos aqui, como ganhar um item inicial.
-            return; // O fluxo normal de UI já trata o resto
+            return;
         }
         switch (effect) {
             case 'explore_cave':
                 elements.choicesContainer.innerHTML = '';
                 if (Math.random() < 0.5) {
                     elements.eventContent.innerHTML = `<p>${allStrings['explore_cave_success']}</p>`;
-                    gameState.attributes.mind += 2;
+                    gameState.player.attributes.mind += 2;
                 } else {
                     elements.eventContent.innerHTML = `<p>${allStrings['explore_cave_failure']}</p>`;
-                    gameState.attributes.body -= 1;
+                    gameState.player.attributes.body -= 1;
                 }
                 elements.actionsContainer.classList.remove('hidden');
                 updateUI();
@@ -113,8 +153,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (breakthroughEvent) showEvent(breakthroughEvent);
                 break;
             case 'attempt_breakthrough_roll':
-                const { cultivation, attributes } = gameState;
-                const successChance = 0.5 + (attributes.luck * 0.02);
+                const { cultivation } = gameState;
+                const successChance = 0.5 + (gameState.player.attributes.luck * 0.02);
                 if (Math.random() < successChance) {
                     cultivation.level++;
                     cultivation.qi = 0;
@@ -135,18 +175,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function showEvent(event) {
-        elements.eventContent.innerHTML = `<p>${event.text}</p>`;
+        elements.eventContent.innerHTML = `<p>${processText(event.text)}</p>`;
         elements.choicesContainer.innerHTML = '';
         event.choices.forEach(choice => {
             const button = document.createElement('button');
-            button.textContent = choice.text;
+            button.textContent = processText(choice.text);
             button.onclick = () => {
                 if (choice.effects && choice.effects.special) {
                     applyEffects(choice.effects);
                 } else {
                     applyEffects(choice.effects);
                     const resultText = allStrings[choice.resultKey] || "Chave de texto não encontrada.";
-                    elements.eventContent.innerHTML = `<p>${resultText}</p>`;
+                    elements.eventContent.innerHTML = `<p>${processText(resultText)}</p>`;
                     elements.choicesContainer.innerHTML = '';
                     elements.actionsContainer.classList.remove('hidden');
                     updateUI();
@@ -158,9 +198,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateUI() {
+        elements.playerName.textContent = gameState.player.name;
         elements.age.textContent = gameState.age;
-        elements.body.textContent = gameState.attributes.body;
-        elements.mind.textContent = gameState.attributes.mind;
+        elements.body.textContent = gameState.player.attributes.body;
+        elements.mind.textContent = gameState.player.attributes.mind;
         elements.money.textContent = gameState.resources.money;
         elements.talentPoints.textContent = gameState.resources.talentPoints;
         if (gameState.cultivation) {
@@ -180,7 +221,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function advanceYear() {
-        // Aplica benefícios passivos da seita no início do ano
         if (gameState.sect.id) {
             const sectData = allGameData.sects.find(s => s.id === gameState.sect.id);
             if (sectData && sectData.benefit) {
@@ -188,33 +228,28 @@ document.addEventListener('DOMContentLoaded', () => {
                     gameState.cultivation.qi = Math.min(gameState.cultivation.maxQi, gameState.cultivation.qi + sectData.benefit.value);
                 }
                 if (sectData.benefit.type === 'body_cultivation_boost' && (gameState.age % 5 === 0)) {
-                    gameState.attributes.body += sectData.benefit.value;
+                    gameState.player.attributes.body += sectData.benefit.value;
                 }
             }
         }
-
         gameState.age++;
         const eventForAge = allGameData.events.find(event => {
             if (event.age !== gameState.age) return false;
             if (event.condition) {
-                if (event.condition.failedSpecial && gameState.lastFailedSpecial === event.condition.failedSpecial) {
-                    return true;
-                }
+                if (event.condition.failedSpecial && gameState.lastFailedSpecial === event.condition.failedSpecial) return true;
                 return false;
             }
             return true;
         });
         if (eventForAge) {
             showEvent(eventForAge);
-            if (eventForAge.condition) {
-                gameState.lastFailedSpecial = null;
-            }
+            if (eventForAge.condition) gameState.lastFailedSpecial = null;
         } else {
             if (Math.random() < 0.25 && allGameData.randomEvents && allGameData.randomEvents.length > 0) {
                 const randomEvent = allGameData.randomEvents[Math.floor(Math.random() * allGameData.randomEvents.length)];
                 showEvent(randomEvent);
             } else {
-                elements.eventContent.innerHTML = `<p>Você completou ${gameState.age} anos. O tempo passa em meditação e treino.</p>`;
+                elements.eventContent.innerHTML = `<p>${processText(`Você completou ${gameState.age} anos. O tempo passa em meditação e treino.`)}</p>`;
                 elements.actionsContainer.classList.remove('hidden');
             }
         }
@@ -223,9 +258,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- LÓGICA DE CULTIVO E TALENTOS ---
     function meditate() {
-        const { cultivation, attributes } = gameState;
+        const { cultivation } = gameState;
         if (cultivation.qi >= cultivation.maxQi) return;
-        const qiGained = 5 + Math.floor(attributes.mind / 2);
+        const qiGained = 5 + Math.floor(gameState.player.attributes.mind / 2);
         cultivation.qi = Math.min(cultivation.qi + qiGained, cultivation.maxQi);
         updateUI();
     }
@@ -279,24 +314,23 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.actionsContainer.classList.add('hidden');
         elements.combatScreen.classList.remove('hidden');
         combatState = {
-            player: { ...gameState.combat },
+            player: { ...gameState.player.combat },
             enemy: { ...enemyData.attributes, name: enemyData.name, id: enemyData.id },
             turn: 'player'
         };
-        combatState.player.hp = gameState.combat.hp;
         updateCombatUI();
         addCombatLog(`Você entrou em combate com ${combatState.enemy.name}!`);
     }
 
     function updateCombatUI() {
-        elements.combatPlayerHp.textContent = `${combatState.player.hp} / ${gameState.combat.maxHp}`;
+        elements.combatPlayerHp.textContent = `${combatState.player.hp} / ${gameState.player.combat.maxHp}`;
         elements.combatEnemyName.textContent = combatState.enemy.name;
         elements.combatEnemyHp.textContent = combatState.enemy.hp;
     }
 
     function addCombatLog(message) {
         const p = document.createElement('p');
-        p.innerHTML = message;
+        p.innerHTML = processText(message);
         elements.combatLog.prepend(p);
     }
 
@@ -317,7 +351,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const qiCost = 20;
             if (gameState.cultivation.qi >= qiCost) {
                 gameState.cultivation.qi -= qiCost;
-                let playerDamage = Math.max(1, combatState.player.attack + gameState.attributes.mind - combatState.enemy.defense);
+                let playerDamage = Math.max(1, combatState.player.attack + gameState.player.attributes.mind - combatState.enemy.defense);
                 combatState.enemy.hp -= playerDamage;
                 addCombatLog(`Você concentra seu Qi e desfere um golpe poderoso, causando <span class="damage">${playerDamage}</span> de dano!`);
                 turnOver = true;
@@ -344,8 +378,8 @@ document.addEventListener('DOMContentLoaded', () => {
             playerDefense *= 2;
         }
         let enemyDamage = Math.max(1, combatState.enemy.attack - playerDefense);
-        gameState.combat.hp -= enemyDamage;
-        combatState.player.hp = gameState.combat.hp;
+        gameState.player.combat.hp -= enemyDamage;
+        combatState.player.hp = gameState.player.combat.hp;
         addCombatLog(`${combatState.enemy.name} ataca! ${combatState.player.isDefending ? 'Sua defesa amortece o golpe.' : ''} Ele causa <span class="damage-enemy">${enemyDamage}</span> de dano.`);
         updateCombatUI();
         if (combatState.player.hp <= 0) {
@@ -362,11 +396,11 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.combatLog.innerHTML = '';
         if (result === 'win') {
             elements.eventContent.innerHTML = `<p>${allStrings[`combat_win_${combatState.enemy.id}`]}</p>`;
-            gameState.attributes.body++;
+            gameState.player.attributes.body++;
         } else {
             elements.eventContent.innerHTML = `<p>${allStrings[`combat_lose_${combatState.enemy.id}`]}</p>`;
             gameState.resources.money = Math.max(0, gameState.resources.money - 10);
-            gameState.combat.hp = 1;
+            gameState.player.combat.hp = 1;
         }
         combatState = {};
         updateUI();
@@ -374,22 +408,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- INICIALIZAÇÃO ---
     function initializeGame() {
-        const baseAttributes = { body: 10, mind: 10, soul: 10, luck: 5 };
+        const player = generateCharacter('player', 'masculino');
+        const rival = generateCharacter('rival', 'masculino');
+
         gameState = {
+            player,
+            npcs: { [rival.id]: rival },
             age: 0,
-            attributes: baseAttributes,
             resources: { money: 10, reputation: 0, talentPoints: 5 },
             cultivation: { realm: 'Mortal', level: 1, qi: 0, maxQi: 100 },
             lastFailedSpecial: null,
             talents: [],
             sect: { id: null, rank: null },
-            combat: {
-                maxHp: baseAttributes.body * 5,
-                hp: baseAttributes.body * 5,
-                attack: 5 + Math.floor(baseAttributes.body / 2),
-                defense: 2 + Math.floor(baseAttributes.mind / 5)
+            relationships: {
+                [rival.id]: { score: 0, state: 'neutral' }
             }
         };
+
         elements.nextYearBtn.addEventListener('click', advanceYear);
         elements.meditateBtn.addEventListener('click', handleMeditateOrBreakthrough);
         elements.talentsBtn.addEventListener('click', showTalentScreen);
