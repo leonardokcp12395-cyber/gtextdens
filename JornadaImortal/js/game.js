@@ -24,12 +24,12 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadGameData() {
         try {
             const [eventsRes, itemsRes, sectsRes, enemiesRes, talentsRes, stringsRes] = await Promise.all([
-                fetch('events.json'),
-                fetch('items.json'),
-                fetch('sects.json'),
-                fetch('enemies.json'),
-                fetch('talents.json'),
-                fetch('strings.json')
+                fetch('data/events.json'),
+                fetch('data/items.json'),
+                fetch('data/sects.json'),
+                fetch('data/enemies.json'),
+                fetch('data/talents.json'),
+                fetch('data/strings.json')
             ]);
 
             allGameData = {
