@@ -222,29 +222,67 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function playerTurn(action) {
         if (combatState.turn !== 'player') return;
-        let playerDamage = Math.max(1, combatState.player.attack - combatState.enemy.defense);
-        combatState.enemy.hp -= playerDamage;
-        addCombatLog(`Você ataca e causa <span class="damage">${playerDamage}</span> de dano.`);
+
+        combatState.player.isDefending = false;
+
+        let turnOver = false;
+
+        if (action === 'attack') {
+            let playerDamage = Math.max(1, combatState.player.attack - combatState.enemy.defense);
+            combatState.enemy.hp -= playerDamage;
+            addCombatLog(`Você ataca e causa <span class="damage">${playerDamage}</span> de dano.`);
+            turnOver = true;
+        } else if (action === 'defend') {
+            combatState.player.isDefending = true;
+            addCombatLog(`Você assume uma postura defensiva.`);
+            turnOver = true;
+        } else if (action === 'qi_strike') {
+            const qiCost = 20;
+            if (gameState.cultivation.qi >= qiCost) {
+                gameState.cultivation.qi -= qiCost;
+                let playerDamage = Math.max(1, combatState.player.attack + gameState.attributes.mind - combatState.enemy.defense);
+                combatState.enemy.hp -= playerDamage;
+                addCombatLog(`Você concentra seu Qi e desfere um golpe poderoso, causando <span class="damage">${playerDamage}</span> de dano!`);
+                turnOver = true;
+            } else {
+                addCombatLog(`Você não tem Qi suficiente para usar esta técnica.`);
+            }
+        }
+
         updateCombatUI();
+        updateUI(); // Atualiza o painel de cultivo para mostrar o Qi gasto
+
         if (combatState.enemy.hp <= 0) {
             endCombat('win');
             return;
         }
-        combatState.turn = 'enemy';
-        setTimeout(enemyTurn, 1000);
+
+        if (turnOver) {
+            combatState.turn = 'enemy';
+            setTimeout(enemyTurn, 1000);
+        }
     }
 
     function enemyTurn() {
         if (combatState.turn !== 'enemy') return;
-        let enemyDamage = Math.max(1, combatState.enemy.attack - combatState.player.defense);
+
+        let playerDefense = combatState.player.defense;
+        if (combatState.player.isDefending) {
+            playerDefense *= 2; // Dobra a defesa se o jogador estiver a defender
+        }
+
+        let enemyDamage = Math.max(1, combatState.enemy.attack - playerDefense);
         gameState.combat.hp -= enemyDamage;
         combatState.player.hp = gameState.combat.hp;
-        addCombatLog(`${combatState.enemy.name} ataca e causa <span class="damage-enemy">${enemyDamage}</span> de dano.`);
+
+        addCombatLog(`${combatState.enemy.name} ataca! ${combatState.player.isDefending ? 'Sua defesa amortece o golpe.' : ''} Ele causa <span class="damage-enemy">${enemyDamage}</span> de dano.`);
         updateCombatUI();
+
         if (combatState.player.hp <= 0) {
             endCombat('lose');
             return;
         }
+
         combatState.turn = 'player';
     }
 

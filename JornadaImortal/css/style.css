@@ -23,5 +23,7 @@ button:hover { background-color: #a29bfe; }
 #combat-actions { display: flex; justify-content: center; gap: 10px; margin-top: 20px; }
 .combat-action-btn { background-color: #d63031; }
 .combat-action-btn:hover { background-color: #ff7675; }
+.combat-action-btn[data-action="qi_strike"] { background-color: #0984e3; }
+.combat-action-btn[data-action="qi_strike"]:hover { background-color: #74b9ff; }
 .damage { color: #ff4757; font-weight: bold; }
 .damage-enemy { color: #55efc4; font-weight: bold; }
