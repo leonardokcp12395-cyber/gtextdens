@@ -83,5 +83,31 @@
         "resultKey": "paid_bandit"
       }
     ]
+  },
+  {
+    "id": "sect_invitation_age_15",
+    "age": 15,
+    "text": "Sua dedicação ao cultivo chamou a atenção de duas seitas locais. Ambas enviam um convite. Qual caminho você escolherá?",
+    "choices": [
+      {
+        "text": "Juntar-se à Seita da Nuvem Oculta.",
+        "effects": {
+          "special": "join_sect_hidden_cloud_sect"
+        },
+        "resultKey": "joined_hidden_cloud"
+      },
+      {
+        "text": "Juntar-se à Seita do Corpo de Ferro.",
+        "effects": {
+          "special": "join_sect_iron_body_sect"
+        },
+        "resultKey": "joined_iron_body"
+      },
+      {
+        "text": "Recusar ambos e seguir seu próprio caminho.",
+        "effects": {},
+        "resultKey": "declined_sects"
+      }
+    ]
   }
 ]

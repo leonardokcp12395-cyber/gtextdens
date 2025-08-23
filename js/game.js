@@ -89,6 +89,12 @@ document.addEventListener('DOMContentLoaded', () => {
             startCombat(combatMatch[1]);
             return;
         }
+        const joinSectMatch = effect.match(/^join_sect_(.+)/);
+        if (joinSectMatch) {
+            gameState.sect.id = joinSectMatch[1];
+            // Futuramente, podemos adicionar mais efeitos aqui, como ganhar um item inicial.
+            return; // O fluxo normal de UI já trata o resto
+        }
         switch (effect) {
             case 'explore_cave':
                 elements.choicesContainer.innerHTML = '';
@@ -174,6 +180,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function advanceYear() {
+        // Aplica benefícios passivos da seita no início do ano
+        if (gameState.sect.id) {
+            const sectData = allGameData.sects.find(s => s.id === gameState.sect.id);
+            if (sectData && sectData.benefit) {
+                if (sectData.benefit.type === 'passive_qi_gain') {
+                    gameState.cultivation.qi = Math.min(gameState.cultivation.maxQi, gameState.cultivation.qi + sectData.benefit.value);
+                }
+                if (sectData.benefit.type === 'body_cultivation_boost' && (gameState.age % 5 === 0)) {
+                    gameState.attributes.body += sectData.benefit.value;
+                }
+            }
+        }
+
         gameState.age++;
         const eventForAge = allGameData.events.find(event => {
             if (event.age !== gameState.age) return false;
@@ -363,6 +382,7 @@ document.addEventListener('DOMContentLoaded', () => {
             cultivation: { realm: 'Mortal', level: 1, qi: 0, maxQi: 100 },
             lastFailedSpecial: null,
             talents: [],
+            sect: { id: null, rank: null },
             combat: {
                 maxHp: baseAttributes.body * 5,
                 hp: baseAttributes.body * 5,

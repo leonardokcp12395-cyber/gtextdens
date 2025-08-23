@@ -1,1 +1,22 @@
-[]
+[
+  {
+    "id": "hidden_cloud_sect",
+    "name": "Seita da Nuvem Oculta",
+    "description": "Uma seita que valoriza a paz interior e o acúmulo de energia espiritual através da meditação.",
+    "benefit": {
+      "type": "passive_qi_gain",
+      "value": 5,
+      "description": "Ganha 5 de Qi extra por ano."
+    }
+  },
+  {
+    "id": "iron_body_sect",
+    "name": "Seita do Corpo de Ferro",
+    "description": "Uma seita focada no fortalecimento do corpo físico, acreditando que um corpo forte é o templo de um espírito forte.",
+    "benefit": {
+      "type": "body_cultivation_boost",
+      "value": 1,
+      "description": "Ganha 1 de Corpo a cada 5 anos."
+    }
+  }
+]

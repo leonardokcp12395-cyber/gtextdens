@@ -11,5 +11,8 @@
   "combat_win_bandit": "Você desvia-se da faca e contra-ataca com um golpe rápido. O bandido cai no chão, derrotado. Você continua seu caminho, um pouco mais confiante em suas habilidades.",
   "combat_lose_bandit": "A faca do bandido é muito rápida. Ele domina-o e leva o seu dinheiro antes de fugir. Você fica ferido e humilhado.",
   "dream_contemplated": "A visão permanece com você, deixando uma sensação de clareza.",
-  "stumble_unlucky": "Você levanta-se, limpando o pó da sua roupa. O seu tornozelo dói, mas vai ficar bem."
+  "stumble_unlucky": "Você levanta-se, limpando o pó da sua roupa. O seu tornozelo dói, mas vai ficar bem.",
+  "joined_hidden_cloud": "Você foi aceito como um discípulo da Seita da Nuvem Oculta. Um novo capítulo começa.",
+  "joined_iron_body": "Você foi aceito como um discípulo da Seita do Corpo de Ferro. Um novo capítulo começa.",
+  "declined_sects": "Você decide que o seu caminho é solitário, por enquanto. As seitas retiram suas ofertas, e você continua sua jornada independente."
 }
