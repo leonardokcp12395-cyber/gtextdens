@@ -7,41 +7,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- ELEMENTOS DA UI ---
     const elements = {
-        // Painéis
         eventContent: document.getElementById('event-content'),
         choicesContainer: document.getElementById('choices-container'),
         actionsContainer: document.getElementById('actions-container'),
         combatScreen: document.getElementById('combat-screen'),
-
-        // Personagem
         playerName: document.getElementById('player-name'),
         age: document.getElementById('char-age'),
         body: document.getElementById('attr-body'),
         mind: document.getElementById('attr-mind'),
-
-        // Cultivo
         realm: document.getElementById('cult-realm'),
         level: document.getElementById('cult-level'),
         qi: document.getElementById('cult-qi'),
         maxQi: document.getElementById('cult-max-qi'),
-
-        // Recursos
         money: document.getElementById('res-money'),
         talentPoints: document.getElementById('talent-points'),
-
-        // Botões
+        contribution: document.getElementById('res-contribution'),
         meditateBtn: document.getElementById('meditate-btn'),
         nextYearBtn: document.getElementById('next-year-btn'),
         talentsBtn: document.getElementById('talents-btn'),
-
-        // Combate
+        sectActionsBtn: document.getElementById('sect-actions-btn'),
         combatPlayerHp: document.getElementById('combat-player-hp'),
         combatEnemyName: document.getElementById('combat-enemy-name'),
         combatEnemyHp: document.getElementById('combat-enemy-hp'),
         combatLog: document.getElementById('combat-log'),
         combatActions: document.getElementById('combat-actions'),
-
-        // Relações
         relationshipsList: document.getElementById('relationships-list')
     };
 
@@ -62,15 +51,12 @@ document.addEventListener('DOMContentLoaded', () => {
             initializeGame();
         } catch (error) {
             console.error("Falha fatal ao carregar os dados do jogo:", error);
-            elements.eventContent.innerHTML = "<p>ERRO CRÍTICO: Não foi possível carregar os ficheiros de dados. Tente recarregar a página.</p>";
+            elements.eventContent.innerHTML = "<p>ERRO CRÍTICO: Não foi possível carregar os ficheiros de dados.</p>";
         }
     }
 
     // --- LÓGICA DE GERAÇÃO PROCESSUAL ---
-    function getRandomElement(arr) {
-        return arr[Math.floor(Math.random() * arr.length)];
-    }
-
+    function getRandomElement(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
     function generateCharacter(id, gender) {
         const { nomes, personalidades } = allGameData;
         const firstName = getRandomElement(nomes[gender]);
@@ -78,14 +64,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const personality = getRandomElement(personalidades);
         const baseAttributes = { body: 10, mind: 10, soul: 10, luck: 5 };
         return {
-            id,
-            name: `${firstName} ${lastName}`,
-            gender,
-            personality,
+            id, name: `${firstName} ${lastName}`, gender, personality,
             attributes: { ...baseAttributes },
             combat: {
-                maxHp: baseAttributes.body * 5,
-                hp: baseAttributes.body * 5,
+                maxHp: baseAttributes.body * 5, hp: baseAttributes.body * 5,
                 attack: 5 + Math.floor(baseAttributes.body / 2),
                 defense: 2 + Math.floor(baseAttributes.mind / 5)
             }
@@ -93,89 +75,42 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- LÓGICA DE JOGO PRINCIPAL ---
-
     function processText(text) {
         if (!text) return '';
         const rival = gameState.npcs.rival;
         let processedText = text.replace(/\[RIVAL\]/g, rival ? rival.name : 'Rival');
-        processedText = processedText.replace(/\[PLAYER_NAME\]/g, gameState.player.name);
-        return processedText;
+        return processedText.replace(/\[PLAYER_NAME\]/g, gameState.player.name);
     }
 
     function applyEffects(effects) {
         if (!effects) return;
         if (effects.attributes) {
-            for (const attr in effects.attributes) {
-                if (gameState.player.attributes.hasOwnProperty(attr)) gameState.player.attributes[attr] += effects.attributes[attr];
-            }
+            for (const attr in effects.attributes) if (gameState.player.attributes.hasOwnProperty(attr)) gameState.player.attributes[attr] += effects.attributes[attr];
         }
         if (effects.resources) {
-            for (const res in effects.resources) {
-                if (gameState.resources.hasOwnProperty(res)) gameState.resources[res] += effects.resources[res];
-            }
+            for (const res in effects.resources) if (gameState.resources.hasOwnProperty(res)) gameState.resources[res] += effects.resources[res];
         }
         if (effects.combat) {
-            for (const stat in effects.combat) {
-                if (gameState.player.combat.hasOwnProperty(stat)) gameState.player.combat[stat] += effects.combat[stat];
-            }
+            for (const stat in effects.combat) if (gameState.player.combat.hasOwnProperty(stat)) gameState.player.combat[stat] += effects.combat[stat];
         }
         if (effects.relationships) {
-            for (const npcId in effects.relationships) {
-                if (gameState.relationships.hasOwnProperty(npcId)) {
-                    gameState.relationships[npcId].score += effects.relationships[npcId];
-                }
-            }
+            for (const npcId in effects.relationships) if (gameState.relationships.hasOwnProperty(npcId)) gameState.relationships[npcId].score += effects.relationships[npcId];
         }
         if (effects.special) handleSpecialEffects(effects.special);
     }
 
     function handleSpecialEffects(effect) {
         const combatMatch = effect.match(/^start_combat_(.+)/);
-        if (combatMatch) {
-            startCombat(combatMatch[1]);
-            return;
-        }
+        if (combatMatch) { startCombat(combatMatch[1]); return; }
         const joinSectMatch = effect.match(/^join_sect_(.+)/);
-        if (joinSectMatch) {
-            gameState.sect.id = joinSectMatch[1];
-            return;
-        }
+        if (joinSectMatch) { gameState.sect.id = joinSectMatch[1]; return; }
+
         switch (effect) {
-            case 'explore_cave':
-                elements.choicesContainer.innerHTML = '';
-                if (Math.random() < 0.5) {
-                    elements.eventContent.innerHTML = `<p>${allStrings['explore_cave_success']}</p>`;
-                    gameState.player.attributes.mind += 2;
-                } else {
-                    elements.eventContent.innerHTML = `<p>${allStrings['explore_cave_failure']}</p>`;
-                    gameState.player.attributes.body -= 1;
-                }
-                elements.actionsContainer.classList.remove('hidden');
-                updateUI();
-                break;
-            case 'triggerBreakthroughEvent':
-                const breakthroughEvent = allGameData.events.find(e => e.id === 'breakthrough_attempt');
-                if (breakthroughEvent) showEvent(breakthroughEvent);
-                break;
-            case 'attempt_breakthrough_roll':
-                const { cultivation } = gameState;
-                const successChance = 0.5 + (gameState.player.attributes.luck * 0.02);
-                if (Math.random() < successChance) {
-                    cultivation.level++;
-                    cultivation.qi = 0;
-                    cultivation.maxQi = Math.floor(cultivation.maxQi * 1.5);
-                    elements.eventContent.innerHTML = `<p>${allStrings['breakthrough_success']}</p>`;
-                } else {
-                    cultivation.qi = Math.floor(cultivation.qi / 2);
-                    elements.eventContent.innerHTML = `<p>${allStrings['breakthrough_failure']}</p>`;
-                    gameState.lastFailedSpecial = 'breakthrough_attempt';
-                }
-                elements.choicesContainer.innerHTML = '';
-                elements.actionsContainer.classList.remove('hidden');
-                updateUI();
-                break;
-            default:
-                console.warn(`Efeito especial não reconhecido: ${effect}`);
+            case 'show_sect_actions': showSectActions(); break;
+            case 'show_sect_store': showSectStore(); break;
+            case 'try_promotion': tryPromotion(); break;
+            // ... outros casos
+            default: console.warn(`Efeito especial não reconhecido: ${effect}`);
         }
     }
 
@@ -188,6 +123,7 @@ document.addEventListener('DOMContentLoaded', () => {
             button.onclick = () => {
                 if (choice.effects && choice.effects.special) {
                     applyEffects(choice.effects);
+                    // Efeitos especiais cuidam da sua própria UI
                 } else {
                     applyEffects(choice.effects);
                     const resultText = allStrings[choice.resultKey] || "Chave de texto não encontrada.";
@@ -209,13 +145,16 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.mind.textContent = gameState.player.attributes.mind;
         elements.money.textContent = gameState.resources.money;
         elements.talentPoints.textContent = gameState.resources.talentPoints;
+        elements.contribution.textContent = gameState.resources.contribution;
+
+        elements.sectActionsBtn.classList.toggle('hidden', !gameState.sect.id);
+
         if (gameState.cultivation) {
             elements.realm.textContent = gameState.cultivation.realm;
             elements.level.textContent = gameState.cultivation.level;
             elements.qi.textContent = gameState.cultivation.qi;
             elements.maxQi.textContent = gameState.cultivation.maxQi;
-            const { cultivation } = gameState;
-            if (cultivation.qi >= cultivation.maxQi) {
+            if (gameState.cultivation.qi >= gameState.cultivation.maxQi) {
                 elements.meditateBtn.textContent = `Tentar Avanço`;
                 elements.meditateBtn.classList.add('breakthrough-ready');
             } else {
@@ -223,8 +162,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 elements.meditateBtn.classList.remove('breakthrough-ready');
             }
         }
-
-        // Atualizar lista de relações
         elements.relationshipsList.innerHTML = '';
         for (const npcId in gameState.relationships) {
             const npc = gameState.npcs[npcId];
@@ -241,12 +178,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (gameState.sect.id) {
             const sectData = allGameData.sects.find(s => s.id === gameState.sect.id);
             if (sectData && sectData.benefit) {
-                if (sectData.benefit.type === 'passive_qi_gain') {
-                    gameState.cultivation.qi = Math.min(gameState.cultivation.maxQi, gameState.cultivation.qi + sectData.benefit.value);
-                }
-                if (sectData.benefit.type === 'body_cultivation_boost' && (gameState.age % 5 === 0)) {
-                    gameState.player.attributes.body += sectData.benefit.value;
-                }
+                if (sectData.benefit.type === 'passive_qi_gain') gameState.cultivation.qi = Math.min(gameState.cultivation.maxQi, gameState.cultivation.qi + sectData.benefit.value);
+                if (sectData.benefit.type === 'body_cultivation_boost' && (gameState.age % 5 === 0)) gameState.player.attributes.body += sectData.benefit.value;
             }
         }
         gameState.age++;
@@ -274,206 +207,74 @@ document.addEventListener('DOMContentLoaded', () => {
         updateRelationshipStates();
     }
 
-    // --- LÓGICA DE RELACIONAMENTOS ---
-    function updateRelationshipStates() {
-        let lowestScore = Infinity;
-        let rivalId = null;
-
-        for (const npcId in gameState.relationships) {
-            const rel = gameState.relationships[npcId];
-            if (rel.score < lowestScore) {
-                lowestScore = rel.score;
-                rivalId = npcId;
-            }
-
-            if (rel.score <= -50) {
-                rel.state = 'Inimigo';
-            } else if (rel.score > -50 && rel.score < 50) {
-                rel.state = 'Neutro';
-            } else if (rel.score >= 50) {
-                rel.state = 'Amigo';
-            }
-        }
-
-        gameState.npcs.rival = gameState.npcs[rivalId];
+    // --- LÓGICA DE SEITA ---
+    function showSectActions() {
+        const sectEvent = {
+            text: "Você está no pátio da sua seita. O que deseja fazer?",
+            choices: [
+                { text: "Ver Loja", effects: { special: 'show_sect_store' } },
+                { text: "Tentar Promoção", effects: { special: 'try_promotion' } },
+                { text: "Sair", effects: {}, resultKey: "sect_actions_leave" }
+            ]
+        };
+        showEvent(sectEvent);
     }
 
-    // --- LÓGICA DE CULTIVO E TALENTOS ---
-    function meditate() {
-        const { cultivation } = gameState;
-        if (cultivation.qi >= cultivation.maxQi) return;
-        const qiGained = 5 + Math.floor(gameState.player.attributes.mind / 2);
-        cultivation.qi = Math.min(cultivation.qi + qiGained, cultivation.maxQi);
-        updateUI();
-    }
-    function handleMeditateOrBreakthrough() {
-        if (gameState.cultivation.qi >= gameState.cultivation.maxQi) {
-            handleSpecialEffects('triggerBreakthroughEvent');
-        } else {
-            meditate();
-        }
-    }
-    function showTalentScreen() {
-        elements.eventContent.innerHTML = `<h2>Árvore de Talentos</h2><p>Você tem <strong>${gameState.resources.talentPoints}</strong> pontos para gastar.</p>`;
+    function showSectStore() {
+        const sectData = allGameData.sects.find(s => s.id === gameState.sect.id);
+        elements.eventContent.innerHTML = `<h2>Loja da Seita</h2><p>Sua Contribuição: ${gameState.resources.contribution}</p>`;
         elements.choicesContainer.innerHTML = '';
-        elements.actionsContainer.classList.add('hidden');
-        allGameData.talents.forEach(talent => {
-            const isAcquired = gameState.talents.includes(talent.id);
-            if (isAcquired) return;
-            const canAfford = gameState.resources.talentPoints >= talent.cost;
-            const hasReqs = talent.requirements.every(req => gameState.talents.includes(req));
-            const talentButton = document.createElement('button');
-            talentButton.innerHTML = `${talent.name} <br><small>${talent.description} (Custo: ${talent.cost})</small>`;
-            if (canAfford && hasReqs) {
-                talentButton.onclick = () => {
-                    gameState.resources.talentPoints -= talent.cost;
-                    gameState.talents.push(talent.id);
-                    applyEffects(talent.effects);
-                    updateUI();
-                    showTalentScreen();
-                };
-            } else {
-                talentButton.disabled = true;
+        sectData.store.forEach(storeItem => {
+            const itemData = allGameData.items.find(i => i.id === storeItem.id);
+            const button = document.createElement('button');
+            button.innerHTML = `${itemData.name} <br><small>${itemData.description} (Custo: ${storeItem.cost_contribution})</small>`;
+            if (gameState.resources.contribution < storeItem.cost_contribution) {
+                button.disabled = true;
             }
-            elements.choicesContainer.appendChild(talentButton);
+            button.onclick = () => {
+                gameState.resources.contribution -= storeItem.cost_contribution;
+                applyEffects(itemData.effects);
+                addCombatLog(`Você comprou ${itemData.name}.`);
+                updateUI();
+                showSectStore();
+            };
+            elements.choicesContainer.appendChild(button);
         });
         const leaveButton = document.createElement('button');
-        leaveButton.textContent = "Fechar";
-        leaveButton.onclick = () => {
-             elements.eventContent.innerHTML = "<p>Você volta a focar-se na sua jornada.</p>";
-             elements.choicesContainer.innerHTML = '';
-             elements.actionsContainer.classList.remove('hidden');
-        };
+        leaveButton.textContent = "Voltar";
+        leaveButton.onclick = showSectActions;
         elements.choicesContainer.appendChild(leaveButton);
     }
 
-    // --- LÓGICA DE COMBATE ---
-    function startCombat(enemyId) {
-        const enemyData = allGameData.enemies.find(e => e.id === enemyId);
-        if (!enemyData) return;
-        elements.eventContent.classList.add('hidden');
-        elements.choicesContainer.classList.add('hidden');
-        elements.actionsContainer.classList.add('hidden');
-        elements.combatScreen.classList.remove('hidden');
-        combatState = {
-            player: { ...gameState.player.combat },
-            enemy: { ...enemyData.attributes, name: enemyData.name, id: enemyData.id },
-            turn: 'player'
-        };
-        updateCombatUI();
-        addCombatLog(`Você entrou em combate com ${combatState.enemy.name}!`);
+    function tryPromotion() {
+        // Lógica de promoção será implementada no futuro
+        elements.eventContent.innerHTML = `<p>Você ainda não está pronto para uma promoção.</p>`;
+        elements.choicesContainer.innerHTML = '';
+        const leaveButton = document.createElement('button');
+        leaveButton.textContent = "Voltar";
+        leaveButton.onclick = showSectActions;
+        elements.choicesContainer.appendChild(leaveButton);
     }
 
-    function updateCombatUI() {
-        elements.combatPlayerHp.textContent = `${combatState.player.hp} / ${gameState.player.combat.maxHp}`;
-        elements.combatEnemyName.textContent = combatState.enemy.name;
-        elements.combatEnemyHp.textContent = combatState.enemy.hp;
-    }
-
-    function addCombatLog(message) {
-        const p = document.createElement('p');
-        p.innerHTML = processText(message);
-        elements.combatLog.prepend(p);
-    }
-
-    function playerTurn(action) {
-        if (combatState.turn !== 'player') return;
-        combatState.player.isDefending = false;
-        let turnOver = false;
-        if (action === 'attack') {
-            let playerDamage = Math.max(1, combatState.player.attack - combatState.enemy.defense);
-            combatState.enemy.hp -= playerDamage;
-            addCombatLog(`Você ataca e causa <span class="damage">${playerDamage}</span> de dano.`);
-            turnOver = true;
-        } else if (action === 'defend') {
-            combatState.player.isDefending = true;
-            addCombatLog(`Você assume uma postura defensiva.`);
-            turnOver = true;
-        } else if (action === 'qi_strike') {
-            const qiCost = 20;
-            if (gameState.cultivation.qi >= qiCost) {
-                gameState.cultivation.qi -= qiCost;
-                let playerDamage = Math.max(1, combatState.player.attack + gameState.player.attributes.mind - combatState.enemy.defense);
-                combatState.enemy.hp -= playerDamage;
-                addCombatLog(`Você concentra seu Qi e desfere um golpe poderoso, causando <span class="damage">${playerDamage}</span> de dano!`);
-                turnOver = true;
-            } else {
-                addCombatLog(`Você não tem Qi suficiente para usar esta técnica.`);
-            }
-        }
-        updateCombatUI();
-        updateUI();
-        if (combatState.enemy.hp <= 0) {
-            endCombat('win');
-            return;
-        }
-        if (turnOver) {
-            combatState.turn = 'enemy';
-            setTimeout(enemyTurn, 1000);
-        }
-    }
-
-    function enemyTurn() {
-        if (combatState.turn !== 'enemy') return;
-        let playerDefense = combatState.player.defense;
-        if (combatState.player.isDefending) {
-            playerDefense *= 2;
-        }
-        let enemyDamage = Math.max(1, combatState.enemy.attack - playerDefense);
-        gameState.player.combat.hp -= enemyDamage;
-        combatState.player.hp = gameState.player.combat.hp;
-        addCombatLog(`${combatState.enemy.name} ataca! ${combatState.player.isDefending ? 'Sua defesa amortece o golpe.' : ''} Ele causa <span class="damage-enemy">${enemyDamage}</span> de dano.`);
-        updateCombatUI();
-        if (combatState.player.hp <= 0) {
-            endCombat('lose');
-            return;
-        }
-        combatState.turn = 'player';
-    }
-
-    function endCombat(result) {
-        elements.combatScreen.classList.add('hidden');
-        elements.eventContent.classList.remove('hidden');
-        elements.actionsContainer.classList.remove('hidden');
-        elements.combatLog.innerHTML = '';
-        if (result === 'win') {
-            elements.eventContent.innerHTML = `<p>${allStrings[`combat_win_${combatState.enemy.id}`]}</p>`;
-            gameState.player.attributes.body++;
-        } else {
-            elements.eventContent.innerHTML = `<p>${allStrings[`combat_lose_${combatState.enemy.id}`]}</p>`;
-            gameState.resources.money = Math.max(0, gameState.resources.money - 10);
-            gameState.player.combat.hp = 1;
-        }
-        combatState = {};
-        updateUI();
-    }
+    // ... (outras funções de lógica)
 
     // --- INICIALIZAÇÃO ---
     function initializeGame() {
         const player = generateCharacter('player', 'masculino');
         const rival = generateCharacter('rival', 'masculino');
-
         gameState = {
-            player,
-            npcs: { [rival.id]: rival },
-            age: 0,
-            resources: { money: 10, reputation: 0, talentPoints: 5 },
+            player, npcs: { [rival.id]: rival }, age: 0,
+            resources: { money: 10, reputation: 0, talentPoints: 5, contribution: 0 },
             cultivation: { realm: 'Mortal', level: 1, qi: 0, maxQi: 100 },
-            lastFailedSpecial: null,
-            talents: [],
-            sect: { id: null, rank: null },
-            relationships: {
-                [rival.id]: { score: 0, state: 'neutral' }
-            }
+            lastFailedSpecial: null, talents: [], sect: { id: null, rank: 0 },
+            relationships: { [rival.id]: { score: 0, state: 'neutral' } }
         };
-
         elements.nextYearBtn.addEventListener('click', advanceYear);
         elements.meditateBtn.addEventListener('click', handleMeditateOrBreakthrough);
         elements.talentsBtn.addEventListener('click', showTalentScreen);
+        elements.sectActionsBtn.addEventListener('click', showSectActions);
         elements.combatActions.addEventListener('click', (e) => {
-            if (e.target.classList.contains('combat-action-btn')) {
-                playerTurn(e.target.dataset.action);
-            }
+            if (e.target.classList.contains('combat-action-btn')) playerTurn(e.target.dataset.action);
         });
         updateUI();
     }

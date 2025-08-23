@@ -7,7 +7,14 @@
       "type": "passive_qi_gain",
       "value": 5,
       "description": "Ganha 5 de Qi extra por ano."
-    }
+    },
+    "ranks": [
+      { "name": "Discípulo Externo", "contribution_needed": 0 },
+      { "name": "Discípulo Interno", "contribution_needed": 100 }
+    ],
+    "store": [
+      { "id": "small_qi_pill", "cost_contribution": 20 }
+    ]
   },
   {
     "id": "iron_body_sect",
@@ -17,6 +24,13 @@
       "type": "body_cultivation_boost",
       "value": 1,
       "description": "Ganha 1 de Corpo a cada 5 anos."
-    }
+    },
+    "ranks": [
+      { "name": "Iniciado", "contribution_needed": 0 },
+      { "name": "Punho de Ferro", "contribution_needed": 100 }
+    ],
+    "store": [
+      { "id": "body_tempering_elixir", "cost_contribution": 25 }
+    ]
   }
 ]

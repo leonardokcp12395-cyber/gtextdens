@@ -1,1 +1,24 @@
-[]
+[
+  {
+    "id": "small_qi_pill",
+    "name": "Pílula Pequena de Qi",
+    "description": "Uma pílula medicinal que restaura uma pequena quantidade de Qi.",
+    "type": "consumable",
+    "effects": {
+      "cultivation": {
+        "qi": 50
+      }
+    }
+  },
+  {
+    "id": "body_tempering_elixir",
+    "name": "Elixir de Têmpera Corporal",
+    "description": "Um elixir que fortalece os músculos e ossos, aumentando permanentemente o atributo Corpo.",
+    "type": "consumable",
+    "effects": {
+      "attributes": {
+        "body": 1
+      }
+    }
+  }
+]

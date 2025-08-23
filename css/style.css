@@ -96,6 +96,15 @@ button:disabled {
     background-color: #81ecec;
 }
 
+#sect-actions-btn {
+    background-color: #fdcb6e;
+    color: #1d1d1d;
+}
+
+#sect-actions-btn:hover {
+    background-color: #ffeaa7;
+}
+
 #actions-container {
     display: flex;
     gap: 10px;
