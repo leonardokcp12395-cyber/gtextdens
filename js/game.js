@@ -41,13 +41,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 fetch('data/events.json'), fetch('data/items.json'), fetch('data/sects.json'),
                 fetch('data/enemies.json'), fetch('data/talents.json'), fetch('data/strings.json'),
                 fetch('data/random_events.json'), fetch('data/nomes.json'), fetch('data/personalidades.json'),
-                fetch('data/world_events.json')
+                fetch('data/world_events.json'), fetch('data/realms.json') // <-- Adicionado
             ]);
             for (const res of responses) {
                 if (!res.ok) throw new Error(`Falha ao carregar ${res.url}`);
             }
-            const [events, items, sects, enemies, talents, strings, randomEvents, nomes, personalidades, worldEvents] = await Promise.all(responses.map(res => res.json()));
-            allGameData = { events, items, sects, enemies, talents, randomEvents, nomes, personalidades, worldEvents };
+            const [events, items, sects, enemies, talents, strings, randomEvents, nomes, personalidades, worldEvents, realms] = await Promise.all(responses.map(res => res.json()));
+            allGameData = { events, items, sects, enemies, talents, randomEvents, nomes, personalidades, worldEvents, realms }; // <-- Adicionado
             allStrings = strings;
             initializeGame();
         } catch (error) {
@@ -152,11 +152,13 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.sectActionsBtn.classList.toggle('hidden', !gameState.sect.id);
 
         if (gameState.cultivation) {
-            elements.realm.textContent = gameState.cultivation.realm;
-            elements.level.textContent = gameState.cultivation.level;
-            elements.qi.textContent = gameState.cultivation.qi;
-            elements.maxQi.textContent = gameState.cultivation.maxQi;
-            if (gameState.cultivation.qi >= gameState.cultivation.maxQi) {
+            const cult = gameState.cultivation;
+            const realm = allGameData.realms[cult.realmId];
+            elements.realm.textContent = realm.name;
+            elements.level.textContent = cult.level;
+            elements.qi.textContent = cult.qi;
+            elements.maxQi.textContent = cult.maxQi;
+            if (cult.qi >= cult.maxQi) {
                 elements.meditateBtn.textContent = `Tentar Avanço`;
                 elements.meditateBtn.classList.add('breakthrough-ready');
             } else {
@@ -489,6 +491,71 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 
+    // --- LÓGICA DE CULTIVO ---
+    function calculateMaxQi(cultivation) {
+        const realm = allGameData.realms[cultivation.realmId];
+        return realm.baseMaxQi + (realm.qiPerLevel * (cultivation.level - 1));
+    }
+
+    function handleMeditateOrBreakthrough() {
+        const cult = gameState.cultivation;
+        const player = gameState.player;
+        const currentRealm = allGameData.realms[cult.realmId];
+
+        // Se não tiver Qi máximo, apenas medita
+        if (cult.qi < cult.maxQi) {
+            const qiGained = 10 + Math.floor(player.attributes.mind / 2);
+            cult.qi = Math.min(cult.maxQi, cult.qi + qiGained);
+            elements.eventContent.innerHTML = `<p>Você medita e sente seu Qi fluir. (+${qiGained} Qi)</p>`;
+            elements.choicesContainer.innerHTML = '';
+        } else { // Tenta o avanço
+            elements.eventContent.innerHTML = `<p>Você sente a barreira do próximo nível. Você se concentra para tentar o avanço...</p>`;
+            elements.choicesContainer.innerHTML = '';
+
+            const successChance = 0.5 + (player.attributes.mind / 100) + (player.attributes.luck / 200); // Ex: 50% base + 0.1 (10 Mente) + 0.025 (5 Sorte) = 62.5%
+
+            setTimeout(() => {
+                if (Math.random() < successChance) {
+                    // SUCESSO
+                    cult.level++;
+
+                    const attributeBonus = currentRealm.attributeBonusOnBreakthrough;
+                    applyEffects({attributes: attributeBonus});
+
+                    let successMsg = `SUCESSO! Você avançou para o Nível ${cult.level} do Reino ${currentRealm.name}! Seus atributos aumentaram.`;
+
+                    // Verifica se avançou para o próximo Reino
+                    if (cult.level > currentRealm.levels) {
+                        if (allGameData.realms[cult.realmId + 1]) {
+                            cult.realmId++;
+                            cult.level = 1;
+                            const newRealm = allGameData.realms[cult.realmId];
+                            successMsg = `<span style="color: var(--color-accent-special); font-weight: bold;">AVANÇO DE REINO!</span> Você ascendeu para o Reino ${newRealm.name}!`;
+                        } else {
+                            // Fim do conteúdo de reinos atual
+                            successMsg = `Você atingiu o pico do cultivo conhecido! O caminho adiante é um mistério.`;
+                            cult.level = currentRealm.levels; // Previne ir além do nível máximo
+                        }
+                    }
+
+                    cult.qi = 0;
+                    cult.maxQi = calculateMaxQi(cult);
+                    elements.eventContent.innerHTML = `<p>${successMsg}</p>`;
+
+                } else {
+                    // FALHA
+                    const backlashDamage = Math.floor(cult.maxQi / 10);
+                    player.combat.hp = Math.max(1, player.combat.hp - backlashDamage);
+                    cult.qi = Math.floor(cult.qi / 2); // Perde metade do Qi
+                    elements.eventContent.innerHTML = `<p>FALHA! A energia se revolta dentro de você, causando dano interno (${backlashDamage} HP) e dispersando seu Qi.</p>`;
+                }
+                updateUI();
+            }, 1500); // Adiciona um suspense
+        }
+        updateUI();
+    }
+
+
     // --- INICIALIZAÇÃO ---
     function initializeGame() {
         const player = generateCharacter('player', 'masculino');
@@ -496,12 +563,15 @@ document.addEventListener('DOMContentLoaded', () => {
         gameState = {
             player, npcs: { [rival.id]: rival }, age: 0,
             resources: { money: 10, reputation: 0, talentPoints: 5, contribution: 0 },
-            cultivation: { realm: 'Mortal', level: 1, qi: 0, maxQi: 100 },
+            cultivation: { realmId: 0, level: 1, qi: 0 },
             lastFailedSpecial: null, talents: [], sect: { id: null, rank: 0 },
             currentWorldEvent: null,
             relationships: { [rival.id]: { score: 0, state: 'neutral' } },
             rivalId: rival.id // Inicializa o rivalId
         };
+        // Define o maxQi inicial
+        gameState.cultivation.maxQi = calculateMaxQi(gameState.cultivation);
+
         elements.nextYearBtn.addEventListener('click', advanceYear);
         elements.meditateBtn.addEventListener('click', handleMeditateOrBreakthrough);
         elements.talentsBtn.addEventListener('click', showTalentScreen);
