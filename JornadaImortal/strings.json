@@ -1,5 +1,13 @@
 {
   "found_coin_success": "Você guardou a moeda na sua bolsa.",
   "study_or_play_body": "Você passou a tarde a correr e a sentir os seus músculos a fortalecerem-se.",
-  "study_or_play_mind": "Você mergulhou no livro, e sente que a sua compreensão do mundo ficou um pouco mais nítida."
+  "study_or_play_mind": "Você mergulhou no livro, e sente que a sua compreensão do mundo ficou um pouco mais nítida.",
+  "ignore_cave": "Você decide que a prudência é a melhor parte do valor e continua seu caminho, deixando os mistérios da caverna para outra alma mais corajosa (ou tola).",
+  "explore_cave_success": "Dentro da caverna, você encontra um antigo manual de meditação! Sua mente se expande.",
+  "explore_cave_failure": "Você tropeça no escuro e bate a cabeça. Você recua, sentindo-se um pouco tonto.",
+  "breakthrough_success": "Uma onda de poder percorre o seu ser! Você sente-se mais forte, mais rápido, mais conectado ao mundo. Você alcançou o próximo nível!",
+  "breakthrough_failure": "A energia dissipa-se e você sente uma dor aguda. A tentativa falhou. Você perdeu algum do seu Qi acumulado e sente-se enfraquecido.",
+  "paid_bandit": "Você joga-lhe uma bolsa de moedas. Ele apanha-a e desaparece de volta na floresta. Você está mais pobre, mas seguro.",
+  "combat_win_bandit": "Você desvia-se da faca e contra-ataca com um golpe rápido. O bandido cai no chão, derrotado. Você continua seu caminho, um pouco mais confiante em suas habilidades.",
+  "combat_lose_bandit": "A faca do bandido é muito rápida. Ele domina-o e leva o seu dinheiro antes de fugir. Você fica ferido e humilhado."
 }

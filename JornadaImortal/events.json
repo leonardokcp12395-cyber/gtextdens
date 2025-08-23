@@ -33,5 +33,55 @@
         "resultKey": "study_or_play_mind"
       }
     ]
+  },
+  {
+    "id": "explore_cave_age_10",
+    "age": 10,
+    "text": "Você encontra uma caverna escura e misteriosa. O ar é frio e um som estranho ecoa das profundezas. O que você faz?",
+    "choices": [
+      {
+        "text": "Entrar e explorar.",
+        "effects": {
+          "special": "explore_cave"
+        }
+      },
+      {
+        "text": "Ignorar a caverna e continuar seu caminho.",
+        "effects": {},
+        "resultKey": "ignore_cave"
+      }
+    ]
+  },
+  {
+    "id": "breakthrough_attempt",
+    "text": "Você sente uma imensa pressão enquanto o Qi percorre o seu corpo, tentando romper para o próximo nível. A energia crepita à sua volta...",
+    "choices": [
+      {
+        "text": "Focar a mente e forçar o avanço!",
+        "effects": {
+          "special": "attempt_breakthrough_roll"
+        }
+      }
+    ]
+  },
+  {
+    "id": "forest_ambush_age_12",
+    "age": 12,
+    "text": "Enquanto viajava por uma floresta densa, um bandido salta de trás de uma árvore, brandindo uma faca. 'A bolsa ou a vida!' ele grita.",
+    "choices": [
+      {
+        "text": "Lutar contra o bandido.",
+        "effects": {
+          "special": "start_combat_bandit"
+        }
+      },
+      {
+        "text": "Dar-lhe 10 moedas.",
+        "effects": {
+          "resources.money": -10
+        },
+        "resultKey": "paid_bandit"
+      }
+    ]
   }
 ]

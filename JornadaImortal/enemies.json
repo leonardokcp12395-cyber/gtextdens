@@ -1,1 +1,9 @@
-[]
+[
+  {
+    "id": "bandit",
+    "name": "Bandido da Floresta",
+    "attributes": {
+      "body": 12
+    }
+  }
+]
