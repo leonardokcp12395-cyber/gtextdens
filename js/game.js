@@ -40,13 +40,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const responses = await Promise.all([
                 fetch('data/events.json'), fetch('data/items.json'), fetch('data/sects.json'),
                 fetch('data/enemies.json'), fetch('data/talents.json'), fetch('data/strings.json'),
-                fetch('data/random_events.json'), fetch('data/nomes.json'), fetch('data/personalidades.json')
+                fetch('data/random_events.json'), fetch('data/nomes.json'), fetch('data/personalidades.json'),
+                fetch('data/world_events.json')
             ]);
             for (const res of responses) {
                 if (!res.ok) throw new Error(`Falha ao carregar ${res.url}`);
             }
-            const [events, items, sects, enemies, talents, strings, randomEvents, nomes, personalidades] = await Promise.all(responses.map(res => res.json()));
-            allGameData = { events, items, sects, enemies, talents, randomEvents, nomes, personalidades };
+            const [events, items, sects, enemies, talents, strings, randomEvents, nomes, personalidades, worldEvents] = await Promise.all(responses.map(res => res.json()));
+            allGameData = { events, items, sects, enemies, talents, randomEvents, nomes, personalidades, worldEvents };
             allStrings = strings;
             initializeGame();
         } catch (error) {
@@ -175,6 +176,25 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function advanceYear() {
+        // --- LÓGICA DE EVENTOS MUNDIAIS ---
+        // Verifica se um evento mundial termina
+        if (gameState.currentWorldEvent && gameState.age === gameState.currentWorldEvent.endYear) {
+            addCombatLog(allGameData.worldEvents.find(e => e.id === gameState.currentWorldEvent.id).endText);
+            gameState.currentWorldEvent = null;
+        }
+        // Chance de um novo evento mundial começar
+        if (!gameState.currentWorldEvent && gameState.age > 10 && gameState.age % 10 === 0) {
+            if (Math.random() < 0.25) { // 25% de chance a cada 10 anos
+                const newWorldEvent = getRandomElement(allGameData.worldEvents);
+                gameState.currentWorldEvent = {
+                    id: newWorldEvent.id,
+                    endYear: gameState.age + newWorldEvent.duration
+                };
+                addCombatLog(newWorldEvent.startText); // Usa o log de combate para notificações globais
+            }
+        }
+
+        // --- LÓGICA DE BENEFÍCIOS DE SEITA ---
         if (gameState.sect.id) {
             const sectData = allGameData.sects.find(s => s.id === gameState.sect.id);
             if (sectData && sectData.benefit) {
@@ -222,17 +242,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function showSectStore() {
         const sectData = allGameData.sects.find(s => s.id === gameState.sect.id);
+        let priceModifier = 1.0;
+        if (gameState.currentWorldEvent) {
+            const worldEventData = allGameData.worldEvents.find(e => e.id === gameState.currentWorldEvent.id);
+            if (worldEventData.effects.pillPriceModifier) {
+                priceModifier = worldEventData.effects.pillPriceModifier;
+            }
+        }
+
         elements.eventContent.innerHTML = `<h2>Loja da Seita</h2><p>Sua Contribuição: ${gameState.resources.contribution}</p>`;
+        if (priceModifier > 1.0) {
+            elements.eventContent.innerHTML += `<p style="color: var(--color-accent-danger);">Os preços estão inflacionados devido à guerra!</p>`;
+        }
+
         elements.choicesContainer.innerHTML = '';
         sectData.store.forEach(storeItem => {
             const itemData = allGameData.items.find(i => i.id === storeItem.id);
+            const finalCost = Math.floor(storeItem.cost_contribution * priceModifier);
             const button = document.createElement('button');
-            button.innerHTML = `${itemData.name} <br><small>${itemData.description} (Custo: ${storeItem.cost_contribution})</small>`;
-            if (gameState.resources.contribution < storeItem.cost_contribution) {
+            button.innerHTML = `${itemData.name} <br><small>${itemData.description} (Custo: ${finalCost})</small>`;
+            if (gameState.resources.contribution < finalCost) {
                 button.disabled = true;
             }
             button.onclick = () => {
-                gameState.resources.contribution -= storeItem.cost_contribution;
+                gameState.resources.contribution -= finalCost;
                 applyEffects(itemData.effects);
                 addCombatLog(`Você comprou ${itemData.name}.`);
                 updateUI();
@@ -267,6 +300,7 @@ document.addEventListener('DOMContentLoaded', () => {
             resources: { money: 10, reputation: 0, talentPoints: 5, contribution: 0 },
             cultivation: { realm: 'Mortal', level: 1, qi: 0, maxQi: 100 },
             lastFailedSpecial: null, talents: [], sect: { id: null, rank: 0 },
+            currentWorldEvent: null,
             relationships: { [rival.id]: { score: 0, state: 'neutral' } }
         };
         elements.nextYearBtn.addEventListener('click', advanceYear);
