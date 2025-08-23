@@ -34,6 +34,27 @@
                 <button id="meditate-btn">Meditar</button>
                 <button id="next-year-btn">Avançar Ano</button>
             </div>
+
+            <div id="combat-screen" class="hidden">
+                <div class="combat-panels-container">
+                    <div id="combat-player-stats" class="combat-stats-panel">
+                        <h3>Você</h3>
+                        <p>HP: <span id="combat-player-hp">100</span></p>
+                    </div>
+                    <div id="combat-enemy-stats" class="combat-stats-panel">
+                        <h3 id="combat-enemy-name">Inimigo</h3>
+                        <p>HP: <span id="combat-enemy-hp">100</span></p>
+                    </div>
+                </div>
+                <div id="combat-log" class="panel">
+                    <p>O combate começa!</p>
+                </div>
+                <div id="combat-actions">
+                    <button class="combat-action-btn" data-action="attack">Atacar</button>
+                    <button class="combat-action-btn" data-action="defend">Defender</button>
+                    <button class="combat-action-btn" data-action="flee">Fugir</button>
+                </div>
+            </div>
         </div>
 
         <div id="resources-panel" class="panel">

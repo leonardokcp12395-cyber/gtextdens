@@ -3,7 +3,10 @@
     "id": "bandit",
     "name": "Bandido da Floresta",
     "attributes": {
-      "body": 12
+      "body": 12,
+      "hp": 30,
+      "attack": 8,
+      "defense": 2
     }
   }
 ]
