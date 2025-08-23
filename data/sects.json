@@ -3,34 +3,98 @@
     "id": "hidden_cloud_sect",
     "name": "Seita da Nuvem Oculta",
     "description": "Uma seita que valoriza a paz interior e o acúmulo de energia espiritual através da meditação.",
-    "benefit": {
+    "benefit_template": {
       "type": "passive_qi_gain",
-      "value": 5,
-      "description": "Ganha 5 de Qi extra por ano."
+      "base_value": 5,
+      "value_per_rank": 5,
+      "description": "Ganha 5 de Qi extra por ano por rank na seita."
     },
     "ranks": [
-      { "name": "Discípulo Externo", "contribution_needed": 0 },
-      { "name": "Discípulo Interno", "contribution_needed": 100 }
+      {
+        "id": 0,
+        "name": "Discípulo Externo",
+        "requirements": null
+      },
+      {
+        "id": 1,
+        "name": "Discípulo Interno",
+        "requirements": {
+          "cultivation_realm_id": 1,
+          "cultivation_level": 1,
+          "contribution": 100
+        }
+      },
+      {
+        "id": 2,
+        "name": "Discípulo de Elite",
+        "requirements": {
+          "cultivation_realm_id": 1,
+          "cultivation_level": 5,
+          "contribution": 500
+        }
+      },
+      {
+        "id": 3,
+        "name": "Ancião",
+        "requirements": {
+          "cultivation_realm_id": 2,
+          "cultivation_level": 1,
+          "contribution": 2000
+        }
+      }
     ],
     "store": [
-      { "id": "small_qi_pill", "cost_contribution": 20 }
+      { "id": "small_qi_pill", "cost_contribution": 20, "min_rank": 0 },
+      { "id": "medium_qi_pill", "cost_contribution": 80, "min_rank": 1 }
     ]
   },
   {
     "id": "iron_body_sect",
     "name": "Seita do Corpo de Ferro",
     "description": "Uma seita focada no fortalecimento do corpo físico, acreditando que um corpo forte é o templo de um espírito forte.",
-    "benefit": {
+    "benefit_template": {
       "type": "body_cultivation_boost",
-      "value": 1,
-      "description": "Ganha 1 de Corpo a cada 5 anos."
+      "base_value": 1,
+      "value_per_rank": 1,
+      "description": "Ganha 1 de Corpo extra a cada 5 anos por rank na seita."
     },
     "ranks": [
-      { "name": "Iniciado", "contribution_needed": 0 },
-      { "name": "Punho de Ferro", "contribution_needed": 100 }
+      {
+        "id": 0,
+        "name": "Iniciado",
+        "requirements": null
+      },
+      {
+        "id": 1,
+        "name": "Punho de Ferro",
+        "requirements": {
+          "cultivation_realm_id": 1,
+          "cultivation_level": 1,
+          "contribution": 100
+        }
+      },
+      {
+        "id": 2,
+        "name": "Corpo de Aço",
+        "requirements": {
+          "cultivation_realm_id": 1,
+          "cultivation_level": 5,
+          "contribution": 500
+        }
+      },
+      {
+        "id": 3,
+        "name": "Mestre da Seita",
+        "requirements": {
+          "cultivation_realm_id": 2,
+          "cultivation_level": 1,
+          "contribution": 2000
+        }
+      }
     ],
     "store": [
-      { "id": "body_tempering_elixir", "cost_contribution": 25 }
+      { "id": "body_tempering_elixir", "cost_contribution": 25, "min_rank": 0 },
+      { "id": "steel_bone_pill", "cost_contribution": 100, "min_rank": 1 }
     ]
   }
 ]

@@ -41,13 +41,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 fetch('data/events.json'), fetch('data/items.json'), fetch('data/sects.json'),
                 fetch('data/enemies.json'), fetch('data/talents.json'), fetch('data/strings.json'),
                 fetch('data/random_events.json'), fetch('data/nomes.json'), fetch('data/personalidades.json'),
-                fetch('data/world_events.json'), fetch('data/realms.json') // <-- Adicionado
+                fetch('data/world_events.json'), fetch('data/realms.json'), fetch('data/missions.json')
             ]);
             for (const res of responses) {
                 if (!res.ok) throw new Error(`Falha ao carregar ${res.url}`);
             }
-            const [events, items, sects, enemies, talents, strings, randomEvents, nomes, personalidades, worldEvents, realms] = await Promise.all(responses.map(res => res.json()));
-            allGameData = { events, items, sects, enemies, talents, randomEvents, nomes, personalidades, worldEvents, realms }; // <-- Adicionado
+            const [events, items, sects, enemies, talents, strings, randomEvents, nomes, personalidades, worldEvents, realms, missions] = await Promise.all(responses.map(res => res.json()));
+            allGameData = { events, items, sects, enemies, talents, randomEvents, nomes, personalidades, worldEvents, realms, missions };
             allStrings = strings;
             initializeGame();
         } catch (error) {
@@ -106,11 +106,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (combatMatch) { startCombat(combatMatch[1]); return; }
         const joinSectMatch = effect.match(/^join_sect_(.+)/);
         if (joinSectMatch) { gameState.sect.id = joinSectMatch[1]; return; }
+        const acceptMissionMatch = effect.match(/^accept_mission_(.+)/);
+        if (acceptMissionMatch) { acceptSectMission(acceptMissionMatch[1]); return; }
 
         switch (effect) {
             case 'show_sect_actions': showSectActions(); break;
             case 'show_sect_store': showSectStore(); break;
             case 'try_promotion': tryPromotion(); break;
+            case 'show_mission_board': showMissionBoard(); break;
             // ... outros casos
             default: console.warn(`Efeito especial não reconhecido: ${effect}`);
         }
@@ -199,10 +202,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // --- LÓGICA DE BENEFÍCIOS DE SEITA ---
         if (gameState.sect.id) {
+            // Missão
+            if (gameState.sect.currentMissionId) {
+                const mission = allGameData.missions.find(m => m.id === gameState.sect.currentMissionId);
+                applyEffects({ resources: mission.reward });
+                addCombatLog(`Você completou a missão '${mission.title}' e recebeu ${mission.reward.contribution} de contribuição.`);
+                gameState.sect.currentMissionId = null;
+            }
+
+            // Benefício passivo
             const sectData = allGameData.sects.find(s => s.id === gameState.sect.id);
-            if (sectData && sectData.benefit) {
-                if (sectData.benefit.type === 'passive_qi_gain') gameState.cultivation.qi = Math.min(gameState.cultivation.maxQi, gameState.cultivation.qi + sectData.benefit.value);
-                if (sectData.benefit.type === 'body_cultivation_boost' && (gameState.age % 5 === 0)) gameState.player.attributes.body += sectData.benefit.value;
+            if (sectData && sectData.benefit_template) {
+                const template = sectData.benefit_template;
+                const benefitValue = template.base_value + (template.value_per_rank * gameState.sect.rank);
+
+                if (template.type === 'passive_qi_gain') {
+                    gameState.cultivation.qi = Math.min(gameState.cultivation.maxQi, gameState.cultivation.qi + benefitValue);
+                }
+                if (template.type === 'body_cultivation_boost' && (gameState.age % 5 === 0)) {
+                    gameState.player.attributes.body += benefitValue;
+                }
             }
         }
         gameState.age++;
@@ -286,13 +305,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- LÓGICA DE SEITA ---
     function showSectActions() {
+        const choices = [
+            { text: "Ver Loja", effects: { special: 'show_sect_store' } },
+            { text: "Tentar Promoção", effects: { special: 'try_promotion' } }
+        ];
+
+        // Adiciona a opção de missões se o jogador não tiver uma ativa
+        if (!gameState.sect.currentMissionId) {
+            choices.push({ text: "Ver Quadro de Missões", effects: { special: 'show_mission_board' } });
+        } else {
+            const currentMission = allGameData.missions.find(m => m.id === gameState.sect.currentMissionId);
+            choices.push({ text: `Em Missão: ${currentMission.title}`, disabled: true });
+        }
+
+        choices.push({ text: "Sair", effects: {}, resultKey: "sect_actions_leave" });
+
         const sectEvent = {
             text: "Você está no pátio da sua seita. O que deseja fazer?",
-            choices: [
-                { text: "Ver Loja", effects: { special: 'show_sect_store' } },
-                { text: "Tentar Promoção", effects: { special: 'try_promotion' } },
-                { text: "Sair", effects: {}, resultKey: "sect_actions_leave" }
-            ]
+            choices: choices
         };
         showEvent(sectEvent);
     }
@@ -313,7 +343,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         elements.choicesContainer.innerHTML = '';
-        sectData.store.forEach(storeItem => {
+        sectData.store
+            .filter(storeItem => storeItem.min_rank <= gameState.sect.rank)
+            .forEach(storeItem => {
             const itemData = allGameData.items.find(i => i.id === storeItem.id);
             const finalCost = Math.floor(storeItem.cost_contribution * priceModifier);
             const button = document.createElement('button');
@@ -336,14 +368,91 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.choicesContainer.appendChild(leaveButton);
     }
 
-    function tryPromotion() {
-        // Lógica de promoção será implementada no futuro
-        elements.eventContent.innerHTML = `<p>Você ainda não está pronto para uma promoção.</p>`;
+    function showMissionBoard() {
+        elements.eventContent.innerHTML = `<h2>Quadro de Missões</h2><p>Você examina as missões disponíveis para seu rank.</p>`;
         elements.choicesContainer.innerHTML = '';
-        const leaveButton = document.createElement('button');
-        leaveButton.textContent = "Voltar";
-        leaveButton.onclick = showSectActions;
-        elements.choicesContainer.appendChild(leaveButton);
+
+        const availableMissions = allGameData.missions.filter(m =>
+            m.sect_id === gameState.sect.id &&
+            m.min_rank <= gameState.sect.rank
+        );
+
+        if (availableMissions.length === 0) {
+            elements.eventContent.innerHTML += `<p>Não há missões disponíveis para você no momento.</p>`;
+        } else {
+            availableMissions.forEach(mission => {
+                const button = document.createElement('button');
+                button.innerHTML = `${mission.title}<br><small>${mission.description} (Recompensa: ${mission.reward.contribution} Contribuição)</small>`;
+                button.onclick = () => {
+                    acceptSectMission(mission.id);
+                };
+                elements.choicesContainer.appendChild(button);
+            });
+        }
+
+        const backButton = createBackButton(showSectActions);
+        elements.choicesContainer.appendChild(backButton);
+    }
+
+    function acceptSectMission(missionId) {
+        gameState.sect.currentMissionId = missionId;
+        const mission = allGameData.missions.find(m => m.id === missionId);
+        elements.eventContent.innerHTML = `<p>Você aceitou a missão: ${mission.title}. Ela será concluída no final do ano.</p>`;
+        elements.choicesContainer.innerHTML = '';
+        const backButton = createBackButton(showSectActions);
+        elements.choicesContainer.appendChild(backButton);
+        updateUI(); // Para atualizar o estado do botão de missões
+    }
+
+    function tryPromotion() {
+        const sectData = allGameData.sects.find(s => s.id === gameState.sect.id);
+        const currentRankId = gameState.sect.rank;
+        const nextRank = sectData.ranks.find(r => r.id === currentRankId + 1);
+
+        if (!nextRank) {
+            elements.eventContent.innerHTML = `<p>Você já alcançou o rank mais alto em sua seita.</p>`;
+            elements.choicesContainer.innerHTML = '';
+            const backButton = createBackButton(showSectActions);
+            elements.choicesContainer.appendChild(backButton);
+            return;
+        }
+
+        const reqs = nextRank.requirements;
+        let canPromote = true;
+        let missingReqs = [];
+
+        if (reqs.contribution && gameState.resources.contribution < reqs.contribution) {
+            canPromote = false;
+            missingReqs.push(`Contribuição: ${gameState.resources.contribution} / ${reqs.contribution}`);
+        }
+        if (reqs.cultivation_realm_id && gameState.cultivation.realmId < reqs.cultivation_realm_id) {
+            canPromote = false;
+            const requiredRealm = allGameData.realms[reqs.cultivation_realm_id].name;
+            missingReqs.push(`Reino de Cultivo: ${requiredRealm}`);
+        }
+        if (reqs.cultivation_level && gameState.cultivation.level < reqs.cultivation_level) {
+            canPromote = false;
+            missingReqs.push(`Nível de Cultivo: ${reqs.cultivation_level}`);
+        }
+
+        if (canPromote) {
+            gameState.sect.rank = nextRank.id;
+            elements.eventContent.innerHTML = `<p>Parabéns! Você foi promovido para ${nextRank.name}!</p>`;
+        } else {
+            elements.eventContent.innerHTML = `<p>Você não cumpre os requisitos para a promoção. Falta:</p><ul><li>${missingReqs.join('</li><li>')}</li></ul>`;
+        }
+
+        elements.choicesContainer.innerHTML = '';
+        const backButton = createBackButton(showSectActions);
+        elements.choicesContainer.appendChild(backButton);
+    }
+
+    // --- FUNÇÕES HELPER ---
+    function createBackButton(onClick) {
+        const button = document.createElement('button');
+        button.textContent = "Voltar";
+        button.onclick = onClick;
+        return button;
     }
 
     // --- LÓGICA DE COMBATE ---
@@ -564,7 +673,7 @@ document.addEventListener('DOMContentLoaded', () => {
             player, npcs: { [rival.id]: rival }, age: 0,
             resources: { money: 10, reputation: 0, talentPoints: 5, contribution: 0 },
             cultivation: { realmId: 0, level: 1, qi: 0 },
-            lastFailedSpecial: null, talents: [], sect: { id: null, rank: 0 },
+            lastFailedSpecial: null, talents: [], sect: { id: null, rank: 0, currentMissionId: null },
             currentWorldEvent: null,
             relationships: { [rival.id]: { score: 0, state: 'neutral' } },
             rivalId: rival.id // Inicializa o rivalId
