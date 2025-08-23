@@ -1,0 +1,32 @@
+[
+  {
+    "id": "random_good_dream",
+    "text": "Você tem um sonho inspirador sobre as estrelas, sentindo sua mente se expandir.",
+    "choices": [
+      {
+        "text": "Contemplar a visão.",
+        "effects": {
+          "attributes": {
+            "mind": 1
+          }
+        },
+        "resultKey": "dream_contemplated"
+      }
+    ]
+  },
+  {
+    "id": "random_stumble",
+    "text": "Você tropeça numa raiz de árvore enquanto treina, torcendo o tornozelo.",
+    "choices": [
+      {
+        "text": "Que azar.",
+        "effects": {
+          "attributes": {
+            "body": -1
+          }
+        },
+        "resultKey": "stumble_unlucky"
+      }
+    ]
+  }
+]

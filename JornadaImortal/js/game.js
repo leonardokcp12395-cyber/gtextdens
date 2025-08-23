@@ -44,13 +44,14 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const responses = await Promise.all([
                 fetch('data/events.json'), fetch('data/items.json'), fetch('data/sects.json'),
-                fetch('data/enemies.json'), fetch('data/talents.json'), fetch('data/strings.json')
+                fetch('data/enemies.json'), fetch('data/talents.json'), fetch('data/strings.json'),
+                fetch('data/random_events.json')
             ]);
             for (const res of responses) {
                 if (!res.ok) throw new Error(`Falha ao carregar ${res.url}`);
             }
-            const [events, items, sects, enemies, talents, strings] = await Promise.all(responses.map(res => res.json()));
-            allGameData = { events, items, sects, enemies, talents };
+            const [events, items, sects, enemies, talents, strings, randomEvents] = await Promise.all(responses.map(res => res.json()));
+            allGameData = { events, items, sects, enemies, talents, randomEvents };
             allStrings = strings;
             initializeGame();
         } catch (error) {
@@ -109,6 +110,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     cultivation.qi = Math.floor(cultivation.qi / 2);
                     elements.eventContent.innerHTML = `<p>${allStrings['breakthrough_failure']}</p>`;
+                    gameState.lastFailedSpecial = 'breakthrough_attempt'; // Regista a falha
                 }
                 elements.choicesContainer.innerHTML = '';
                 elements.actionsContainer.classList.remove('hidden');
@@ -165,11 +167,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function advanceYear() {
         gameState.age++;
-        const eventForAge = allGameData.events.find(event => event.age === gameState.age);
+
+        const eventForAge = allGameData.events.find(event => {
+            if (event.age !== gameState.age) return false;
+
+            if (event.condition) {
+                if (event.condition.failedSpecial && gameState.lastFailedSpecial === event.condition.failedSpecial) {
+                    return true;
+                }
+                return false;
+            }
+
+            return true;
+        });
+
         if (eventForAge) {
             showEvent(eventForAge);
+            if (eventForAge.condition) {
+                gameState.lastFailedSpecial = null; // Reseta a condição para não repetir
+            }
         } else {
-            elements.eventContent.innerHTML = `<p>Você completou ${gameState.age} anos. O tempo passa.</p>`;
+            // Tenta acionar um evento aleatório com 25% de chance
+            if (Math.random() < 0.25 && allGameData.randomEvents && allGameData.randomEvents.length > 0) {
+                const randomEvent = allGameData.randomEvents[Math.floor(Math.random() * allGameData.randomEvents.length)];
+                showEvent(randomEvent);
+            } else {
+                elements.eventContent.innerHTML = `<p>Você completou ${gameState.age} anos. O tempo passa em meditação e treino.</p>`;
+                elements.actionsContainer.classList.remove('hidden');
+            }
         }
         updateUI();
     }
@@ -314,6 +339,7 @@ document.addEventListener('DOMContentLoaded', () => {
             attributes: baseAttributes,
             resources: { money: 10, reputation: 0, talentPoints: 0 },
             cultivation: { realm: 'Mortal', level: 1, qi: 0, maxQi: 100 },
+            lastFailedSpecial: null,
             combat: {
                 maxHp: baseAttributes.body * 5,
                 hp: baseAttributes.body * 5,
