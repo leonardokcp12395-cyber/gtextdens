@@ -78,7 +78,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- LÓGICA DE JOGO PRINCIPAL ---
     function processText(text) {
         if (!text) return '';
-        const rival = gameState.npcs.rival;
+        // Usa o rivalId para obter o NPC rival atual
+        const rival = gameState.rivalId ? gameState.npcs[gameState.rivalId] : null;
         let processedText = text.replace(/\[RIVAL\]/g, rival ? rival.name : 'Rival');
         return processedText.replace(/\[PLAYER_NAME\]/g, gameState.player.name);
     }
@@ -223,8 +224,62 @@ document.addEventListener('DOMContentLoaded', () => {
                 elements.actionsContainer.classList.remove('hidden');
             }
         }
+        progressNpcs();
+        updateRelationshipStates(); // <-- Adicionado
         updateUI();
-        updateRelationshipStates();
+    }
+
+    // --- LÓGICA DE RELACIONAMENTOS ---
+    function updateRelationshipStates() {
+        let lowestScore = Infinity;
+        let currentRivalId = null;
+
+        for (const npcId in gameState.relationships) {
+            const rel = gameState.relationships[npcId];
+            // Atualiza o estado (amigo, neutro, inimigo)
+            if (rel.score > 50) rel.state = 'Amigo';
+            else if (rel.score < -50) rel.state = 'Inimigo';
+            else rel.state = 'Neutro';
+
+            // Encontra o NPC com a pior relação para ser o rival
+            if (rel.score < lowestScore) {
+                lowestScore = rel.score;
+                currentRivalId = npcId;
+            }
+        }
+        gameState.rivalId = currentRivalId;
+    }
+
+    // --- LÓGICA DE PROGRESSÃO DE NPCS ---
+    function progressNpcs() {
+        for (const npcId in gameState.npcs) {
+            const npc = gameState.npcs[npcId];
+            // Usa o novo gameState.rivalId para a verificação
+            const isRival = npc.id === gameState.rivalId;
+
+            // Aumento base de atributos
+            npc.attributes.body += Math.floor(Math.random() * 2) + 1; // Ganha 1-2 de corpo
+            npc.attributes.mind += Math.floor(Math.random() * 2) + 1; // Ganha 1-2 de mente
+
+            // Chance de um "mini-breakthrough"
+            if (Math.random() < 0.1) { // 10% de chance
+                npc.attributes.body += Math.floor(Math.random() * 3) + 1;
+                npc.attributes.mind += Math.floor(Math.random() * 3) + 1;
+
+                // Adiciona uma notificação se for o rival
+                if (isRival) {
+                    // Usando addCombatLog para notificações globais. Renomear a função pode ser uma boa ideia no futuro.
+                    addCombatLog(`<span style="color: var(--color-accent-special);">Você ouve rumores de que ${npc.name} teve um avanço em seu treino!</span>`);
+                }
+            }
+
+            // Atualizar status de combate com base nos atributos
+            npc.combat.maxHp = npc.attributes.body * 5;
+            // A vida atual também pode aumentar um pouco para refletir o treino
+            npc.combat.hp = Math.min(npc.combat.maxHp, npc.combat.hp + (npc.attributes.body * 2));
+            npc.combat.attack = 5 + Math.floor(npc.attributes.body / 2);
+            npc.combat.defense = 2 + Math.floor(npc.attributes.mind / 5);
+        }
     }
 
     // --- LÓGICA DE SEITA ---
@@ -289,7 +344,150 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.choicesContainer.appendChild(leaveButton);
     }
 
-    // ... (outras funções de lógica)
+    // --- LÓGICA DE COMBATE ---
+    function addCombatLog(message) {
+        elements.combatLog.innerHTML += `<p>${message}</p>`;
+        elements.combatLog.scrollTop = elements.combatLog.scrollHeight;
+    }
+
+    function updateCombatUI() {
+        elements.combatPlayerHp.textContent = `${combatState.player.hp} / ${combatState.player.maxHp}`;
+        elements.combatEnemyName.textContent = combatState.enemy.name;
+        elements.combatEnemyHp.textContent = `${combatState.enemy.hp} / ${combatState.enemy.maxHp}`;
+    }
+
+    function startCombat(enemyId) {
+        // Esconde a UI principal e mostra a de combate
+        elements.eventContent.classList.add('hidden');
+        elements.choicesContainer.classList.add('hidden');
+        elements.actionsContainer.classList.add('hidden');
+        elements.combatScreen.classList.remove('hidden');
+        elements.combatLog.innerHTML = '';
+
+        let enemyData;
+        // Verifica se o inimigo é um NPC persistente
+        if (gameState.npcs[enemyId]) {
+            const npc = gameState.npcs[enemyId];
+            enemyData = {
+                id: npc.id,
+                name: npc.name,
+                ...JSON.parse(JSON.stringify(npc.combat)) // Cópia profunda para não alterar o estado original do NPC
+            };
+        } else {
+            // Se não, busca nos inimigos genéricos
+            const genericEnemy = allGameData.enemies.find(e => e.id === enemyId);
+            if (genericEnemy) {
+                enemyData = JSON.parse(JSON.stringify(genericEnemy)); // Cópia profunda
+            } else {
+                console.error(`Inimigo com ID '${enemyId}' não encontrado!`);
+                addCombatLog(`Erro: Inimigo não encontrado.`);
+                endCombat(false); // Termina o combate se o inimigo não existe
+                return;
+            }
+        }
+
+        combatState = {
+            player: { ...gameState.player.combat },
+            enemy: enemyData,
+            turn: 'player',
+            playerDefending: false,
+            onVictory: allStrings.combat_victory_default
+        };
+
+        addCombatLog(`Você entrou em combate com ${combatState.enemy.name}!`);
+        updateCombatUI();
+    }
+
+    function playerTurn(action) {
+        if (combatState.turn !== 'player') return;
+
+        combatState.playerDefending = false;
+        let playerDamage = 0;
+
+        switch(action) {
+            case 'attack':
+                playerDamage = Math.max(1, combatState.player.attack - combatState.enemy.defense);
+                combatState.enemy.hp -= playerDamage;
+                addCombatLog(`Você ataca ${combatState.enemy.name} e causa ${playerDamage} de dano.`);
+                break;
+            case 'qi_strike':
+                const qiCost = 20;
+                if (gameState.cultivation.qi >= qiCost) {
+                    gameState.cultivation.qi -= qiCost;
+                    playerDamage = combatState.player.attack + Math.floor(gameState.player.attributes.mind / 2);
+                    combatState.enemy.hp -= playerDamage;
+                    addCombatLog(`Você usa um Golpe de Qi, causando ${playerDamage} de dano massivo!`);
+                    updateUI(); // Atualiza a UI para mostrar o Qi gasto
+                } else {
+                    addCombatLog(`Você não tem Qi suficiente para usar o Golpe de Qi.`);
+                    return; // Não passa o turno se a ação falhou
+                }
+                break;
+            case 'defend':
+                combatState.playerDefending = true;
+                addCombatLog(`Você assume uma postura defensiva.`);
+                break;
+            case 'flee':
+                if (Math.random() < 0.5) { // 50% de chance de fugir
+                    addCombatLog(`Você conseguiu fugir!`);
+                    endCombat(false);
+                } else {
+                    addCombatLog(`Você falhou em tentar fugir!`);
+                }
+                break;
+        }
+
+        updateCombatUI();
+
+        if (combatState.enemy.hp <= 0) {
+            addCombatLog(`${combatState.enemy.name} foi derrotado!`);
+            endCombat(true);
+            return;
+        }
+
+        combatState.turn = 'enemy';
+        setTimeout(enemyTurn, 1000); // Dá um tempo para o jogador ler o log
+    }
+
+    function enemyTurn() {
+        if (combatState.turn !== 'enemy') return;
+
+        const enemyDamage = Math.max(1, combatState.enemy.attack - (combatState.playerDefending ? combatState.player.defense * 2 : combatState.player.defense));
+        combatState.player.hp -= enemyDamage;
+
+        addCombatLog(`${combatState.enemy.name} ataca e causa ${enemyDamage} de dano.`);
+        updateCombatUI();
+
+        if (combatState.player.hp <= 0) {
+            addCombatLog(`Você foi derrotado!`);
+            endCombat(false);
+            return;
+        }
+
+        combatState.turn = 'player';
+    }
+
+    function endCombat(isVictory) {
+        // Mostra a UI principal e esconde a de combate
+        elements.combatScreen.classList.add('hidden');
+        elements.eventContent.classList.remove('hidden');
+        elements.choicesContainer.classList.remove('hidden');
+        elements.actionsContainer.classList.remove('hidden');
+
+        // Atualiza a vida do jogador no gameState principal
+        gameState.player.combat.hp = combatState.player.hp;
+
+        if (isVictory) {
+            elements.eventContent.innerHTML = `<p>${combatState.onVictory}</p>`;
+            // Adicionar recompensas aqui no futuro
+        } else {
+            elements.eventContent.innerHTML = `<p>${allStrings.combat_defeat_default}</p>`;
+            // Adicionar penalidades aqui no futuro
+        }
+        elements.choicesContainer.innerHTML = ''; // Limpa as escolhas
+        updateUI();
+    }
+
 
     // --- INICIALIZAÇÃO ---
     function initializeGame() {
@@ -301,7 +499,8 @@ document.addEventListener('DOMContentLoaded', () => {
             cultivation: { realm: 'Mortal', level: 1, qi: 0, maxQi: 100 },
             lastFailedSpecial: null, talents: [], sect: { id: null, rank: 0 },
             currentWorldEvent: null,
-            relationships: { [rival.id]: { score: 0, state: 'neutral' } }
+            relationships: { [rival.id]: { score: 0, state: 'neutral' } },
+            rivalId: rival.id // Inicializa o rivalId
         };
         elements.nextYearBtn.addEventListener('click', advanceYear);
         elements.meditateBtn.addEventListener('click', handleMeditateOrBreakthrough);
