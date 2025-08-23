@@ -26,10 +26,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Recursos
         money: document.getElementById('res-money'),
+        talentPoints: document.getElementById('talent-points'),
 
         // Botões
         meditateBtn: document.getElementById('meditate-btn'),
         nextYearBtn: document.getElementById('next-year-btn'),
+        talentsBtn: document.getElementById('talents-btn'),
 
         // Combate
         combatPlayerHp: document.getElementById('combat-player-hp'),
@@ -73,6 +75,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (gameState.resources.hasOwnProperty(res)) gameState.resources[res] += effects.resources[res];
             }
         }
+        if (effects.combat) {
+            for (const stat in effects.combat) {
+                if (gameState.combat.hasOwnProperty(stat)) gameState.combat[stat] += effects.combat[stat];
+            }
+        }
         if (effects.special) handleSpecialEffects(effects.special);
     }
 
@@ -110,7 +117,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     cultivation.qi = Math.floor(cultivation.qi / 2);
                     elements.eventContent.innerHTML = `<p>${allStrings['breakthrough_failure']}</p>`;
-                    gameState.lastFailedSpecial = 'breakthrough_attempt'; // Regista a falha
+                    gameState.lastFailedSpecial = 'breakthrough_attempt';
                 }
                 elements.choicesContainer.innerHTML = '';
                 elements.actionsContainer.classList.remove('hidden');
@@ -149,6 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.body.textContent = gameState.attributes.body;
         elements.mind.textContent = gameState.attributes.mind;
         elements.money.textContent = gameState.resources.money;
+        elements.talentPoints.textContent = gameState.resources.talentPoints;
         if (gameState.cultivation) {
             elements.realm.textContent = gameState.cultivation.realm;
             elements.level.textContent = gameState.cultivation.level;
@@ -167,27 +175,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function advanceYear() {
         gameState.age++;
-
         const eventForAge = allGameData.events.find(event => {
             if (event.age !== gameState.age) return false;
-
             if (event.condition) {
                 if (event.condition.failedSpecial && gameState.lastFailedSpecial === event.condition.failedSpecial) {
                     return true;
                 }
                 return false;
             }
-
             return true;
         });
-
         if (eventForAge) {
             showEvent(eventForAge);
             if (eventForAge.condition) {
-                gameState.lastFailedSpecial = null; // Reseta a condição para não repetir
+                gameState.lastFailedSpecial = null;
             }
         } else {
-            // Tenta acionar um evento aleatório com 25% de chance
             if (Math.random() < 0.25 && allGameData.randomEvents && allGameData.randomEvents.length > 0) {
                 const randomEvent = allGameData.randomEvents[Math.floor(Math.random() * allGameData.randomEvents.length)];
                 showEvent(randomEvent);
@@ -199,7 +202,7 @@ document.addEventListener('DOMContentLoaded', () => {
         updateUI();
     }
 
-    // --- LÓGICA DE CULTIVO ---
+    // --- LÓGICA DE CULTIVO E TALENTOS ---
     function meditate() {
         const { cultivation, attributes } = gameState;
         if (cultivation.qi >= cultivation.maxQi) return;
@@ -213,6 +216,39 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             meditate();
         }
+    }
+    function showTalentScreen() {
+        elements.eventContent.innerHTML = `<h2>Árvore de Talentos</h2><p>Você tem <strong>${gameState.resources.talentPoints}</strong> pontos para gastar.</p>`;
+        elements.choicesContainer.innerHTML = '';
+        elements.actionsContainer.classList.add('hidden');
+        allGameData.talents.forEach(talent => {
+            const isAcquired = gameState.talents.includes(talent.id);
+            if (isAcquired) return;
+            const canAfford = gameState.resources.talentPoints >= talent.cost;
+            const hasReqs = talent.requirements.every(req => gameState.talents.includes(req));
+            const talentButton = document.createElement('button');
+            talentButton.innerHTML = `${talent.name} <br><small>${talent.description} (Custo: ${talent.cost})</small>`;
+            if (canAfford && hasReqs) {
+                talentButton.onclick = () => {
+                    gameState.resources.talentPoints -= talent.cost;
+                    gameState.talents.push(talent.id);
+                    applyEffects(talent.effects);
+                    updateUI();
+                    showTalentScreen();
+                };
+            } else {
+                talentButton.disabled = true;
+            }
+            elements.choicesContainer.appendChild(talentButton);
+        });
+        const leaveButton = document.createElement('button');
+        leaveButton.textContent = "Fechar";
+        leaveButton.onclick = () => {
+             elements.eventContent.innerHTML = "<p>Você volta a focar-se na sua jornada.</p>";
+             elements.choicesContainer.innerHTML = '';
+             elements.actionsContainer.classList.remove('hidden');
+        };
+        elements.choicesContainer.appendChild(leaveButton);
     }
 
     // --- LÓGICA DE COMBATE ---
@@ -228,7 +264,7 @@ document.addEventListener('DOMContentLoaded', () => {
             enemy: { ...enemyData.attributes, name: enemyData.name, id: enemyData.id },
             turn: 'player'
         };
-        combatState.player.hp = gameState.combat.hp; // Certifica-se que o HP atual é usado
+        combatState.player.hp = gameState.combat.hp;
         updateCombatUI();
         addCombatLog(`Você entrou em combate com ${combatState.enemy.name}!`);
     }
@@ -242,16 +278,13 @@ document.addEventListener('DOMContentLoaded', () => {
     function addCombatLog(message) {
         const p = document.createElement('p');
         p.innerHTML = message;
-        elements.combatLog.prepend(p); // Adiciona a nova mensagem no topo
+        elements.combatLog.prepend(p);
     }
 
     function playerTurn(action) {
         if (combatState.turn !== 'player') return;
-
         combatState.player.isDefending = false;
-
         let turnOver = false;
-
         if (action === 'attack') {
             let playerDamage = Math.max(1, combatState.player.attack - combatState.enemy.defense);
             combatState.enemy.hp -= playerDamage;
@@ -273,15 +306,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 addCombatLog(`Você não tem Qi suficiente para usar esta técnica.`);
             }
         }
-
         updateCombatUI();
-        updateUI(); // Atualiza o painel de cultivo para mostrar o Qi gasto
-
+        updateUI();
         if (combatState.enemy.hp <= 0) {
             endCombat('win');
             return;
         }
-
         if (turnOver) {
             combatState.turn = 'enemy';
             setTimeout(enemyTurn, 1000);
@@ -290,24 +320,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function enemyTurn() {
         if (combatState.turn !== 'enemy') return;
-
         let playerDefense = combatState.player.defense;
         if (combatState.player.isDefending) {
-            playerDefense *= 2; // Dobra a defesa se o jogador estiver a defender
+            playerDefense *= 2;
         }
-
         let enemyDamage = Math.max(1, combatState.enemy.attack - playerDefense);
         gameState.combat.hp -= enemyDamage;
         combatState.player.hp = gameState.combat.hp;
-
         addCombatLog(`${combatState.enemy.name} ataca! ${combatState.player.isDefending ? 'Sua defesa amortece o golpe.' : ''} Ele causa <span class="damage-enemy">${enemyDamage}</span> de dano.`);
         updateCombatUI();
-
         if (combatState.player.hp <= 0) {
             endCombat('lose');
             return;
         }
-
         combatState.turn = 'player';
     }
 
@@ -316,18 +341,15 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.eventContent.classList.remove('hidden');
         elements.actionsContainer.classList.remove('hidden');
         elements.combatLog.innerHTML = '';
-
         if (result === 'win') {
             elements.eventContent.innerHTML = `<p>${allStrings[`combat_win_${combatState.enemy.id}`]}</p>`;
             gameState.attributes.body++;
-            // Futuramente, adicionar loot e outras recompensas aqui.
         } else {
             elements.eventContent.innerHTML = `<p>${allStrings[`combat_lose_${combatState.enemy.id}`]}</p>`;
             gameState.resources.money = Math.max(0, gameState.resources.money - 10);
-            gameState.combat.hp = 1; // Recupera com 1 de HP para poder continuar.
+            gameState.combat.hp = 1;
         }
-
-        combatState = {}; // Limpa o estado de combate
+        combatState = {};
         updateUI();
     }
 
@@ -337,9 +359,10 @@ document.addEventListener('DOMContentLoaded', () => {
         gameState = {
             age: 0,
             attributes: baseAttributes,
-            resources: { money: 10, reputation: 0, talentPoints: 0 },
+            resources: { money: 10, reputation: 0, talentPoints: 5 },
             cultivation: { realm: 'Mortal', level: 1, qi: 0, maxQi: 100 },
             lastFailedSpecial: null,
+            talents: [],
             combat: {
                 maxHp: baseAttributes.body * 5,
                 hp: baseAttributes.body * 5,
@@ -349,6 +372,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         elements.nextYearBtn.addEventListener('click', advanceYear);
         elements.meditateBtn.addEventListener('click', handleMeditateOrBreakthrough);
+        elements.talentsBtn.addEventListener('click', showTalentScreen);
         elements.combatActions.addEventListener('click', (e) => {
             if (e.target.classList.contains('combat-action-btn')) {
                 playerTurn(e.target.dataset.action);

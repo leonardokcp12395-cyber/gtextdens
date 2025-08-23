@@ -1,1 +1,40 @@
-[]
+[
+  {
+    "id": "body_t_1",
+    "name": "Corpo Robusto",
+    "description": "Seu corpo é naturalmente mais forte. Ganha +5 HP Máximo.",
+    "cost": 1,
+    "requirements": [],
+    "effects": {
+      "combat": {
+        "maxHp": 5
+      }
+    }
+  },
+  {
+    "id": "mind_t_1",
+    "name": "Mente Aguçada",
+    "description": "Sua mente processa informações mais rápido. Ganha +1 de Mente.",
+    "cost": 1,
+    "requirements": [],
+    "effects": {
+      "attributes": {
+        "mind": 1
+      }
+    }
+  },
+  {
+    "id": "body_t_2",
+    "name": "Vigor de Aço",
+    "description": "Sua resiliência é notável. Ganha +1 de Defesa.",
+    "cost": 2,
+    "requirements": [
+      "body_t_1"
+    ],
+    "effects": {
+      "combat": {
+        "defense": 1
+      }
+    }
+  }
+]
