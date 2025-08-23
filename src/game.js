@@ -649,8 +649,10 @@ function findAndShowEvent(lastViewId = 'map') {
     if (possibleEvents.length > 0) {
         const eventToShow = selectEvent(possibleEvents);
         showEvent(eventToShow, lastViewId);
+        return true;
     } else {
         showView(lastViewId);
+        return false;
     }
 }
 
@@ -745,7 +747,17 @@ export function advanceMonth(actionType = 'rest') {
         showView('manor'); // Return to the manor view
     } else { // Ação padrão 'rest'
         gameState.attributes.energy = gameState.attributes.maxEnergy;
-        findAndShowEvent(lastViewId); // Tenta encontrar um evento para o jogador
+
+        // Tenta acionar um evento aleatório com 25% de chance se nenhum outro evento ocorreu
+        const eventShown = findAndShowEvent(lastViewId);
+        if (!eventShown) {
+             if (Math.random() < 0.25 && allGameData.random_events.length > 0) {
+                const randomEvent = allGameData.random_events[Math.floor(Math.random() * allGameData.random_events.length)];
+                showEvent(randomEvent);
+            } else {
+                // No event this month
+            }
+        }
     }
 
     // Lógica de Perda de Saúde por Idade (só checa no ano novo)

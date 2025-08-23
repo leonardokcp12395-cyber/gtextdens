@@ -93,6 +93,10 @@ export function handleSpecialEffects(specialKey, mission = null) {
                 applyEffects({ attributes: { luck: 1 } });
             }
             break;
+        case "gain_talent_point":
+            gameState.resources.talentPoints++;
+            success = true;
+            break;
         case "explore_cave":
             if (Math.random() > 0.5) {
                 gameState.inventory.push("raiz_de_terra");
