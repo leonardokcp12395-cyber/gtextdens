@@ -34,7 +34,12 @@ document.addEventListener('DOMContentLoaded', () => {
         relationshipsList: document.getElementById('relationships-list'),
         sectInfo: document.getElementById('sect-info'),
         sectName: document.getElementById('sect-name'),
-        sectRank: document.getElementById('sect-rank')
+        sectRank: document.getElementById('sect-rank'),
+        lifespan: document.getElementById('char-lifespan'),
+        legacyScreen: document.getElementById('legacy-screen'),
+        legacyPoints: document.getElementById('legacy-points'),
+        legacyBonusesContainer: document.getElementById('legacy-bonuses-container'),
+        startNewJourneyBtn: document.getElementById('start-new-journey-btn')
     };
 
     // --- CARREGAMENTO DE DADOS ---
@@ -67,9 +72,24 @@ document.addEventListener('DOMContentLoaded', () => {
         const lastName = getRandomElement(nomes.apelidos);
         const personality = getRandomElement(personalidades);
         const baseAttributes = { body: 10, mind: 10, soul: 10, luck: 5 };
+
+        // Aplicar bônus de legado
+        const legacyData = getLegacyData();
+        for(const bonusId in legacyData.bonuses) {
+            if (legacyData.bonuses[bonusId]) {
+                const bonus = LEGACY_BONUSES.find(b => b.id === bonusId);
+                if (bonus && bonus.effects.attributes) {
+                    for(const attr in bonus.effects.attributes) {
+                        baseAttributes[attr] += bonus.effects.attributes[attr];
+                    }
+                }
+            }
+        }
+
         return {
             id, name: `${firstName} ${lastName}`, gender, personality,
             attributes: { ...baseAttributes },
+            lifespan: 80, // <-- Adicionado
             combat: {
                 maxHp: baseAttributes.body * 5, hp: baseAttributes.body * 5,
                 attack: 5 + Math.floor(baseAttributes.body / 2),
@@ -244,6 +264,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateUI() {
         elements.playerName.textContent = gameState.player.name;
         elements.age.textContent = gameState.age;
+        elements.lifespan.textContent = gameState.player.lifespan;
         elements.body.textContent = gameState.player.attributes.body;
         elements.mind.textContent = gameState.player.attributes.mind;
         elements.money.textContent = gameState.resources.money;
@@ -289,6 +310,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function advanceYear() {
+        // --- VERIFICAÇÃO DE FIM DE JOGO ---
+        if (gameState.age >= gameState.player.lifespan) {
+            endGame("old_age");
+            return; // Interrompe o avanço do ano
+        }
+
         // --- LÓGICA DE EVENTOS MUNDIAIS ---
         // Verifica se um evento mundial termina
         if (gameState.currentWorldEvent && gameState.age === gameState.currentWorldEvent.endYear) {
@@ -674,7 +701,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (combatState.player.hp <= 0) {
             addCombatLog(`Você foi derrotado!`);
-            endCombat(false);
+            endGame("player_defeat");
             return;
         }
 
@@ -700,6 +727,104 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         elements.choicesContainer.innerHTML = ''; // Limpa as escolhas
         updateUI();
+    }
+
+    function endGame(reason) {
+        elements.actionsContainer.classList.add('hidden');
+        elements.eventContent.innerHTML = `<h2>Fim da Jornada</h2>`;
+
+        switch(reason) {
+            case "old_age":
+                elements.eventContent.innerHTML += `<p>Após ${gameState.age} anos, sua jornada chega ao fim. O tempo é implacável, e seu corpo mortal não aguenta mais. Você se torna um com o Dao, deixando para trás uma lenda.</p>`;
+                break;
+            case "player_defeat":
+                 elements.eventContent.innerHTML += `<p>Você foi derrotado em combate. Seus ferimentos são graves demais e sua jornada termina aqui.</p>`;
+                break;
+        }
+
+        // Resumo da Jornada
+        const finalCultivationRealm = allGameData.realms[gameState.cultivation.realmId].name;
+        const finalSect = gameState.sect.id ? allGameData.sects.find(s => s.id === gameState.sect.id) : null;
+        const finalSectRank = finalSect ? finalSect.ranks.find(r => r.id === gameState.sect.rank).name : "Nenhum";
+
+        elements.eventContent.innerHTML += `
+            <hr>
+            <h3>Legado de ${gameState.player.name}</h3>
+            <ul>
+                <li><strong>Idade Final:</strong> ${gameState.age}</li>
+                <li><strong>Cultivo Final:</strong> ${finalCultivationRealm} - Nível ${gameState.cultivation.level}</li>
+                <li><strong>Seita:</strong> ${finalSect ? finalSect.name : "Nenhuma"}</li>
+                <li><strong>Rank na Seita:</strong> ${finalSectRank}</li>
+                <li><strong>Talentos Adquiridos:</strong> ${gameState.talents.length}</li>
+            </ul>
+        `;
+
+        calculateAndStoreLegacy();
+
+        // Futuramente, aqui será a tela de Legado
+        elements.choicesContainer.innerHTML = `<button onclick="location.reload()">Começar uma Nova Jornada</button>`;
+    }
+
+    // --- LÓGICA DE LEGADO (NEW GAME+) ---
+    const LEGACY_BONUSES = [
+        { id: 'start_body_1', name: "+1 Corpo Inicial", cost: 10, effects: { attributes: { body: 1 } } },
+        { id: 'start_mind_1', name: "+1 Mente Inicial", cost: 10, effects: { attributes: { mind: 1 } } },
+        { id: 'start_luck_1', name: "+1 Sorte Inicial", cost: 25, effects: { attributes: { luck: 1 } } },
+        { id: 'start_money_50', name: "+50 Moedas Iniciais", cost: 5, effects: { resources: { money: 50 } } },
+    ];
+
+    function getLegacyData() {
+        return JSON.parse(localStorage.getItem('immortalJourneyLegacy')) || { legacyPoints: 0, bonuses: {} };
+    }
+
+    function saveLegacyData(legacyData) {
+        localStorage.setItem('immortalJourneyLegacy', JSON.stringify(legacyData));
+    }
+
+    function calculateAndStoreLegacy() {
+        let legacyPoints = 0;
+        legacyPoints += Math.floor(gameState.age / 2);
+        legacyPoints += gameState.cultivation.realmId * 25;
+        legacyPoints += gameState.sect.rank * 10;
+        legacyPoints += gameState.talents.length * 5;
+
+        const legacyData = getLegacyData();
+        legacyData.legacyPoints += legacyPoints;
+        saveLegacyData(legacyData);
+        elements.eventContent.innerHTML += `<p><strong>Você ganhou ${legacyPoints} Pontos de Legado!</strong></p>`;
+    }
+
+    function showLegacyStore() {
+        const legacyData = getLegacyData();
+        elements.legacyScreen.classList.remove('hidden');
+        elements.legacyPoints.textContent = legacyData.legacyPoints;
+
+        const container = elements.legacyBonusesContainer;
+        container.innerHTML = '';
+
+        LEGACY_BONUSES.forEach(bonus => {
+            const button = document.createElement('button');
+            const isPurchased = !!legacyData.bonuses[bonus.id];
+            button.innerHTML = `${bonus.name} <br><small>(Custo: ${bonus.cost})</small>`;
+            button.disabled = isPurchased || legacyData.legacyPoints < bonus.cost;
+            if (isPurchased) {
+                button.innerHTML += ` <br><small>(Adquirido)</small>`;
+            }
+            button.onclick = () => purchaseLegacyBonus(bonus.id);
+            container.appendChild(button);
+        });
+    }
+
+    function purchaseLegacyBonus(bonusId) {
+        const legacyData = getLegacyData();
+        const bonus = LEGACY_BONUSES.find(b => b.id === bonusId);
+
+        if (legacyData.legacyPoints >= bonus.cost && !legacyData.bonuses[bonus.id]) {
+            legacyData.legacyPoints -= bonus.cost;
+            legacyData.bonuses[bonus.id] = true;
+            saveLegacyData(legacyData);
+            showLegacyStore(); // Atualiza a UI da loja
+        }
     }
 
 
@@ -742,7 +867,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             cult.realmId++;
                             cult.level = 1;
                             const newRealm = allGameData.realms[cult.realmId];
-                            successMsg = `<span style="color: var(--color-accent-special); font-weight: bold;">AVANÇO DE REINO!</span> Você ascendeu para o Reino ${newRealm.name}!`;
+                            player.lifespan += newRealm.lifespan_bonus; // Aumenta a expectativa de vida
+                            successMsg = `<span style="color: var(--color-accent-special); font-weight: bold;">AVANÇO DE REINO!</span> Você ascendeu para o Reino ${newRealm.name}! Sua expectativa de vida aumentou em ${newRealm.lifespan_bonus} anos!`;
                         } else {
                             // Fim do conteúdo de reinos atual
                             successMsg = `Você atingiu o pico do cultivo conhecido! O caminho adiante é um mistério.`;
@@ -769,22 +895,37 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // --- INICIALIZAÇÃO ---
-    function initializeGame() {
+    function startGame() {
         const player = generateCharacter('player', 'masculino');
         const rival = generateCharacter('rival', 'masculino');
+
+        // Aplicar bônus de recursos do legado
+        const legacyData = getLegacyData();
+        let startingMoney = 10;
+        for(const bonusId in legacyData.bonuses) {
+             if (legacyData.bonuses[bonusId]) {
+                const bonus = LEGACY_BONUSES.find(b => b.id === bonusId);
+                if (bonus && bonus.effects.resources) {
+                    for(const resource in bonus.effects.resources) {
+                        if(resource === 'money') startingMoney += bonus.effects.resources[resource];
+                    }
+                }
+            }
+        }
+
         gameState = {
             player, npcs: { [rival.id]: rival }, age: 0,
-            resources: { money: 10, reputation: 0, talentPoints: 5, contribution: 0 },
+            resources: { money: startingMoney, reputation: 0, talentPoints: 5, contribution: 0 },
             cultivation: { realmId: 0, level: 1, qi: 0 },
             lastFailedSpecial: null, talents: [], sect: { id: null, rank: 0, currentMissionId: null },
             currentWorldEvent: null,
             relationships: { [rival.id]: { score: 0, state: 'neutral' } },
-            rivalId: rival.id, // Inicializa o rivalId
+            rivalId: rival.id,
             triggeredEvents: []
         };
-        // Define o maxQi inicial
         gameState.cultivation.maxQi = calculateMaxQi(gameState.cultivation);
 
+        elements.legacyScreen.classList.add('hidden');
         elements.nextYearBtn.addEventListener('click', advanceYear);
         elements.meditateBtn.addEventListener('click', handleMeditateOrBreakthrough);
         elements.talentsBtn.addEventListener('click', showTalentScreen);
@@ -793,6 +934,16 @@ document.addEventListener('DOMContentLoaded', () => {
             if (e.target.classList.contains('combat-action-btn')) playerTurn(e.target.dataset.action);
         });
         updateUI();
+    }
+
+    function initializeGame() {
+        const legacyData = getLegacyData();
+        if (legacyData.legacyPoints > 0) {
+            showLegacyStore();
+            elements.startNewJourneyBtn.onclick = startGame;
+        } else {
+            startGame();
+        }
     }
     loadGameData();
 });

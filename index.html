@@ -13,7 +13,7 @@
     <div class="game-container">
         <div id="character-panel" class="panel">
             <h2><span id="player-name"></span></h2>
-            <p><strong>Idade:</strong> <span id="char-age">0</span></p>
+            <p><strong>Idade:</strong> <span id="char-age">0</span> / <span id="char-lifespan">80</span></p>
             <hr>
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <h3>Atributos</h3>
@@ -84,6 +84,21 @@
             </ul>
         </div>
     </div>
+
+    <!-- Tela de Legado (New Game+) -->
+    <div id="legacy-screen" class="hidden fullscreen-overlay">
+        <div class="panel">
+            <h2>Legado da Jornada</h2>
+            <p>Seus feitos em vidas passadas concederam a você <span id="legacy-points">0</span> Pontos de Legado.</p>
+            <p>Use-os para abençoar sua próxima geração com uma fundação mais forte.</p>
+            <hr>
+            <div id="legacy-bonuses-container">
+                <!-- Bônus de Legado serão inseridos aqui pelo JS -->
+            </div>
+            <button id="start-new-journey-btn">Começar Nova Jornada</button>
+        </div>
+    </div>
+
     <script src="js/game.js"></script>
 </body>
 </html>
