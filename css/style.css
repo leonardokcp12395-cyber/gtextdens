@@ -153,7 +153,40 @@ button:disabled {
     border: 1px solid #2a2a2a;
     max-height: 200px;
     overflow-y: auto;
+    padding: 10px;
 }
+.log-entry {
+    margin: 0 0 5px 0;
+    padding-left: 1.5em;
+    position: relative;
+}
+.log-entry::before {
+    content: '»';
+    position: absolute;
+    left: 0;
+    color: var(--color-border);
+}
+.log-type-combat {
+    color: var(--color-text-secondary);
+}
+.log-type-combat::before {
+    content: '⚔️';
+}
+.log-type-reward {
+    color: var(--color-accent-success);
+    font-weight: bold;
+}
+.log-type-reward::before {
+    content: '⭐';
+}
+.log-type-notification {
+    color: var(--color-accent-special);
+    font-style: italic;
+}
+.log-type-notification::before {
+    content: '🔔';
+}
+
 #combat-actions {
     display: flex;
     justify-content: center;

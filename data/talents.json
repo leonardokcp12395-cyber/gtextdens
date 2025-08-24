@@ -36,5 +36,13 @@
         "defense": 1
       }
     }
+  },
+  {
+    "id": "fast_learner",
+    "name": "Aprendiz Rápido",
+    "description": "Você tem uma afinidade natural com o fluxo de Qi. Ganha 50% a mais de Qi ao meditar.",
+    "cost": 3,
+    "requirements": ["mind_t_1"],
+    "effects": {}
   }
 ]

@@ -35,6 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
         sectInfo: document.getElementById('sect-info'),
         sectName: document.getElementById('sect-name'),
         sectRank: document.getElementById('sect-rank'),
+        sectContribution: document.getElementById('sect-contribution'),
         lifespan: document.getElementById('char-lifespan'),
         legacyScreen: document.getElementById('legacy-screen'),
         legacyPoints: document.getElementById('legacy-points'),
@@ -241,21 +242,7 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.eventContent.innerHTML = `<p>${processText(event.text)}</p>`;
         elements.choicesContainer.innerHTML = '';
         event.choices.forEach(choice => {
-            const button = document.createElement('button');
-            button.textContent = processText(choice.text);
-            button.onclick = () => {
-                if (choice.effects && choice.effects.special) {
-                    applyEffects(choice.effects);
-                    // Efeitos especiais cuidam da sua própria UI
-                } else {
-                    applyEffects(choice.effects);
-                    const resultText = allStrings[choice.resultKey] || "Chave de texto não encontrada.";
-                    elements.eventContent.innerHTML = `<p>${processText(resultText)}</p>`;
-                    elements.choicesContainer.innerHTML = '';
-                    elements.actionsContainer.classList.remove('hidden');
-                    updateUI();
-                }
-            };
+            const button = createChoiceButton(choice);
             elements.choicesContainer.appendChild(button);
         });
         elements.actionsContainer.classList.add('hidden');
@@ -280,6 +267,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const rankData = sectData.ranks.find(r => r.id === gameState.sect.rank);
             elements.sectName.textContent = sectData.name;
             elements.sectRank.textContent = rankData.name;
+            elements.sectContribution.textContent = gameState.resources.contribution;
         }
 
         if (gameState.cultivation) {
@@ -319,7 +307,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // --- LÓGICA DE EVENTOS MUNDIAIS ---
         // Verifica se um evento mundial termina
         if (gameState.currentWorldEvent && gameState.age === gameState.currentWorldEvent.endYear) {
-            addCombatLog(allGameData.worldEvents.find(e => e.id === gameState.currentWorldEvent.id).endText);
+            addLogMessage(allGameData.worldEvents.find(e => e.id === gameState.currentWorldEvent.id).endText, 'notification');
             gameState.currentWorldEvent = null;
         }
         // Chance de um novo evento mundial começar
@@ -330,7 +318,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     id: newWorldEvent.id,
                     endYear: gameState.age + newWorldEvent.duration
                 };
-                addCombatLog(newWorldEvent.startText); // Usa o log de combate para notificações globais
+                addLogMessage(newWorldEvent.startText, 'notification');
             }
         }
 
@@ -347,7 +335,7 @@ document.addEventListener('DOMContentLoaded', () => {
                  if(mission.reward.attributes && mission.reward.attributes.body) {
                     rewardText += ` (+${mission.reward.attributes.body} Corpo)`;
                 }
-                addCombatLog(rewardText);
+                addLogMessage(rewardText, 'reward');
                 gameState.sect.currentMissionId = null;
             }
 
@@ -418,8 +406,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Adiciona uma notificação se for o rival
                 if (isRival) {
-                    // Usando addCombatLog para notificações globais. Renomear a função pode ser uma boa ideia no futuro.
-                    addCombatLog(`<span style="color: var(--color-accent-special);">Você ouve rumores de que ${npc.name} teve um avanço em seu treino!</span>`);
+                    addLogMessage(`Você ouve rumores de que ${npc.name} teve um avanço em seu treino!`, 'notification');
                 }
             }
 
@@ -485,7 +472,7 @@ document.addEventListener('DOMContentLoaded', () => {
             button.onclick = () => {
                 gameState.resources.contribution -= finalCost;
                 applyEffects(itemData.effects);
-                addCombatLog(`Você comprou ${itemData.name}.`);
+                addLogMessage(`Você comprou ${itemData.name}.`, 'reward');
                 updateUI();
                 showSectStore();
             };
@@ -582,9 +569,34 @@ document.addEventListener('DOMContentLoaded', () => {
         return button;
     }
 
+    function createChoiceButton(choice) {
+        const button = document.createElement('button');
+        button.textContent = processText(choice.text);
+        button.disabled = !!choice.disabled;
+
+        button.onclick = () => {
+            if (choice.effects && choice.effects.special) {
+                applyEffects(choice.effects);
+                // Efeitos especiais cuidam da sua própria UI e não mostram um resultado padrão
+            } else {
+                applyEffects(choice.effects);
+                const resultText = allStrings[choice.resultKey] || "Chave de texto não encontrada.";
+                elements.eventContent.innerHTML = `<p>${processText(resultText)}</p>`;
+                elements.choicesContainer.innerHTML = '';
+                elements.actionsContainer.classList.remove('hidden');
+                updateUI();
+            }
+        };
+        return button;
+    }
+
     // --- LÓGICA DE COMBATE ---
-    function addCombatLog(message) {
-        elements.combatLog.innerHTML += `<p>${message}</p>`;
+    function addLogMessage(message, type = 'event') {
+        // Tipos: 'event', 'combat', 'reward', 'notification'
+        const logEntry = document.createElement('p');
+        logEntry.innerHTML = message;
+        logEntry.classList.add('log-entry', `log-type-${type}`);
+        elements.combatLog.appendChild(logEntry);
         elements.combatLog.scrollTop = elements.combatLog.scrollHeight;
     }
 
@@ -621,7 +633,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 enemyData = { ...enemyData, ...enemyData.combat };
             } else {
                 console.error(`Inimigo com ID '${enemyId}' não encontrado!`);
-                addCombatLog(`Erro: Inimigo não encontrado.`);
+                addLogMessage(`Erro: Inimigo não encontrado.`, 'notification');
                 endCombat(false); // Termina o combate se o inimigo não existe
                 return;
             }
@@ -635,7 +647,7 @@ document.addEventListener('DOMContentLoaded', () => {
             onVictory: allStrings.combat_victory_default
         };
 
-        addCombatLog(`Você entrou em combate com ${combatState.enemy.name}!`);
+        addLogMessage(`Você entrou em combate com ${combatState.enemy.name}!`, 'combat');
         updateCombatUI();
     }
 
@@ -649,7 +661,7 @@ document.addEventListener('DOMContentLoaded', () => {
             case 'attack':
                 playerDamage = Math.max(1, combatState.player.attack - combatState.enemy.defense);
                 combatState.enemy.hp -= playerDamage;
-                addCombatLog(`Você ataca ${combatState.enemy.name} e causa ${playerDamage} de dano.`);
+                addLogMessage(`Você ataca ${combatState.enemy.name} e causa ${playerDamage} de dano.`, 'combat');
                 break;
             case 'qi_strike':
                 const qiCost = 20;
@@ -657,23 +669,23 @@ document.addEventListener('DOMContentLoaded', () => {
                     gameState.cultivation.qi -= qiCost;
                     playerDamage = combatState.player.attack + Math.floor(gameState.player.attributes.mind / 2);
                     combatState.enemy.hp -= playerDamage;
-                    addCombatLog(`Você usa um Golpe de Qi, causando ${playerDamage} de dano massivo!`);
+                    addLogMessage(`Você usa um Golpe de Qi, causando ${playerDamage} de dano massivo!`, 'combat');
                     updateUI(); // Atualiza a UI para mostrar o Qi gasto
                 } else {
-                    addCombatLog(`Você não tem Qi suficiente para usar o Golpe de Qi.`);
+                    addLogMessage(`Você não tem Qi suficiente para usar o Golpe de Qi.`, 'notification');
                     return; // Não passa o turno se a ação falhou
                 }
                 break;
             case 'defend':
                 combatState.playerDefending = true;
-                addCombatLog(`Você assume uma postura defensiva.`);
+                addLogMessage(`Você assume uma postura defensiva.`, 'combat');
                 break;
             case 'flee':
                 if (Math.random() < 0.5) { // 50% de chance de fugir
-                    addCombatLog(`Você conseguiu fugir!`);
+                    addLogMessage(`Você conseguiu fugir!`, 'notification');
                     endCombat(false);
                 } else {
-                    addCombatLog(`Você falhou em tentar fugir!`);
+                    addLogMessage(`Você falhou em tentar fugir!`, 'combat');
                 }
                 break;
         }
@@ -681,7 +693,7 @@ document.addEventListener('DOMContentLoaded', () => {
         updateCombatUI();
 
         if (combatState.enemy.hp <= 0) {
-            addCombatLog(`${combatState.enemy.name} foi derrotado!`);
+            addLogMessage(`${combatState.enemy.name} foi derrotado!`, 'reward');
             endCombat(true);
             return;
         }
@@ -696,11 +708,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const enemyDamage = Math.max(1, combatState.enemy.attack - (combatState.playerDefending ? combatState.player.defense * 2 : combatState.player.defense));
         combatState.player.hp -= enemyDamage;
 
-        addCombatLog(`${combatState.enemy.name} ataca e causa ${enemyDamage} de dano.`);
+        addLogMessage(`${combatState.enemy.name} ataca e causa ${enemyDamage} de dano.`, 'combat');
         updateCombatUI();
 
         if (combatState.player.hp <= 0) {
-            addCombatLog(`Você foi derrotado!`);
+            addLogMessage(`Você foi derrotado!`, 'combat');
             endGame("player_defeat");
             return;
         }
@@ -767,10 +779,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- LÓGICA DE LEGADO (NEW GAME+) ---
     const LEGACY_BONUSES = [
-        { id: 'start_body_1', name: "+1 Corpo Inicial", cost: 10, effects: { attributes: { body: 1 } } },
-        { id: 'start_mind_1', name: "+1 Mente Inicial", cost: 10, effects: { attributes: { mind: 1 } } },
-        { id: 'start_luck_1', name: "+1 Sorte Inicial", cost: 25, effects: { attributes: { luck: 1 } } },
-        { id: 'start_money_50', name: "+50 Moedas Iniciais", cost: 5, effects: { resources: { money: 50 } } },
+        { id: 'start_body_1', name: "+1 Corpo Inicial", cost: 10, type: 'attribute', effects: { attributes: { body: 1 } } },
+        { id: 'start_mind_1', name: "+1 Mente Inicial", cost: 10, type: 'attribute', effects: { attributes: { mind: 1 } } },
+        { id: 'start_luck_1', name: "+1 Sorte Inicial", cost: 25, type: 'attribute', effects: { attributes: { luck: 1 } } },
+        { id: 'start_money_50', name: "+50 Moedas Iniciais", cost: 5, type: 'resource', effects: { resources: { money: 50 } } },
+        { id: 'start_talent_fast_learner', name: "Começar com Talento: Aprendiz Rápido", cost: 50, type: 'talent', talentId: 'fast_learner' },
     ];
 
     function getLegacyData() {
@@ -841,7 +854,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Se não tiver Qi máximo, apenas medita
         if (cult.qi < cult.maxQi) {
-            const qiGained = 10 + Math.floor(player.attributes.mind / 2);
+            let qiGained = 10 + Math.floor(player.attributes.mind / 2);
+            // Verifica o talento "Aprendiz Rápido"
+            if (gameState.talents.includes('fast_learner')) {
+                qiGained = Math.floor(qiGained * 1.5);
+            }
             cult.qi = Math.min(cult.maxQi, cult.qi + qiGained);
             elements.eventContent.innerHTML = `<p>Você medita e sente seu Qi fluir. (+${qiGained} Qi)</p>`;
             elements.choicesContainer.innerHTML = '';
@@ -899,25 +916,32 @@ document.addEventListener('DOMContentLoaded', () => {
         const player = generateCharacter('player', 'masculino');
         const rival = generateCharacter('rival', 'masculino');
 
-        // Aplicar bônus de recursos do legado
+        // Aplicar bônus de legado
         const legacyData = getLegacyData();
-        let startingMoney = 10;
+        const startingResources = { money: 10, reputation: 0, talentPoints: 5, contribution: 0 };
+        const startingTalents = [];
+
         for(const bonusId in legacyData.bonuses) {
              if (legacyData.bonuses[bonusId]) {
                 const bonus = LEGACY_BONUSES.find(b => b.id === bonusId);
-                if (bonus && bonus.effects.resources) {
+                if (!bonus) continue;
+
+                if (bonus.type === 'resource' && bonus.effects.resources) {
                     for(const resource in bonus.effects.resources) {
-                        if(resource === 'money') startingMoney += bonus.effects.resources[resource];
+                        startingResources[resource] += bonus.effects.resources[resource];
                     }
+                }
+                if (bonus.type === 'talent') {
+                    startingTalents.push(bonus.talentId);
                 }
             }
         }
 
         gameState = {
             player, npcs: { [rival.id]: rival }, age: 0,
-            resources: { money: startingMoney, reputation: 0, talentPoints: 5, contribution: 0 },
+            resources: startingResources,
             cultivation: { realmId: 0, level: 1, qi: 0 },
-            lastFailedSpecial: null, talents: [], sect: { id: null, rank: 0, currentMissionId: null },
+            lastFailedSpecial: null, talents: startingTalents, sect: { id: null, rank: 0, currentMissionId: null },
             currentWorldEvent: null,
             relationships: { [rival.id]: { score: 0, state: 'neutral' } },
             rivalId: rival.id,
