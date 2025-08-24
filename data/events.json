@@ -5,11 +5,7 @@
     "conditions": { "age": 5 },
     "text": "Enquanto caminhava por uma estrada poeirenta, você avista algo brilhando no chão. É uma moeda de cobre!",
     "choices": [
-      {
-        "text": "Apanhar a moeda.",
-        "effects": { "resources": { "money": 1 } },
-        "resultKey": "found_coin_success"
-      }
+      { "text": "Apanhar a moeda.", "effects": { "resources": { "money": 1 } }, "resultKey": "found_coin_success" }
     ]
   },
   {
@@ -31,16 +27,6 @@
       { "text": "Juntar-se à Seita da Nuvem Oculta.", "effects": { "special": "join_sect_hidden_cloud_sect" }, "resultKey": "joined_hidden_cloud" },
       { "text": "Juntar-se à Seita do Corpo de Ferro.", "effects": { "special": "join_sect_iron_body_sect" }, "resultKey": "joined_iron_body" },
       { "text": "Recusar ambos e seguir seu próprio caminho.", "effects": {}, "resultKey": "declined_sects" }
-    ]
-  },
-  {
-    "id": "rival_confrontation_age_16",
-    "type": "once",
-    "conditions": { "age": 16 },
-    "text": "Você encontra [RIVAL] no campo de treino. Ele te lança um olhar de desdém. 'Saia do meu caminho, [PLAYER_NAME]. Pessoas fracas como você só me atrapalham.'",
-    "choices": [
-      { "text": "Ignorá-lo.", "effects": { "relationships": { "rival": -5 } }, "resultKey": "rival_confrontation_ignored" },
-      { "text": "'O único fraco aqui é você.'", "effects": { "relationships": { "rival": -10 } }, "resultKey": "rival_confrontation_insult" }
     ]
   },
   {
@@ -88,6 +74,24 @@
     "choices": [
       { "text": "Comprar a 'Pílula da Sorte Súbita' por 50 moedas.", "effects": { "resources": { "money": -50 }, "attributes": { "luck": 2 } }, "resultKey": "merchant_bought_pill" },
       { "text": "Ignorar o mercador.", "effects": {}, "resultKey": "merchant_ignored" }
+    ]
+  },
+  {
+    "id": "sect_rivalry_confrontation",
+    "conditions": { "min_age": 18, "rival_in_same_sect": false, "probability": 0.2 },
+    "text": "Você encontra [RIVAL] perto de um mercado. Ele nota o emblema da sua seita e zomba. 'Ainda perdendo seu tempo com esses fracos? Minha seita esmagaria a sua sem pensar duas vezes.'",
+    "choices": [
+      { "text": "Defender a honra da sua seita.", "effects": { "relationships": { "rival": -10 } }, "resultKey": "sect_rivalry_defended" },
+      { "text": "Ignorar o comentário patético.", "effects": { "relationships": { "rival": -2 } }, "resultKey": "sect_rivalry_ignored" }
+    ]
+  },
+  {
+    "id": "sect_brother_encounter",
+    "conditions": { "min_age": 18, "rival_in_same_sect": true, "probability": 0.2 },
+    "text": "Você vê [RIVAL] treinando arduamente no pátio da seita. Ele acena com a cabeça em reconhecimento. 'Irmão [PLAYER_NAME]. É bom ver que você também está se esforçando pela glória da nossa seita.'",
+    "choices": [
+      { "text": "'Juntos, vamos fortalecer a seita.'", "effects": { "relationships": { "rival": 10 } }, "resultKey": "sect_brother_agreed" },
+      { "text": "Apenas acenar de volta.", "effects": { "relationships": { "rival": 2 } }, "resultKey": "sect_brother_nodded" }
     ]
   }
 ]

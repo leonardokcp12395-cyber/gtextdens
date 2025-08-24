@@ -90,7 +90,11 @@ document.addEventListener('DOMContentLoaded', () => {
         return {
             id, name: `${firstName} ${lastName}`, gender, personality,
             attributes: { ...baseAttributes },
-            lifespan: 80, // <-- Adicionado
+            lifespan: 80,
+            sectId: null,
+            sectRank: 0,
+            contribution: 0,
+            cultivation: { realmId: 0, level: 1 },
             combat: {
                 maxHp: baseAttributes.body * 5, hp: baseAttributes.body * 5,
                 attack: 5 + Math.floor(baseAttributes.body / 2),
@@ -130,6 +134,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     break;
                 case 'probability':
                     if (Math.random() > value) return false;
+                    break;
+                case 'rival_in_same_sect':
+                    const rival = gameState.npcs[gameState.rivalId];
+                    if (!rival || (gameState.sect.id === rival.sectId) !== value) return false;
                     break;
                 // Adicionar mais condições aqui no futuro
             }
@@ -291,7 +299,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const rel = gameState.relationships[npcId];
             if (npc) {
                 const li = document.createElement('li');
-                li.textContent = `${npc.name}: ${rel.state} (${rel.score})`;
+                let npcStatus = npc.name;
+                if (npc.sectId) {
+                    const sectData = allGameData.sects.find(s => s.id === npc.sectId);
+                    const rankData = sectData.ranks.find(r => r.id === npc.sectRank);
+                    if(sectData && rankData) {
+                        npcStatus += ` <span class="npc-sect-info">(${rankData.name}, ${sectData.name})</span>`;
+                    }
+                }
+                li.innerHTML = `${npcStatus}: ${rel.state} (${rel.score})`;
                 elements.relationshipsList.appendChild(li);
             }
         }
@@ -404,9 +420,53 @@ document.addEventListener('DOMContentLoaded', () => {
                 npc.attributes.body += Math.floor(Math.random() * 3) + 1;
                 npc.attributes.mind += Math.floor(Math.random() * 3) + 1;
 
-                // Adiciona uma notificação se for o rival
                 if (isRival) {
                     addLogMessage(`Você ouve rumores de que ${npc.name} teve um avanço em seu treino!`, 'notification');
+                }
+            }
+
+            // Simulação de Cultivo do NPC
+            if (Math.random() < 0.2) { // 20% de chance de treinar cultivo por ano
+                npc.cultivation.level++;
+                const currentRealm = allGameData.realms[npc.cultivation.realmId];
+                if (npc.cultivation.level > currentRealm.levels) {
+                    if (allGameData.realms[npc.cultivation.realmId + 1]) {
+                        npc.cultivation.realmId++;
+                        npc.cultivation.level = 1;
+                    } else {
+                        npc.cultivation.level = currentRealm.levels; // Previne ir além do nível máximo
+                    }
+                }
+            }
+
+            // Lógica para entrar em uma seita
+            if (!npc.sectId && gameState.age > 15) {
+                if (Math.random() < 0.1) { // 10% de chance por ano
+                    const chosenSect = getRandomElement(allGameData.sects);
+                    npc.sectId = chosenSect.id;
+                    npc.sectRank = 0;
+                    if (isRival) {
+                        addLogMessage(`${npc.name} se juntou à ${chosenSect.name}!`, 'notification');
+                    }
+                }
+            } else if (npc.sectId) {
+                // Lógica para ganhar contribuição e subir de rank
+                npc.contribution += Math.floor(Math.random() * 5) + 1; // Ganha 1-5 de contribuição por ano
+
+                const sectData = allGameData.sects.find(s => s.id === npc.sectId);
+                const nextRank = sectData.ranks.find(r => r.id === npc.sectRank + 1);
+
+                if (nextRank) {
+                    const reqs = nextRank.requirements;
+                    const meetsCultivation = npc.cultivation.realmId > reqs.cultivation_realm_id ||
+                                             (npc.cultivation.realmId === reqs.cultivation_realm_id && npc.cultivation.level >= reqs.cultivation_level);
+
+                    if (npc.contribution >= reqs.contribution && meetsCultivation) {
+                        npc.sectRank = nextRank.id;
+                        if (isRival) {
+                            addLogMessage(`${npc.name} foi promovido para ${nextRank.name} na ${sectData.name}!`, 'notification');
+                        }
+                    }
                 }
             }
 

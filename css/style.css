@@ -247,3 +247,9 @@ hr {
     width: 90%;
     text-align: center;
 }
+
+.npc-sect-info {
+    font-size: 0.8em;
+    color: var(--color-text-secondary);
+    font-style: italic;
+}
