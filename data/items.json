@@ -2,23 +2,36 @@
   {
     "id": "small_qi_pill",
     "name": "Pílula Pequena de Qi",
-    "description": "Uma pílula medicinal que restaura uma pequena quantidade de Qi.",
+    "description": "Recupera uma pequena quantidade de Qi.",
     "type": "consumable",
-    "effects": {
-      "cultivation": {
-        "qi": 50
-      }
-    }
+    "effects": { "cultivation": { "qi": 50 } }
+  },
+  {
+    "id": "medium_qi_pill",
+    "name": "Pílula Média de Qi",
+    "description": "Recupera uma quantidade moderada de Qi.",
+    "type": "consumable",
+    "effects": { "cultivation": { "qi": 250 } }
   },
   {
     "id": "body_tempering_elixir",
     "name": "Elixir de Têmpera Corporal",
-    "description": "Um elixir que fortalece os músculos e ossos, aumentando permanentemente o atributo Corpo.",
+    "description": "Fortalece os músculos e ossos.",
     "type": "consumable",
-    "effects": {
-      "attributes": {
-        "body": 1
-      }
-    }
+    "effects": { "attributes": { "body": 2 } }
+  },
+  {
+    "id": "steel_bone_pill",
+    "name": "Pílula de Osso de Aço",
+    "description": "Um elixir potente que fortalece muito o corpo.",
+    "type": "consumable",
+    "effects": { "attributes": { "body": 5 } }
+  },
+  {
+    "id": "pill_of_sudden_luck",
+    "name": "Pílula da Sorte Súbita",
+    "description": "Uma pílula estranha que parece torcer o destino a seu favor.",
+    "type": "consumable",
+    "effects": { "attributes": { "luck": 2 } }
   }
 ]

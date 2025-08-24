@@ -1,134 +1,93 @@
 [
   {
     "id": "found_coin_age_5",
-    "age": 5,
+    "type": "once",
+    "conditions": { "age": 5 },
     "text": "Enquanto caminhava por uma estrada poeirenta, você avista algo brilhando no chão. É uma moeda de cobre!",
     "choices": [
       {
         "text": "Apanhar a moeda.",
-        "effects": {
-          "resources.money": 1
-        },
+        "effects": { "resources": { "money": 1 } },
         "resultKey": "found_coin_success"
       }
     ]
   },
   {
     "id": "study_or_play_age_7",
-    "age": 7,
+    "type": "once",
+    "conditions": { "age": 7 },
     "text": "O dia está lindo lá fora, perfeito para correr e treinar o corpo. No entanto, um livro antigo sobre táticas de batalha também chama a sua atenção na prateleira.",
     "choices": [
-      {
-        "text": "Ir treinar lá fora.",
-        "effects": {
-          "attributes.body": 1
-        },
-        "resultKey": "study_or_play_body"
-      },
-      {
-        "text": "Ficar e estudar o livro.",
-        "effects": {
-          "attributes.mind": 1
-        },
-        "resultKey": "study_or_play_mind"
-      }
-    ]
-  },
-  {
-    "id": "explore_cave_age_10",
-    "age": 10,
-    "text": "Você encontra uma caverna escura e misteriosa. O ar é frio e um som estranho ecoa das profundezas. O que você faz?",
-    "choices": [
-      {
-        "text": "Entrar e explorar.",
-        "effects": {
-          "special": "explore_cave"
-        }
-      },
-      {
-        "text": "Ignorar a caverna e continuar seu caminho.",
-        "effects": {},
-        "resultKey": "ignore_cave"
-      }
-    ]
-  },
-  {
-    "id": "breakthrough_attempt",
-    "text": "Você sente uma imensa pressão enquanto o Qi percorre o seu corpo, tentando romper para o próximo nível. A energia crepita à sua volta...",
-    "choices": [
-      {
-        "text": "Focar a mente e forçar o avanço!",
-        "effects": {
-          "special": "attempt_breakthrough_roll"
-        }
-      }
-    ]
-  },
-  {
-    "id": "forest_ambush_age_12",
-    "age": 12,
-    "text": "Enquanto viajava por uma floresta densa, um bandido salta de trás de uma árvore, brandindo uma faca. 'A bolsa ou a vida!' ele grita.",
-    "choices": [
-      {
-        "text": "Lutar contra o bandido.",
-        "effects": {
-          "special": "start_combat_bandit"
-        }
-      },
-      {
-        "text": "Dar-lhe 10 moedas.",
-        "effects": {
-          "resources.money": -10
-        },
-        "resultKey": "paid_bandit"
-      }
+      { "text": "Ir treinar lá fora.", "effects": { "attributes": { "body": 1 } }, "resultKey": "study_or_play_body" },
+      { "text": "Ficar e estudar o livro.", "effects": { "attributes": { "mind": 1 } }, "resultKey": "study_or_play_mind" }
     ]
   },
   {
     "id": "sect_invitation_age_15",
-    "age": 15,
+    "type": "once",
+    "conditions": { "age": 15, "required_sect_id": null },
     "text": "Sua dedicação ao cultivo chamou a atenção de duas seitas locais. Ambas enviam um convite. Qual caminho você escolherá?",
     "choices": [
-      {
-        "text": "Juntar-se à Seita da Nuvem Oculta.",
-        "effects": {
-          "special": "join_sect_hidden_cloud_sect"
-        },
-        "resultKey": "joined_hidden_cloud"
-      },
-      {
-        "text": "Juntar-se à Seita do Corpo de Ferro.",
-        "effects": {
-          "special": "join_sect_iron_body_sect"
-        },
-        "resultKey": "joined_iron_body"
-      },
-      {
-        "text": "Recusar ambos e seguir seu próprio caminho.",
-        "effects": {},
-        "resultKey": "declined_sects"
-      }
+      { "text": "Juntar-se à Seita da Nuvem Oculta.", "effects": { "special": "join_sect_hidden_cloud_sect" }, "resultKey": "joined_hidden_cloud" },
+      { "text": "Juntar-se à Seita do Corpo de Ferro.", "effects": { "special": "join_sect_iron_body_sect" }, "resultKey": "joined_iron_body" },
+      { "text": "Recusar ambos e seguir seu próprio caminho.", "effects": {}, "resultKey": "declined_sects" }
     ]
   },
   {
     "id": "rival_confrontation_age_16",
-    "age": 16,
+    "type": "once",
+    "conditions": { "age": 16 },
     "text": "Você encontra [RIVAL] no campo de treino. Ele te lança um olhar de desdém. 'Saia do meu caminho, [PLAYER_NAME]. Pessoas fracas como você só me atrapalham.'",
     "choices": [
-      {
-        "text": "Ignorá-lo.",
-        "effects": {
-          "relationships": { "rival": -5 }
-        },
-        "resultKey": "rival_confrontation_ignored"
-      },
-      {
-        "text": "'O único fraco aqui é você.'",
-        "effects": {
-          "relationships": { "rival": -10 }
-        },
-        "resultKey": "rival_confrontation_insult"
-      }
+      { "text": "Ignorá-lo.", "effects": { "relationships": { "rival": -5 } }, "resultKey": "rival_confrontation_ignored" },
+      { "text": "'O único fraco aqui é você.'", "effects": { "relationships": { "rival": -10 } }, "resultKey": "rival_confrontation_insult" }
+    ]
+  },
+  {
+    "id": "rival_ambush",
+    "type": "once",
+    "conditions": { "rival_relationship_state": "Inimigo", "min_age": 18 },
+    "text": "Enquanto você viaja por uma área isolada, [RIVAL] aparece de repente, com uma expressão hostil. 'Eu sabia que te encontraria aqui, [PLAYER_NAME]. É hora de acertarmos as contas!'",
+    "choices": [
+      { "text": "Lutar!", "effects": { "special": "start_combat_rival" } },
+      { "text": "Tentar acalmá-lo.", "effects": { "relationships": { "rival": 5 }, "attributes": { "mind": -1 } }, "resultKey": "rival_ambush_calmed" }
+    ]
+  },
+  {
+    "id": "friendly_spar",
+    "type": "once",
+    "conditions": { "rival_relationship_state": "Amigo", "min_age": 18 },
+    "text": "[RIVAL] se aproxima de você com um sorriso. '[PLAYER_NAME], que tal um treino amigável? Podemos testar nossas habilidades e ajudar um ao outro a melhorar.'",
+    "choices": [
+      { "text": "Aceitar o treino.", "effects": { "attributes": { "body": 2, "mind": 1 }, "relationships": { "rival": 10 } }, "resultKey": "friendly_spar_accepted" },
+      { "text": "Recusar educadamente.", "effects": {}, "resultKey": "friendly_spar_declined" }
+    ]
+  },
+  {
+    "id": "sect_elder_gift",
+    "type": "once",
+    "conditions": { "min_sect_rank": 2 },
+    "text": "Impressionado com seu rápido progresso, um Ancião da sua seita o convoca. 'Sua dedicação é exemplar', diz ele, entregando-lhe uma pílula de aparência extraordinária. 'Use-a para fortalecer seu cultivo.'",
+    "choices": [
+      { "text": "Agradecer e aceitar a pílula.", "effects": { "cultivation": { "qi": 500 } }, "resultKey": "sect_elder_gift_accepted" }
+    ]
+  },
+  {
+    "id": "cultivation_bottleneck",
+    "type": "once",
+    "conditions": { "min_cultivation_realm_id": 2 },
+    "text": "Ao tentar meditar, você sente uma resistência teimosa em seus meridianos. Parece que você atingiu um gargalo em seu cultivo. Superá-lo exigirá mais do que apenas Qi.",
+    "choices": [
+      { "text": "Isso exigirá paciência e talvez uma oportunidade.", "effects": { "attributes": { "mind": 1 } }, "resultKey": "cultivation_bottleneck_realized" }
+    ]
+  },
+  {
+    "id": "mysterious_merchant",
+    "conditions": { "min_age": 20, "probability": 0.1 },
+    "text": "Um mercador misterioso com um manto encapuzado monta uma barraca na beira da estrada. Ele acena para você, revelando um item peculiar.",
+    "choices": [
+      { "text": "Comprar a 'Pílula da Sorte Súbita' por 50 moedas.", "effects": { "resources": { "money": -50 }, "attributes": { "luck": 2 } }, "resultKey": "merchant_bought_pill" },
+      { "text": "Ignorar o mercador.", "effects": {}, "resultKey": "merchant_ignored" }
     ]
   }
 ]

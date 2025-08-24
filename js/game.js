@@ -75,6 +75,68 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
+    // --- LÓGICA DE EVENTOS ---
+    function areConditionsMet(conditions) {
+        if (!conditions) return true; // Eventos sem condições sempre podem ocorrer
+
+        for (const key in conditions) {
+            const value = conditions[key];
+            switch (key) {
+                case 'age':
+                    if (gameState.age !== value) return false;
+                    break;
+                case 'min_age':
+                    if (gameState.age < value) return false;
+                    break;
+                case 'max_age':
+                    if (gameState.age > value) return false;
+                    break;
+                case 'required_sect_id':
+                    if (gameState.sect.id !== value) return false;
+                    break;
+                case 'min_sect_rank':
+                    if (!gameState.sect.id || gameState.sect.rank < value) return false;
+                    break;
+                case 'min_cultivation_realm_id':
+                    if (gameState.cultivation.realmId < value) return false;
+                    break;
+                case 'rival_relationship_state':
+                    const rivalRel = gameState.relationships[gameState.rivalId];
+                    if (!rivalRel || rivalRel.state !== value) return false;
+                    break;
+                case 'probability':
+                    if (Math.random() > value) return false;
+                    break;
+                // Adicionar mais condições aqui no futuro
+            }
+        }
+        return true;
+    }
+
+    function checkAndTriggerEvents() {
+        const allEvents = [...allGameData.events, ...allGameData.randomEvents];
+        const possibleEvents = allEvents.filter(event => {
+            // Verifica se o evento já foi acionado (se for do tipo 'once')
+            if (event.type === 'once' && gameState.triggeredEvents.includes(event.id)) {
+                return false;
+            }
+            return areConditionsMet(event.conditions);
+        });
+
+        if (possibleEvents.length > 0) {
+            const eventToTrigger = getRandomElement(possibleEvents);
+            showEvent(eventToTrigger);
+
+            // Marca o evento como acionado se for 'once'
+            if (eventToTrigger.type === 'once') {
+                gameState.triggeredEvents.push(eventToTrigger.id);
+            }
+            return true; // Indica que um evento foi acionado
+        }
+        return false; // Nenhum evento foi acionado
+    }
+
+
     // --- LÓGICA DE JOGO PRINCIPAL ---
     function processText(text) {
         if (!text) return '';
@@ -91,6 +153,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (effects.resources) {
             for (const res in effects.resources) if (gameState.resources.hasOwnProperty(res)) gameState.resources[res] += effects.resources[res];
+        }
+        if (effects.cultivation) {
+            for (const stat in effects.cultivation) if (gameState.cultivation.hasOwnProperty(stat)) gameState.cultivation[stat] += effects.cultivation[stat];
+            gameState.cultivation.qi = Math.min(gameState.cultivation.qi, gameState.cultivation.maxQi); // Garante que o Qi não ultrapasse o máximo
         }
         if (effects.combat) {
             for (const stat in effects.combat) if (gameState.player.combat.hasOwnProperty(stat)) gameState.player.combat[stat] += effects.combat[stat];
@@ -225,26 +291,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         gameState.age++;
-        const eventForAge = allGameData.events.find(event => {
-            if (event.age !== gameState.age) return false;
-            if (event.condition) {
-                if (event.condition.failedSpecial && gameState.lastFailedSpecial === event.condition.failedSpecial) return true;
-                return false;
-            }
-            return true;
-        });
-        if (eventForAge) {
-            showEvent(eventForAge);
-            if (eventForAge.condition) gameState.lastFailedSpecial = null;
-        } else {
-            if (Math.random() < 0.25 && allGameData.randomEvents && allGameData.randomEvents.length > 0) {
-                const randomEvent = allGameData.randomEvents[Math.floor(Math.random() * allGameData.randomEvents.length)];
-                showEvent(randomEvent);
-            } else {
-                elements.eventContent.innerHTML = `<p>${processText(`Você completou ${gameState.age} anos. O tempo passa em meditação e treino.`)}</p>`;
-                elements.actionsContainer.classList.remove('hidden');
-            }
+
+        // --- LÓGICA DE EVENTOS ---
+        if (!checkAndTriggerEvents()) {
+            // Se nenhum evento especial ocorreu, mostra a mensagem padrão
+            elements.eventContent.innerHTML = `<p>${processText(`Você completou ${gameState.age} anos. O tempo passa em meditação e treino.`)}</p>`;
+            elements.actionsContainer.classList.remove('hidden');
         }
+
         progressNpcs();
         updateRelationshipStates(); // <-- Adicionado
         updateUI();
@@ -486,9 +540,12 @@ document.addEventListener('DOMContentLoaded', () => {
             };
         } else {
             // Se não, busca nos inimigos genéricos
-            const genericEnemy = allGameData.enemies.find(e => e.id === enemyId);
-            if (genericEnemy) {
-                enemyData = JSON.parse(JSON.stringify(genericEnemy)); // Cópia profunda
+            const genericEnemyData = allGameData.enemies.find(e => e.id === enemyId);
+            if (genericEnemyData) {
+                // Cópia profunda dos dados do inimigo genérico
+                enemyData = JSON.parse(JSON.stringify(genericEnemyData));
+                // O objeto de combate já está aninhado, então o usamos diretamente
+                enemyData = { ...enemyData, ...enemyData.combat };
             } else {
                 console.error(`Inimigo com ID '${enemyId}' não encontrado!`);
                 addCombatLog(`Erro: Inimigo não encontrado.`);
@@ -676,7 +733,8 @@ document.addEventListener('DOMContentLoaded', () => {
             lastFailedSpecial: null, talents: [], sect: { id: null, rank: 0, currentMissionId: null },
             currentWorldEvent: null,
             relationships: { [rival.id]: { score: 0, state: 'neutral' } },
-            rivalId: rival.id // Inicializa o rivalId
+            rivalId: rival.id, // Inicializa o rivalId
+            triggeredEvents: []
         };
         // Define o maxQi inicial
         gameState.cultivation.maxQi = calculateMaxQi(gameState.cultivation);
