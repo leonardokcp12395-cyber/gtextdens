@@ -31,7 +31,10 @@ document.addEventListener('DOMContentLoaded', () => {
         combatEnemyHp: document.getElementById('combat-enemy-hp'),
         combatLog: document.getElementById('combat-log'),
         combatActions: document.getElementById('combat-actions'),
-        relationshipsList: document.getElementById('relationships-list')
+        relationshipsList: document.getElementById('relationships-list'),
+        sectInfo: document.getElementById('sect-info'),
+        sectName: document.getElementById('sect-name'),
+        sectRank: document.getElementById('sect-rank')
     };
 
     // --- CARREGAMENTO DE DADOS ---
@@ -180,8 +183,37 @@ document.addEventListener('DOMContentLoaded', () => {
             case 'show_sect_store': showSectStore(); break;
             case 'try_promotion': tryPromotion(); break;
             case 'show_mission_board': showMissionBoard(); break;
+            case 'explore_cave': exploreCave(); break;
             // ... outros casos
             default: console.warn(`Efeito especial não reconhecido: ${effect}`);
+        }
+    }
+
+    function exploreCave() {
+        const luck = gameState.player.attributes.luck;
+        let outcomeText = "";
+
+        if (luck > 10) {
+            outcomeText = "Sua sorte o guia para uma passagem oculta! No fundo, você encontra um baú de madeira antigo. Dentro, há 20 moedas e uma Pílula Pequena de Qi.";
+            applyEffects({ resources: { money: 20 } });
+            // Futuramente, poderia adicionar um item ao inventário em vez de aplicar o efeito direto.
+            applyEffects({ cultivation: { qi: 50 } });
+        } else if (luck >= 5) {
+            outcomeText = "Você explora a caverna por um tempo, mas não encontra nada além de rochas e escuridão. Você sai de mãos vazias.";
+        } else {
+            outcomeText = "Você pisa em falso e cai em um ninho de ratos gigantes! Um deles, de aparência particularmente desagradável, ataca!";
+            startCombat('giant_rat');
+        }
+
+        elements.eventContent.innerHTML = `<p>${outcomeText}</p>`;
+        elements.choicesContainer.innerHTML = '';
+        const backButton = createBackButton(() => {
+            elements.actionsContainer.classList.remove('hidden');
+            updateUI();
+        });
+        // Só mostra o botão "Continuar" se não houver combate
+        if (luck >= 5) {
+            elements.choicesContainer.appendChild(backButton);
         }
     }
 
@@ -218,7 +250,16 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.talentPoints.textContent = gameState.resources.talentPoints;
         elements.contribution.textContent = gameState.resources.contribution;
 
-        elements.sectActionsBtn.classList.toggle('hidden', !gameState.sect.id);
+        // UI da Seita
+        const inSect = !!gameState.sect.id;
+        elements.sectActionsBtn.classList.toggle('hidden', !inSect);
+        elements.sectInfo.classList.toggle('hidden', !inSect);
+        if (inSect) {
+            const sectData = allGameData.sects.find(s => s.id === gameState.sect.id);
+            const rankData = sectData.ranks.find(r => r.id === gameState.sect.rank);
+            elements.sectName.textContent = sectData.name;
+            elements.sectRank.textContent = rankData.name;
+        }
 
         if (gameState.cultivation) {
             const cult = gameState.cultivation;
@@ -271,8 +312,15 @@ document.addEventListener('DOMContentLoaded', () => {
             // Missão
             if (gameState.sect.currentMissionId) {
                 const mission = allGameData.missions.find(m => m.id === gameState.sect.currentMissionId);
-                applyEffects({ resources: mission.reward });
-                addCombatLog(`Você completou a missão '${mission.title}' e recebeu ${mission.reward.contribution} de contribuição.`);
+                applyEffects(mission.reward); // <-- CORRIGIDO
+                let rewardText = `Você completou a missão '${mission.title}'!`;
+                if(mission.reward.resources && mission.reward.resources.contribution) {
+                    rewardText += ` (+${mission.reward.resources.contribution} Contribuição)`;
+                }
+                 if(mission.reward.attributes && mission.reward.attributes.body) {
+                    rewardText += ` (+${mission.reward.attributes.body} Corpo)`;
+                }
+                addCombatLog(rewardText);
                 gameState.sect.currentMissionId = null;
             }
 
@@ -416,10 +464,8 @@ document.addEventListener('DOMContentLoaded', () => {
             };
             elements.choicesContainer.appendChild(button);
         });
-        const leaveButton = document.createElement('button');
-        leaveButton.textContent = "Voltar";
-        leaveButton.onclick = showSectActions;
-        elements.choicesContainer.appendChild(leaveButton);
+        const backButton = createBackButton(showSectActions);
+        elements.choicesContainer.appendChild(backButton);
     }
 
     function showMissionBoard() {

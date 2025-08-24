@@ -28,5 +28,15 @@
       "attack": 12,
       "defense": 5
     }
+  },
+  {
+    "id": "giant_rat",
+    "name": "Rato Gigante",
+    "combat": {
+      "maxHp": 25,
+      "hp": 25,
+      "attack": 6,
+      "defense": 1
+    }
   }
 ]
