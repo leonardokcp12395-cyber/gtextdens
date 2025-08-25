@@ -123,18 +123,34 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- EVENT LOGIC ---
-    function areConditionsMet(conditions) {
-        if (!conditions) return true;
-        for (const key in conditions) {
-            const value = conditions[key];
-            switch (key) {
-                case 'age': if (gameState.age !== value) return false; break;
-                case 'min_age': if (gameState.age < value) return false; break;
-                // ... other conditions
-            }
+function areConditionsMet(conditions) {
+    if (!conditions) return true;
+    for (const key in conditions) {
+        const value = conditions[key];
+        switch (key) {
+            case 'age': if (gameState.age !== value) return false; break;
+            case 'min_age': if (gameState.age < value) return false; break;
+            case 'min_sect_rank':
+                if (!gameState.sect.id || gameState.sect.rank < value) return false;
+                break;
+            case 'rival_relationship_state':
+                const rivalRelationship = gameState.relationships[gameState.rivalId];
+                if (!rivalRelationship || rivalRelationship.state !== value) return false;
+                break;
+            case 'rival_in_same_sect':
+                const rival = gameState.npcs[gameState.rivalId];
+                const player = gameState.player;
+                if(value === true && player.sectId !== rival.sectId) return false;
+                if(value === false && player.sectId === rival.sectId && player.sectId !== null) return false;
+                break;
+            case 'probability':
+                if (Math.random() > value) return false;
+                break;
+            // Adiciona mais condições aqui conforme precisares
         }
-        return true;
     }
+    return true;
+}
 
     function checkAndTriggerEvents() {
         const allEvents = [...allGameData.events, ...allGameData.randomEvents];
@@ -164,19 +180,84 @@ document.addEventListener('DOMContentLoaded', () => {
         return processedText.replace(/\[PLAYER_NAME\]/g, gameState.player.name);
     }
 
-    function applyEffects(effects) {
-        // ... (implementation from original file)
+function applyEffects(effects) {
+    if (!effects) return;
+
+    // Atributos do Jogador
+    if (effects.attributes) {
+        for (const attr in effects.attributes) {
+            gameState.player.attributes[attr] = (gameState.player.attributes[attr] || 0) + effects.attributes[attr];
+        }
+    }
+    // Recursos
+    if (effects.resources) {
+        for (const res in effects.resources) {
+            gameState.resources[res] = (gameState.resources[res] || 0) + effects.resources[res];
+        }
+    }
+    // Cultivo
+    if (effects.cultivation) {
+        for (const cult in effects.cultivation) {
+            gameState.cultivation[cult] = (gameState.cultivation[cult] || 0) + effects.cultivation[cult];
+        }
+    }
+    // Combate (bónus passivos)
+    if (effects.combat) {
+        for (const stat in effects.combat) {
+            gameState.player.combat[stat] = (gameState.player.combat[stat] || 0) + effects.combat[stat];
+        }
+    }
+    // Relações
+    if (effects.relationships) {
+        for (const npcKey in effects.relationships) { // ex: "rival"
+            const npcId = npcKey === 'rival' ? gameState.rivalId : npcKey;
+            if (gameState.relationships[npcId]) {
+                gameState.relationships[npcId].score += effects.relationships[npcKey];
+            }
+        }
+    }
+     // Efeitos especiais são tratados à parte
+    if (effects.special) {
+        handleSpecialEffects(effects.special);
+    }
+}
+
+// Adiciona esta função (podes expandi-la depois)
+function handleSpecialEffects(effectKey) {
+    addLogMessage(`Efeito especial ativado: ${effectKey}`, 'notification');
+
+    if (effectKey.startsWith('learn_technique_')) {
+        const techId = effectKey.replace('learn_technique_', '');
+        if (!gameState.player.techniques.includes(techId)) {
+            gameState.player.techniques.push(techId);
+            const tech = allGameData.techniques.find(t => t.id === techId);
+            if(tech.effects) applyEffects(tech.effects); // Aplica efeitos passivos da técnica
+            addLogMessage(`Você aprendeu a técnica: ${tech.name}!`, 'milestone', true);
+        }
+        return;
     }
 
-    function handleSpecialEffects(effect) {
-        const joinSectMatch = effect.match(/^join_sect_(.+)/);
-        if (joinSectMatch) {
-            gameState.sect.id = joinSectMatch[1];
-            addLogMessage(`Você se juntou à ${allGameData.sects.find(s => s.id === gameState.sect.id).name}.`, 'milestone', true);
-            return;
-        }
-        // ... (other special effects)
+    switch (effectKey) {
+        case 'start_combat_rival':
+            // Esta função vai buscar os dados atualizados do rival em vez de um inimigo genérico
+            const rivalData = {
+                id: gameState.rivalId,
+                name: gameState.npcs[gameState.rivalId].name,
+                combat: gameState.npcs[gameState.rivalId].combat,
+                techniques: gameState.npcs[gameState.rivalId].techniques || []
+            };
+            startCombat(rivalData);
+            break;
+        case 'face_tribulation':
+            // Lógica para a tribulação aqui...
+            addLogMessage("Os céus rugem enquanto você enfrenta a tribulação!", "milestone", true);
+            // ... um combate especial ou uma série de testes de atributos poderiam acontecer aqui.
+            break;
+        // Adiciona mais 'cases' para os outros efeitos especiais do teu events.json
+        default:
+            console.warn(`Efeito especial não implementado: ${effectKey}`);
     }
+}
 
     function showEvent(event) {
         elements.eventContent.innerHTML = `<p>${processText(event.text)}</p>`;
@@ -294,6 +375,86 @@ document.addEventListener('DOMContentLoaded', () => {
         // --- 7. Show Screen & Clean Up ---
         elements.legacyScreen.classList.remove('hidden');
         localStorage.removeItem('immortalJourneySave');
+    }
+
+    function addCombatLog(message) {
+        const logEntry = document.createElement('p');
+        logEntry.textContent = message;
+        elements.combatLog.appendChild(logEntry);
+        // Scroll to the bottom
+        elements.combatLog.scrollTop = elements.combatLog.scrollHeight;
+    }
+
+    function startCombat(enemyData) {
+        combatState = {
+            player: { ...gameState.player.combat },
+            enemy: { ...enemyData.combat },
+            enemyInfo: enemyData,
+            turn: 'player'
+        };
+        elements.combatLog.innerHTML = ''; // Clear previous combat logs
+        elements.combatScreen.classList.remove('hidden');
+        elements.actionsContainer.classList.add('hidden');
+        updateCombatUI();
+        addLogMessage(`Você entrou em combate com ${enemyData.name}!`, 'event', true);
+        addCombatLog(`Você enfrenta ${enemyData.name}!`);
+    }
+
+    function updateCombatUI() {
+        elements.combatPlayerHp.textContent = `${combatState.player.hp} / ${combatState.player.maxHp}`;
+        elements.combatEnemyName.textContent = combatState.enemyInfo.name;
+        elements.combatEnemyHp.textContent = `${combatState.enemy.hp} / ${combatState.enemy.maxHp}`;
+
+        // Gera as ações do jogador
+        elements.combatActions.innerHTML = '';
+        const attackBtn = document.createElement('button');
+        attackBtn.textContent = 'Ataque Físico';
+        attackBtn.className = 'combat-action-btn';
+        attackBtn.onclick = () => takeCombatTurn('attack');
+        elements.combatActions.appendChild(attackBtn);
+
+        // Adiciona botões para técnicas de combate ativas aqui no futuro
+    }
+
+    function takeCombatTurn(action) {
+        // Lógica do turno do jogador
+        let playerDamage = Math.max(1, combatState.player.attack - combatState.enemy.defense);
+        combatState.enemy.hp -= playerDamage;
+        addCombatLog(`Você ataca e causa ${playerDamage} de dano!`);
+
+        updateCombatUI();
+        if (combatState.enemy.hp <= 0) {
+            endCombat(true);
+            return;
+        }
+
+        // Lógica do turno do inimigo (simples por agora)
+        setTimeout(() => {
+            let enemyDamage = Math.max(1, combatState.enemy.attack - combatState.player.defense);
+            combatState.player.hp -= enemyDamage;
+            addCombatLog(`${combatState.enemyInfo.name} ataca e causa ${enemyDamage} de dano!`);
+
+            updateCombatUI();
+            if (combatState.player.hp <= 0) {
+                endCombat(false);
+                return;
+            }
+        }, 1000); // Pequeno atraso para dar tempo de ler
+    }
+
+    function endCombat(playerWon) {
+        elements.combatScreen.classList.add('hidden');
+        elements.actionsContainer.classList.remove('hidden');
+
+        if (playerWon) {
+            addLogMessage(`Você derrotou ${combatState.enemyInfo.name}!`, 'reward', true);
+            // Adiciona recompensas de combate aqui (dinheiro, itens, etc.)
+        } else {
+            addLogMessage(`Você foi derrotado por ${combatState.enemyInfo.name}...`, 'combat', true);
+            gameState.player.combat.hp = 1; // Sobrevive por pouco
+            endGame('combat'); // Ou termina o jogo
+        }
+        updateUI();
     }
 
     function updateUI() {
