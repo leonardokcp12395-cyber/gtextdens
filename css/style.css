@@ -248,6 +248,14 @@ hr {
     text-align: center;
 }
 
+.danger-btn {
+    background-color: var(--color-accent-danger);
+    color: var(--color-bg);
+}
+.danger-btn:hover {
+    background-color: #ff9e9e;
+}
+
 .npc-sect-info {
     font-size: 0.8em;
     color: var(--color-text-secondary);

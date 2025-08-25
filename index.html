@@ -92,6 +92,19 @@
         </div>
     </div>
 
+    <!-- Tela de Talentos -->
+    <div id="talents-screen" class="hidden fullscreen-overlay">
+        <div class="panel">
+            <h2>Árvore de Talentos</h2>
+            <p>Você tem <span id="talents-screen-points">0</span> Pontos de Talento.</p>
+            <hr>
+            <div id="talents-container">
+                <!-- Talentos serão inseridos aqui -->
+            </div>
+            <button id="close-talents-btn">Fechar</button>
+        </div>
+    </div>
+
     <!-- Tela de Legado (New Game+) -->
     <div id="legacy-screen" class="hidden fullscreen-overlay">
         <div class="panel">
@@ -103,6 +116,7 @@
                 <!-- Bônus de Legado serão inseridos aqui pelo JS -->
             </div>
             <button id="start-new-journey-btn">Começar Nova Jornada</button>
+            <button id="reset-progress-btn" class="danger-btn">Resetar Todo o Progresso</button>
         </div>
     </div>
 

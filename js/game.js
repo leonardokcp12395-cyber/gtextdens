@@ -41,7 +41,12 @@ document.addEventListener('DOMContentLoaded', () => {
         legacyPoints: document.getElementById('legacy-points'),
         legacyBonusesContainer: document.getElementById('legacy-bonuses-container'),
         startNewJourneyBtn: document.getElementById('start-new-journey-btn'),
-        techniquesList: document.getElementById('techniques-list')
+        resetProgressBtn: document.getElementById('reset-progress-btn'),
+        techniquesList: document.getElementById('techniques-list'),
+        talentsScreen: document.getElementById('talents-screen'),
+        talentsScreenPoints: document.getElementById('talents-screen-points'),
+        talentsContainer: document.getElementById('talents-container'),
+        closeTalentsBtn: document.getElementById('close-talents-btn')
     };
 
     // --- CARREGAMENTO DE DADOS ---
@@ -173,6 +178,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // --- LÓGICA DE JOGO PRINCIPAL ---
+    function saveGameState() {
+        if (Object.keys(gameState).length > 0) {
+            localStorage.setItem('immortalJourneySave', JSON.stringify(gameState));
+        }
+    }
+
     function processText(text) {
         if (!text) return '';
         // Usa o rivalId para obter o NPC rival atual
@@ -427,6 +438,7 @@ document.addEventListener('DOMContentLoaded', () => {
         progressNpcs();
         updateRelationshipStates(); // <-- Adicionado
         updateUI();
+        saveGameState(); // <-- SALVAMENTO AUTOMÁTICO
     }
 
     // --- LÓGICA DE RELACIONAMENTOS ---
@@ -719,6 +731,7 @@ document.addEventListener('DOMContentLoaded', () => {
         applyEffects(techData.effects);
 
         addLogMessage(`Você aprendeu a técnica: ${techData.name}!`, 'reward');
+        saveGameState(); // Salva o progresso
         showTechniquePavilion(); // Atualiza a tela do pavilhão
         updateUI();
     }
@@ -1039,6 +1052,7 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
 
         calculateAndStoreLegacy();
+        localStorage.removeItem('immortalJourneySave'); // Apaga o save do jogo terminado
 
         // Futuramente, aqui será a tela de Legado
         elements.choicesContainer.innerHTML = `<button onclick="location.reload()">Começar uma Nova Jornada</button>`;
@@ -1093,6 +1107,14 @@ document.addEventListener('DOMContentLoaded', () => {
             button.onclick = () => purchaseLegacyBonus(bonus.id);
             container.appendChild(button);
         });
+
+        elements.resetProgressBtn.onclick = () => {
+            if (confirm("Você tem certeza que quer apagar TODO o seu progresso? Isso inclui saves e todos os Pontos de Legado. Esta ação não pode ser desfeita.")) {
+                localStorage.removeItem('immortalJourneySave');
+                localStorage.removeItem('immortalJourneyLegacy');
+                location.reload();
+            }
+        };
     }
 
     function purchaseLegacyBonus(bonusId) {
@@ -1178,6 +1200,42 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 
+    // --- TELA DE TALENTOS ---
+    function showTalentScreen() {
+        elements.talentsScreen.classList.remove('hidden');
+        elements.talentsScreenPoints.textContent = gameState.resources.talentPoints;
+        const container = elements.talentsContainer;
+        container.innerHTML = '';
+
+        allGameData.talents.forEach(talent => {
+            const button = document.createElement('button');
+            const isPurchased = gameState.talents.includes(talent.id);
+            const canAfford = gameState.resources.talentPoints >= talent.cost;
+            const requirementsMet = talent.requirements.every(req => gameState.talents.includes(req));
+
+            button.innerHTML = `${talent.name} <small>(${talent.cost} Pts)</small><br><small>${talent.description}</small>`;
+            button.disabled = isPurchased || !canAfford || !requirementsMet;
+
+            if (isPurchased) {
+                button.classList.add('talent-purchased');
+            } else if (!requirementsMet) {
+                 button.classList.add('talent-locked');
+            }
+
+            button.onclick = () => {
+                if (button.disabled) return;
+                gameState.resources.talentPoints -= talent.cost;
+                gameState.talents.push(talent.id);
+                applyEffects(talent.effects);
+                saveGameState();
+                updateUI();
+                showTalentScreen(); // Refresh a tela de talentos
+            };
+
+            container.appendChild(button);
+        });
+    }
+
     // --- INICIALIZAÇÃO ---
     function startGame() {
         const player = generateCharacter('player', 'masculino');
@@ -1218,24 +1276,38 @@ document.addEventListener('DOMContentLoaded', () => {
         gameState.cultivation.maxQi = calculateMaxQi(gameState.cultivation);
 
         elements.legacyScreen.classList.add('hidden');
-        elements.nextYearBtn.addEventListener('click', advanceYear);
-        elements.meditateBtn.addEventListener('click', handleMeditateOrBreakthrough);
-        elements.talentsBtn.addEventListener('click', showTalentScreen);
-        elements.sectActionsBtn.addEventListener('click', showSectActions);
-        elements.combatActions.addEventListener('click', (e) => {
-            if (e.target.classList.contains('combat-action-btn')) playerTurn(e.target.dataset.action);
-        });
+        attachEventListeners();
         updateUI();
     }
 
     function initializeGame() {
-        const legacyData = getLegacyData();
-        if (legacyData.legacyPoints > 0) {
-            showLegacyStore();
-            elements.startNewJourneyBtn.onclick = startGame;
+        const savedGame = localStorage.getItem('immortalJourneySave');
+        if (savedGame) {
+            gameState = JSON.parse(savedGame);
+            // Anexar listeners de eventos para um jogo carregado
+            attachEventListeners();
+            updateUI();
         } else {
-            startGame();
+            const legacyData = getLegacyData();
+            if (legacyData.legacyPoints > 0) {
+                showLegacyStore();
+                elements.startNewJourneyBtn.onclick = startGame;
+            } else {
+                startGame();
+            }
         }
     }
+
+    function attachEventListeners() {
+        elements.nextYearBtn.addEventListener('click', advanceYear);
+        elements.meditateBtn.addEventListener('click', handleMeditateOrBreakthrough);
+        elements.talentsBtn.addEventListener('click', showTalentScreen);
+        elements.closeTalentsBtn.addEventListener('click', () => elements.talentsScreen.classList.add('hidden'));
+        elements.sectActionsBtn.addEventListener('click', showSectActions);
+        elements.combatActions.addEventListener('click', (e) => {
+            if (e.target.classList.contains('combat-action-btn')) playerTurn(e.target.dataset.action);
+        });
+    }
+
     loadGameData();
 });
