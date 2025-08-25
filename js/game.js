@@ -106,7 +106,8 @@ document.addEventListener('DOMContentLoaded', () => {
             combat: {
                 maxHp: baseAttributes.body * 5, hp: baseAttributes.body * 5,
                 attack: 5 + Math.floor(baseAttributes.body / 2),
-                defense: 2 + Math.floor(baseAttributes.mind / 5)
+                defense: 2 + Math.floor(baseAttributes.mind / 5),
+                speed: 10 + Math.floor(baseAttributes.mind / 2)
             }
         };
     }
@@ -154,6 +155,32 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function checkAndTriggerEvents() {
+        // Evento especial e garantido: Convite para Seita aos 15 anos
+        if (gameState.age === 15 && !gameState.sect.id && !gameState.triggeredEvents.includes('sect_invitation_age_15')) {
+            const sectsToOffer = [];
+            const shuffledSects = [...allGameData.sects].sort(() => 0.5 - Math.random());
+            for (let i = 0; i < 2 && i < shuffledSects.length; i++) {
+                sectsToOffer.push(shuffledSects[i]);
+            }
+
+            const sectChoices = sectsToOffer.map(sect => ({
+                text: `Juntar-se à ${sect.name}.`,
+                effects: { special: `join_sect_${sect.id}` },
+                resultKey: `joined_${sect.id.replace(/_sect$/, '')}`
+            }));
+            sectChoices.push({ text: "Recusar todos e seguir seu próprio caminho.", effects: {}, resultKey: "declined_sects" });
+
+            const invitationEvent = {
+                id: "sect_invitation_age_15",
+                type: "once",
+                text: "Sua dedicação ao cultivo chamou a atenção de algumas seitas locais. Elas enviam um convite. Qual caminho você escolherá?",
+                choices: sectChoices
+            };
+            showEvent(invitationEvent);
+            gameState.triggeredEvents.push(invitationEvent.id);
+            return true;
+        }
+
         const allEvents = [...allGameData.events, ...allGameData.randomEvents];
         const possibleEvents = allEvents.filter(event => {
             // Verifica se o evento já foi acionado (se for do tipo 'once')
@@ -250,9 +277,27 @@ document.addEventListener('DOMContentLoaded', () => {
             case 'explore_cave': exploreCave(); break;
             case 'show_technique_pavilion': showTechniquePavilion(); break;
             case 'learn_random_technique': learnRandomTechnique(); break;
+            case 'face_tribulation': faceTribulation(); break;
             // ... outros casos
             default: console.warn(`Efeito especial não reconhecido: ${effect}`);
         }
+    }
+
+    function faceTribulation() {
+        // Esta função será chamada ANTES da tentativa de avanço do reino.
+        // O sucesso aqui não avança o reino, apenas permite que a tentativa normal prossiga.
+        const successChance = (gameState.player.attributes.body + gameState.player.attributes.mind) / 500; // Ex: (100+100)/500 = 40%
+
+        elements.choicesContainer.innerHTML = '';
+        setTimeout(() => {
+            if (Math.random() < successChance) {
+                elements.eventContent.innerHTML += `<p>Com um grito de desafio, você resiste à pressão celestial! O céu se abre e a energia do mundo flui para você. Você está pronto para o avanço.</p>`;
+                gameState.lastFailedSpecial = null; // Limpa a falha para que o avanço possa ocorrer.
+            } else {
+                elements.eventContent.innerHTML += `<p>A tribulação é avassaladora. Seu corpo e sua alma são desfeitos pelo poder celestial. Sua jornada termina em uma explosão de luz.</p>`;
+                endGame("tribulation_failure");
+            }
+        }, 2000);
     }
 
     function exploreCave() {
@@ -423,6 +468,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 if (template.type === 'body_cultivation_boost' && (gameState.age % 5 === 0)) {
                     gameState.player.attributes.body += benefitValue;
+                }
+                if (template.type === 'passive_speed_gain' && (gameState.age % 5 === 0)) {
+                    gameState.player.combat.speed += benefitValue;
+                }
+                if (template.type === 'passive_mind_gain' && (gameState.age % 10 === 0)) {
+                    gameState.player.attributes.mind += benefitValue;
                 }
             }
         }
@@ -832,10 +883,19 @@ document.addEventListener('DOMContentLoaded', () => {
         combatState = {
             player: { ...gameState.player.combat, status_effects: [] },
             enemy: { ...enemyData, status_effects: [] },
-            turn: 'player',
+            turn: 'player', // Default
             playerDefending: false,
             onVictory: allStrings.combat_victory_default
         };
+
+        // Determina quem ataca primeiro
+        if (combatState.enemy.speed > combatState.player.speed) {
+            combatState.turn = 'enemy';
+            addLogMessage(`${combatState.enemy.name} é mais rápido e ataca primeiro!`, 'combat');
+        } else {
+            combatState.turn = 'player';
+            addLogMessage("Você é mais rápido e ataca primeiro!", 'combat');
+        }
 
         // Monta a UI de ações de combate
         elements.combatActions.innerHTML = `
@@ -857,6 +917,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         addLogMessage(`Você entrou em combate com ${combatState.enemy.name}!`, 'combat');
         updateCombatUI();
+
+        if (combatState.turn === 'enemy') {
+            setTimeout(enemyTurn, 1000);
+        }
     }
 
     function playerTurn(action) {
@@ -1031,6 +1095,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 break;
             case "player_defeat":
                  elements.eventContent.innerHTML += `<p>Você foi derrotado em combate. Seus ferimentos são graves demais e sua jornada termina aqui.</p>`;
+                break;
+            case "tribulation_failure":
+                // A mensagem principal já foi mostrada em faceTribulation.
                 break;
         }
 

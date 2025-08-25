@@ -19,17 +19,6 @@
     ]
   },
   {
-    "id": "sect_invitation_age_15",
-    "type": "once",
-    "conditions": { "age": 15, "required_sect_id": null },
-    "text": "Sua dedicação ao cultivo chamou a atenção de duas seitas locais. Ambas enviam um convite. Qual caminho você escolherá?",
-    "choices": [
-      { "text": "Juntar-se à Seita da Nuvem Oculta.", "effects": { "special": "join_sect_hidden_cloud_sect" }, "resultKey": "joined_hidden_cloud" },
-      { "text": "Juntar-se à Seita do Corpo de Ferro.", "effects": { "special": "join_sect_iron_body_sect" }, "resultKey": "joined_iron_body" },
-      { "text": "Recusar ambos e seguir seu próprio caminho.", "effects": {}, "resultKey": "declined_sects" }
-    ]
-  },
-  {
     "id": "rival_ambush",
     "type": "once",
     "conditions": { "rival_relationship_state": "Inimigo", "min_age": 18 },
@@ -100,6 +89,33 @@
     "choices": [
       { "text": "'Juntos, vamos fortalecer a seita.'", "effects": { "relationships": { "rival": 10 } }, "resultKey": "sect_brother_agreed" },
       { "text": "Apenas acenar de volta.", "effects": { "relationships": { "rival": 2 } }, "resultKey": "sect_brother_nodded" }
+    ]
+  },
+  {
+    "id": "swift_blade_sect_test",
+    "type": "once",
+    "conditions": { "required_sect_id": "swift_blade_sect", "min_sect_rank": 1 },
+    "text": "Seu mestre na Seita da Lâmina Veloz quer testar sua velocidade. 'Seja mais rápido que o vento, [PLAYER_NAME]'.",
+    "choices": [
+        { "text": "Aceitar o desafio.", "effects": { "combat": { "speed": 1 } }, "resultKey": "swift_blade_test_passed" }
+    ]
+  },
+  {
+    "id": "spirit_elixir_sect_task",
+    "type": "once",
+    "conditions": { "required_sect_id": "spirit_elixir_sect", "min_sect_rank": 1 },
+    "text": "Um alquimista sênior pede sua ajuda para catalogar ervas raras. É um trabalho meticuloso que exige grande foco mental.",
+    "choices": [
+        { "text": "Ajudá-lo por várias horas.", "effects": { "attributes": { "mind": 2 }, "resources": { "contribution": 20 } }, "resultKey": "spirit_elixir_task_done" }
+    ]
+  },
+    {
+    "id": "breakthrough_tribulation",
+    "type": "once",
+    "conditions": { "min_cultivation_realm_id": 3 },
+    "text": "Ao tentar avançar para o Reino do Núcleo Dourado, os céus escurecem e nuvens de tempestade se formam. Uma tribulação celestial desce sobre você! Você deve resistir para provar seu valor.",
+    "choices": [
+        { "text": "Enfrentar a tribulação de frente!", "effects": { "special": "face_tribulation" }, "resultKey": "tribulation_faced" }
     ]
   }
 ]

@@ -51,5 +51,19 @@
     "qi_cost": 0,
     "damage_multiplier": 1.3,
     "special_effect": null
+  },
+  {
+    "id": "swift_blade_art",
+    "name": "Arte da Lâmina Veloz",
+    "description": "Aumenta a velocidade e a proeza de ataque.",
+    "type": "sect_swift_blade_sect",
+    "effects": { "combat": { "attack": 1, "speed": 2 } }
+  },
+  {
+    "id": "spiritual_elixir_meditation",
+    "name": "Meditação do Elixir Espiritual",
+    "description": "Aumenta a Mente e acelera o ganho de Qi.",
+    "type": "sect_spirit_elixir_sect",
+    "effects": { "attributes": { "mind": 3 } }
     }
 ]

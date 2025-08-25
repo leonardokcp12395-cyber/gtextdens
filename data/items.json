@@ -33,5 +33,12 @@
     "description": "Uma pílula estranha que parece torcer o destino a seu favor.",
     "type": "consumable",
     "effects": { "attributes": { "luck": 2 } }
+  },
+  {
+    "id": "mind_focus_incense",
+    "name": "Incenso de Foco Mental",
+    "description": "Queimar este incenso antes de meditar ajuda a clarear a mente.",
+    "type": "consumable",
+    "effects": { "attributes": { "mind": 1 } }
   }
 ]

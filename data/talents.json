@@ -44,5 +44,21 @@
     "cost": 3,
     "requirements": ["mind_t_1"],
     "effects": {}
+  },
+  {
+    "id": "mind_t_2",
+    "name": "Mente de Sábio",
+    "description": "Sua clareza mental é impressionante, melhorando sua capacidade de cultivo e de combate.",
+    "cost": 3,
+    "requirements": ["mind_t_1"],
+    "effects": { "attributes": { "mind": 2 }, "combat": { "attack": 1 } }
+  },
+  {
+    "id": "speed_t_1",
+    "name": "Passos Leves",
+    "description": "Você se move com uma graça incomum, tornando-se mais rápido em combate.",
+    "cost": 2,
+    "requirements": [],
+    "effects": { "combat": { "speed": 2 } }
   }
 ]
