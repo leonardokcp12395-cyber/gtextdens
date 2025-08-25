@@ -10,42 +10,17 @@
       "description": "Ganha 5 de Qi extra por ano por rank na seita."
     },
     "ranks": [
-      {
-        "id": 0,
-        "name": "Discípulo Externo",
-        "requirements": null
-      },
-      {
-        "id": 1,
-        "name": "Discípulo Interno",
-        "requirements": {
-          "cultivation_realm_id": 1,
-          "cultivation_level": 1,
-          "contribution": 100
-        }
-      },
-      {
-        "id": 2,
-        "name": "Discípulo de Elite",
-        "requirements": {
-          "cultivation_realm_id": 1,
-          "cultivation_level": 5,
-          "contribution": 500
-        }
-      },
-      {
-        "id": 3,
-        "name": "Ancião",
-        "requirements": {
-          "cultivation_realm_id": 2,
-          "cultivation_level": 1,
-          "contribution": 2000
-        }
-      }
+      { "id": 0, "name": "Discípulo Externo", "requirements": null },
+      { "id": 1, "name": "Discípulo Interno", "requirements": { "cultivation_realm_id": 1, "cultivation_level": 1, "contribution": 100 } },
+      { "id": 2, "name": "Discípulo de Elite", "requirements": { "cultivation_realm_id": 1, "cultivation_level": 5, "contribution": 500 } },
+      { "id": 3, "name": "Ancião", "requirements": { "cultivation_realm_id": 2, "cultivation_level": 1, "contribution": 2000 } }
     ],
     "store": [
       { "id": "small_qi_pill", "cost_contribution": 20, "min_rank": 0 },
       { "id": "medium_qi_pill", "cost_contribution": 80, "min_rank": 1 }
+    ],
+    "techniques": [
+      { "id": "hidden_cloud_meditation", "cost_contribution": 150, "min_rank": 1 }
     ]
   },
   {
@@ -59,42 +34,17 @@
       "description": "Ganha 1 de Corpo extra a cada 5 anos por rank na seita."
     },
     "ranks": [
-      {
-        "id": 0,
-        "name": "Iniciado",
-        "requirements": null
-      },
-      {
-        "id": 1,
-        "name": "Punho de Ferro",
-        "requirements": {
-          "cultivation_realm_id": 1,
-          "cultivation_level": 1,
-          "contribution": 100
-        }
-      },
-      {
-        "id": 2,
-        "name": "Corpo de Aço",
-        "requirements": {
-          "cultivation_realm_id": 1,
-          "cultivation_level": 5,
-          "contribution": 500
-        }
-      },
-      {
-        "id": 3,
-        "name": "Mestre da Seita",
-        "requirements": {
-          "cultivation_realm_id": 2,
-          "cultivation_level": 1,
-          "contribution": 2000
-        }
-      }
+      { "id": 0, "name": "Iniciado", "requirements": null },
+      { "id": 1, "name": "Punho de Ferro", "requirements": { "cultivation_realm_id": 1, "cultivation_level": 1, "contribution": 100 } },
+      { "id": 2, "name": "Corpo de Aço", "requirements": { "cultivation_realm_id": 1, "cultivation_level": 5, "contribution": 500 } },
+      { "id": 3, "name": "Mestre da Seita", "requirements": { "cultivation_realm_id": 2, "cultivation_level": 1, "contribution": 2000 } }
     ],
     "store": [
       { "id": "body_tempering_elixir", "cost_contribution": 25, "min_rank": 0 },
       { "id": "steel_bone_pill", "cost_contribution": 100, "min_rank": 1 }
+    ],
+    "techniques": [
+      { "id": "iron_fist_stance", "cost_contribution": 150, "min_rank": 1 }
     ]
   }
 ]

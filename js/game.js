@@ -40,7 +40,8 @@ document.addEventListener('DOMContentLoaded', () => {
         legacyScreen: document.getElementById('legacy-screen'),
         legacyPoints: document.getElementById('legacy-points'),
         legacyBonusesContainer: document.getElementById('legacy-bonuses-container'),
-        startNewJourneyBtn: document.getElementById('start-new-journey-btn')
+        startNewJourneyBtn: document.getElementById('start-new-journey-btn'),
+        techniquesList: document.getElementById('techniques-list')
     };
 
     // --- CARREGAMENTO DE DADOS ---
@@ -50,13 +51,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 fetch('data/events.json'), fetch('data/items.json'), fetch('data/sects.json'),
                 fetch('data/enemies.json'), fetch('data/talents.json'), fetch('data/strings.json'),
                 fetch('data/random_events.json'), fetch('data/nomes.json'), fetch('data/personalidades.json'),
-                fetch('data/world_events.json'), fetch('data/realms.json'), fetch('data/missions.json')
+                fetch('data/world_events.json'), fetch('data/realms.json'), fetch('data/missions.json'),
+                fetch('data/techniques.json') // <-- Adicionado
             ]);
             for (const res of responses) {
                 if (!res.ok) throw new Error(`Falha ao carregar ${res.url}`);
             }
-            const [events, items, sects, enemies, talents, strings, randomEvents, nomes, personalidades, worldEvents, realms, missions] = await Promise.all(responses.map(res => res.json()));
-            allGameData = { events, items, sects, enemies, talents, randomEvents, nomes, personalidades, worldEvents, realms, missions };
+            const [events, items, sects, enemies, talents, strings, randomEvents, nomes, personalidades, worldEvents, realms, missions, techniques] = await Promise.all(responses.map(res => res.json()));
+            allGameData = { events, items, sects, enemies, talents, randomEvents, nomes, personalidades, worldEvents, realms, missions, techniques }; // <-- Adicionado
             allStrings = strings;
             initializeGame();
         } catch (error) {
@@ -207,12 +209,24 @@ document.addEventListener('DOMContentLoaded', () => {
         const acceptMissionMatch = effect.match(/^accept_mission_(.+)/);
         if (acceptMissionMatch) { acceptSectMission(acceptMissionMatch[1]); return; }
 
+        const learnTechniqueMatch = effect.match(/^learn_technique_(.+)/);
+        if (learnTechniqueMatch) {
+            const techId = learnTechniqueMatch[1];
+            const sectData = allGameData.sects.find(s => s.id === gameState.sect.id);
+            const techItem = sectData ? sectData.techniques.find(t => t.id === techId) : null;
+            const cost = techItem ? techItem.cost_contribution : 0; // Se a técnica não for da seita, o custo é 0
+            learnTechnique(techId, cost);
+            return;
+        }
+
         switch (effect) {
             case 'show_sect_actions': showSectActions(); break;
             case 'show_sect_store': showSectStore(); break;
             case 'try_promotion': tryPromotion(); break;
             case 'show_mission_board': showMissionBoard(); break;
             case 'explore_cave': exploreCave(); break;
+            case 'show_technique_pavilion': showTechniquePavilion(); break;
+            case 'learn_random_technique': learnRandomTechnique(); break;
             // ... outros casos
             default: console.warn(`Efeito especial não reconhecido: ${effect}`);
         }
@@ -310,6 +324,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 li.innerHTML = `${npcStatus}: ${rel.state} (${rel.score})`;
                 elements.relationshipsList.appendChild(li);
             }
+        }
+
+        // UI de Técnicas
+        elements.techniquesList.innerHTML = '';
+        if (gameState.techniques.length === 0) {
+            const li = document.createElement('li');
+            li.textContent = "Nenhuma técnica aprendida.";
+            elements.techniquesList.appendChild(li);
+        } else {
+            gameState.techniques.forEach(techId => {
+                const techData = allGameData.techniques.find(t => t.id === techId);
+                if (techData) {
+                    const li = document.createElement('li');
+                    li.innerHTML = `<strong>${techData.name}:</strong> <span class="npc-sect-info">${techData.description}</span>`;
+                    elements.techniquesList.appendChild(li);
+                }
+            });
         }
     }
 
@@ -482,7 +513,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- LÓGICA DE SEITA ---
     function showSectActions() {
         const choices = [
-            { text: "Ver Loja", effects: { special: 'show_sect_store' } },
+            { text: "Ver Loja (Pílulas)", effects: { special: 'show_sect_store' } },
+            { text: "Visitar Pavilhão de Técnicas", effects: { special: 'show_technique_pavilion' } },
             { text: "Tentar Promoção", effects: { special: 'try_promotion' } }
         ];
 
@@ -619,6 +651,65 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.choicesContainer.innerHTML = '';
         const backButton = createBackButton(showSectActions);
         elements.choicesContainer.appendChild(backButton);
+    }
+
+    function showTechniquePavilion() {
+        const sectData = allGameData.sects.find(s => s.id === gameState.sect.id);
+        elements.eventContent.innerHTML = `<h2>Pavilhão de Técnicas</h2><p>Você vê várias estelas de pedra com técnicas gravadas. Sua Contribuição: ${gameState.resources.contribution}</p>`;
+        elements.choicesContainer.innerHTML = '';
+
+        sectData.techniques
+            .filter(techItem => techItem.min_rank <= gameState.sect.rank)
+            .forEach(techItem => {
+                const techData = allGameData.techniques.find(t => t.id === techItem.id);
+                const alreadyLearned = gameState.techniques.includes(techData.id);
+
+                const button = document.createElement('button');
+                button.innerHTML = `${techData.name}<br><small>${techData.description} (Custo: ${techItem.cost_contribution} Contribuição)</small>`;
+
+                if (alreadyLearned) {
+                    button.disabled = true;
+                    button.innerHTML += `<br><small>(Aprendido)</small>`;
+                } else if (gameState.resources.contribution < techItem.cost_contribution) {
+                    button.disabled = true;
+                }
+
+                button.onclick = () => learnTechnique(techData.id, techItem.cost_contribution);
+                elements.choicesContainer.appendChild(button);
+            });
+
+        const backButton = createBackButton(showSectActions);
+        elements.choicesContainer.appendChild(backButton);
+    }
+
+    function learnTechnique(techniqueId, cost) {
+        if (gameState.techniques.includes(techniqueId)) return; // Já sabe
+        if (gameState.resources.contribution < cost) return; // Não pode pagar
+
+        gameState.resources.contribution -= cost;
+        gameState.techniques.push(techniqueId);
+
+        const techData = allGameData.techniques.find(t => t.id === techniqueId);
+        applyEffects(techData.effects);
+
+        addLogMessage(`Você aprendeu a técnica: ${techData.name}!`, 'reward');
+        showTechniquePavilion(); // Atualiza a tela do pavilhão
+        updateUI();
+    }
+
+    function learnRandomTechnique() {
+        const availableTechniques = allGameData.techniques.filter(t =>
+            !gameState.techniques.includes(t.id) && t.type === 'universal'
+        );
+
+        if (availableTechniques.length > 0) {
+            const chosenTech = getRandomElement(availableTechniques);
+            gameState.techniques.push(chosenTech.id);
+            applyEffects(chosenTech.effects);
+            addLogMessage(`Você aprendeu uma nova técnica: ${chosenTech.name}!`, 'reward');
+        } else {
+            addLogMessage("Você vasculha as ruínas, mas não encontra nenhuma técnica que já não conheça.", 'notification');
+        }
     }
 
     // --- FUNÇÕES HELPER ---
@@ -1002,6 +1093,7 @@ document.addEventListener('DOMContentLoaded', () => {
             resources: startingResources,
             cultivation: { realmId: 0, level: 1, qi: 0 },
             lastFailedSpecial: null, talents: startingTalents, sect: { id: null, rank: 0, currentMissionId: null },
+            techniques: [], // <-- Adicionado
             currentWorldEvent: null,
             relationships: { [rival.id]: { score: 0, state: 'neutral' } },
             rivalId: rival.id,

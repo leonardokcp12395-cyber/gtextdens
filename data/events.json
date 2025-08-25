@@ -53,9 +53,17 @@
     "id": "sect_elder_gift",
     "type": "once",
     "conditions": { "min_sect_rank": 2 },
-    "text": "Impressionado com seu rápido progresso, um Ancião da sua seita o convoca. 'Sua dedicação é exemplar', diz ele, entregando-lhe uma pílula de aparência extraordinária. 'Use-a para fortalecer seu cultivo.'",
+    "text": "Impressionado com seu rápido progresso, um Ancião da sua seita o convoca. 'Sua dedicação é exemplar', diz ele, entregando-lhe um manual antigo. 'Estude-o. Ele irá servi-lo bem.'",
     "choices": [
-      { "text": "Agradecer e aceitar a pílula.", "effects": { "cultivation": { "qi": 500 } }, "resultKey": "sect_elder_gift_accepted" }
+      { "text": "Agradecer e aceitar o manual.", "effects": { "special": "learn_technique_heavenly_qi_circulation" }, "resultKey": "sect_elder_gift_accepted" }
+    ]
+  },
+  {
+    "id": "ruins_discovery",
+    "conditions": { "min_age": 25, "probability": 0.05 },
+    "text": "Você descobre ruínas antigas e desmoronadas durante suas viagens. Dentro, você encontra um pedestal com um único manual de técnica empoeirado.",
+    "choices": [
+      { "text": "Estudar o manual.", "effects": { "special": "learn_random_technique" }, "resultKey": "ruins_manual_studied" }
     ]
   },
   {

@@ -1,0 +1,46 @@
+[
+    {
+        "id": "basic_sword_form",
+        "name": "Forma Básica da Espada",
+        "description": "Uma técnica de espada simples, mas eficaz, que melhora ligeiramente sua proeza em combate.",
+        "type": "universal",
+        "effects": {
+            "combat": {
+                "attack": 2
+            }
+        }
+    },
+    {
+        "id": "hidden_cloud_meditation",
+        "name": "Meditação da Nuvem Oculta",
+        "description": "Uma técnica de respiração que acalma a mente e aprofunda a conexão com o Qi.",
+        "type": "sect_hidden_cloud_sect",
+        "effects": {
+            "attributes": {
+                "mind": 2
+            }
+        }
+    },
+    {
+        "id": "iron_fist_stance",
+        "name": "Postura do Punho de Ferro",
+        "description": "Uma postura de combate que enrijece o corpo, aumentando a capacidade de resistir a golpes.",
+        "type": "sect_iron_body_sect",
+        "effects": {
+            "combat": {
+                "defense": 2
+            }
+        }
+    },
+    {
+        "id": "heavenly_qi_circulation",
+        "name": "Circulação Celestial de Qi",
+        "description": "Uma técnica lendária que otimiza o fluxo de Qi, aumentando permanentemente sua capacidade máxima.",
+        "type": "rare",
+        "effects": {
+            "cultivation": {
+                "maxQi": 500
+            }
+        }
+    }
+]
