@@ -49,6 +49,7 @@
   },
   {
     "id": "ruins_discovery",
+    "image": "img/events/ruins.png",
     "conditions": { "min_age": 25, "probability": 0.05 },
     "text": "Você descobre ruínas antigas e desmoronadas durante suas viagens. Dentro, você encontra um pedestal com um único manual de técnica empoeirado.",
     "choices": [
@@ -112,10 +113,22 @@
     {
     "id": "breakthrough_tribulation",
     "type": "once",
+    "image": "img/events/tribulation.png",
     "conditions": { "min_cultivation_realm_id": 3 },
     "text": "Ao tentar avançar para o Reino do Núcleo Dourado, os céus escurecem e nuvens de tempestade se formam. Uma tribulação celestial desce sobre você! Você deve resistir para provar seu valor.",
     "choices": [
         { "text": "Enfrentar a tribulação de frente!", "effects": { "special": "face_tribulation" }, "resultKey": "tribulation_faced" }
+    ]
+  },
+  {
+    "id": "rival_ambush",
+    "type": "once",
+    "image": "img/events/ambush.png",
+    "conditions": { "rival_relationship_state": "Inimigo", "min_age": 18 },
+    "text": "Enquanto você viaja por uma área isolada, [RIVAL] aparece de repente, com uma expressão hostil. 'Eu sabia que te encontraria aqui, [PLAYER_NAME]. É hora de acertarmos as contas!'",
+    "choices": [
+      { "text": "Lutar!", "effects": { "special": "start_combat_rival" } },
+      { "text": "Tentar acalmá-lo.", "effects": { "relationships": { "rival": -5 }, "attributes": { "mind": -1 } }, "resultKey": "rival_ambush_calmed" }
     ]
   }
 ]

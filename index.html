@@ -38,6 +38,7 @@
         </div>
 
         <div id="event-panel" class="panel">
+            <img id="event-image" class="hidden" src="" alt="Imagem do Evento">
             <h2>Diário da Jornada</h2>
             <div id="event-content">
                 <p>Você nasceu. O caminho é longo e incerto.</p>
@@ -61,59 +62,74 @@
                     </div>
                 </div>
                 <div id="combat-log" class="panel">
-                    <p>O combate começa!</p>
+                    <!-- Log de combate temporário -->
                 </div>
                 <div id="combat-actions">
-                    <button class="combat-action-btn" data-action="attack">Atacar</button>
-                    <button class="combat-action-btn" data-action="qi_strike">Golpe de Qi (20)</button>
-                    <button class="combat-action-btn" data-action="defend">Defender</button>
-                    <button class="combat-action-btn" data-action="flee">Fugir</button>
+                    <!-- Ações de combate dinâmicas -->
                 </div>
             </div>
         </div>
 
-        <div id="resources-panel" class="panel">
-            <h2>Recursos</h2>
-            <p><strong>Dinheiro:</strong> <span id="res-money">10</span></p>
-            <p><strong>Contribuição:</strong> <span id="res-contribution">0</span></p>
-        </div>
+        <div id="right-panels-container">
+            <div id="resources-panel" class="panel">
+                <h2>Recursos</h2>
+                <p><strong>Dinheiro:</strong> <span id="res-money">10</span></p>
+                <p><strong>Contribuição:</strong> <span id="res-contribution">0</span></p>
+            </div>
 
-        <div id="relationships-panel" class="panel">
-            <h2>Relações</h2>
-            <ul id="relationships-list">
-                <!-- As relações serão adicionadas aqui pelo JavaScript -->
-            </ul>
-        </div>
-        <div id="techniques-panel" class="panel">
-            <h2>Técnicas</h2>
-            <ul id="techniques-list">
-                <!-- As técnicas serão adicionadas aqui pelo JavaScript -->
-            </ul>
+            <div id="relationships-panel" class="panel">
+                <h2>Relações</h2>
+                <ul id="relationships-list"></ul>
+            </div>
+            <div id="techniques-panel" class="panel">
+                <h2>Técnicas</h2>
+                <ul id="techniques-list"></ul>
+            </div>
         </div>
     </div>
 
-    <!-- Tela de Talentos -->
+    <div id="life-chronicle-panel" class="panel">
+        <h2>Crônica da Vida</h2>
+        <ul id="life-log-list"></ul>
+    </div>
+
+    <!-- Overlays -->
     <div id="talents-screen" class="hidden fullscreen-overlay">
         <div class="panel">
             <h2>Árvore de Talentos</h2>
             <p>Você tem <span id="talents-screen-points">0</span> Pontos de Talento.</p>
             <hr>
-            <div id="talents-container">
-                <!-- Talentos serão inseridos aqui -->
-            </div>
+            <div id="talents-container"></div>
             <button id="close-talents-btn">Fechar</button>
         </div>
     </div>
 
-    <!-- Tela de Legado (New Game+) -->
     <div id="legacy-screen" class="hidden fullscreen-overlay">
         <div class="panel">
             <h2>Legado da Jornada</h2>
-            <p>Seus feitos em vidas passadas concederam a você <span id="legacy-points">0</span> Pontos de Legado.</p>
-            <p>Use-os para abençoar sua próxima geração com uma fundação mais forte.</p>
+
+            <div id="end-game-summary">
+                <div id="final-stats">
+                    <h3>Status Final</h3>
+                    <ul id="final-stats-list">
+                        <!-- Populated by JS -->
+                    </ul>
+                </div>
+                <div id="final-chronicle">
+                    <h3>Crônica da Vida</h3>
+                    <ul id="final-chronicle-list">
+                        <!-- Populated by JS -->
+                    </ul>
+                </div>
+            </div>
+
             <hr>
+            <p>Esta vida lhe rendeu <span id="legacy-points-earned">0</span> Pontos de Legado.</p>
+            <p><strong>Total de Pontos de Legado: <span id="legacy-points-total">0</span></strong></p>
+            <hr>
+            <h4>Bônus para a Próxima Vida</h4>
             <div id="legacy-bonuses-container">
-                <!-- Bônus de Legado serão inseridos aqui pelo JS -->
+                <p>Em breve...</p>
             </div>
             <button id="start-new-journey-btn">Começar Nova Jornada</button>
             <button id="reset-progress-btn" class="danger-btn">Resetar Todo o Progresso</button>

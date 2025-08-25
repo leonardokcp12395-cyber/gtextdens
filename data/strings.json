@@ -1,4 +1,10 @@
 {
+  "death_reasons": {
+    "old_age": "Morreu pacificamente de velhice.",
+    "tribulation_failure": "Pereceu ao tentar desafiar os céus durante uma Tribulação.",
+    "combat": "Caiu em batalha.",
+    "unknown": "Sua jornada terminou misteriosamente."
+  },
   "found_coin_success": "Você guardou a moeda na sua bolsa.",
   "study_or_play_body": "Você passou a tarde a correr e a sentir os seus músculos a fortalecerem-se.",
   "study_or_play_mind": "Você mergulhou no livro, e sente que a sua compreensão do mundo ficou um pouco mais nítida.",
