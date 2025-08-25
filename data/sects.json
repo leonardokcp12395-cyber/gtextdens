@@ -20,7 +20,8 @@
       { "id": "medium_qi_pill", "cost_contribution": 80, "min_rank": 1 }
     ],
     "techniques": [
-      { "id": "hidden_cloud_meditation", "cost_contribution": 150, "min_rank": 1 }
+      { "id": "hidden_cloud_meditation", "cost_contribution": 150, "min_rank": 1 },
+      { "id": "stunning_palm", "cost_contribution": 400, "min_rank": 2 }
     ]
   },
   {

@@ -97,6 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
             sectRank: 0,
             contribution: 0,
             cultivation: { realmId: 0, level: 1 },
+            techniques: [],
             combat: {
                 maxHp: baseAttributes.body * 5, hp: baseAttributes.body * 5,
                 attack: 5 + Math.floor(baseAttributes.body / 2),
@@ -178,6 +179,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const rival = gameState.rivalId ? gameState.npcs[gameState.rivalId] : null;
         let processedText = text.replace(/\[RIVAL\]/g, rival ? rival.name : 'Rival');
         return processedText.replace(/\[PLAYER_NAME\]/g, gameState.player.name);
+    }
+
+    function applyNpcEffects(npc, effects) {
+        if (!effects) return;
+        if (effects.attributes) {
+            for (const attr in effects.attributes) if (npc.attributes.hasOwnProperty(attr)) npc.attributes[attr] += effects.attributes[attr];
+        }
+        if (effects.combat) {
+            for (const stat in effects.combat) if (npc.combat.hasOwnProperty(stat)) npc.combat[stat] += effects.combat[stat];
+        }
+        // NPCs não têm recursos ou cultivo complexo como o jogador (por enquanto)
     }
 
     function applyEffects(effects) {
@@ -320,6 +332,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     if(sectData && rankData) {
                         npcStatus += ` <span class="npc-sect-info">(${rankData.name}, ${sectData.name})</span>`;
                     }
+                }
+                if (npc.techniques && npc.techniques.length > 0) {
+                    npcStatus += ` <span title="${npc.techniques.length} técnica(s) conhecida(s)">📜</span>`;
                 }
                 li.innerHTML = `${npcStatus}: ${rel.state} (${rel.score})`;
                 elements.relationshipsList.appendChild(li);
@@ -496,6 +511,17 @@ document.addEventListener('DOMContentLoaded', () => {
                         npc.sectRank = nextRank.id;
                         if (isRival) {
                             addLogMessage(`${npc.name} foi promovido para ${nextRank.name} na ${sectData.name}!`, 'notification');
+                        }
+                        // Chance de aprender uma técnica nova com a promoção
+                        const availableTechniques = sectData.techniques.filter(t => t.min_rank <= npc.sectRank && !npc.techniques.includes(t.id));
+                        if (availableTechniques.length > 0 && Math.random() < 0.5) { // 50% de chance
+                            const techToLearn = getRandomElement(availableTechniques);
+                            npc.techniques.push(techToLearn.id);
+                            const techData = allGameData.techniques.find(t => t.id === techToLearn.id);
+                            applyNpcEffects(npc, techData.effects);
+                            if (isRival) {
+                                addLogMessage(`${npc.name} aprendeu a técnica '${techData.name}'!`, 'notification');
+                            }
                         }
                     }
                 }
@@ -791,12 +817,30 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         combatState = {
-            player: { ...gameState.player.combat },
-            enemy: enemyData,
+            player: { ...gameState.player.combat, status_effects: [] },
+            enemy: { ...enemyData, status_effects: [] },
             turn: 'player',
             playerDefending: false,
             onVictory: allStrings.combat_victory_default
         };
+
+        // Monta a UI de ações de combate
+        elements.combatActions.innerHTML = `
+            <button class="combat-action-btn" data-action="attack">Atacar</button>
+            <button class="combat-action-btn" data-action="qi_strike">Golpe de Qi (20)</button>
+            <button class="combat-action-btn" data-action="defend">Defender</button>
+            <button class="combat-action-btn" data-action="flee">Fugir</button>
+        `;
+        gameState.techniques.forEach(techId => {
+            const techData = allGameData.techniques.find(t => t.id === techId);
+            if (techData.type === 'active_combat') {
+                const techButton = document.createElement('button');
+                techButton.classList.add('combat-action-btn');
+                techButton.dataset.action = `technique_${techId}`;
+                techButton.innerHTML = `${techData.name} (${techData.qi_cost} Qi)`;
+                elements.combatActions.appendChild(techButton);
+            }
+        });
 
         addLogMessage(`Você entrou em combate com ${combatState.enemy.name}!`, 'combat');
         updateCombatUI();
@@ -805,16 +849,49 @@ document.addEventListener('DOMContentLoaded', () => {
     function playerTurn(action) {
         if (combatState.turn !== 'player') return;
 
+        // Processar efeitos de status no jogador
+        const isStunned = combatState.player.status_effects.find(e => e.type === 'stun');
+        if (isStunned) {
+            addLogMessage("Você está atordoado e não consegue se mover!", 'combat');
+            combatState.player.status_effects = combatState.player.status_effects.filter(e => e.type !== 'stun'); // Remove stun
+            endPlayerTurn();
+            return;
+        }
+
         combatState.playerDefending = false;
         let playerDamage = 0;
 
-        switch(action) {
-            case 'attack':
-                playerDamage = Math.max(1, combatState.player.attack - combatState.enemy.defense);
+        const techniqueMatch = action.match(/^technique_(.+)/);
+
+        if (techniqueMatch) {
+            const techId = techniqueMatch[1];
+            const techData = allGameData.techniques.find(t => t.id === techId);
+
+            if (gameState.cultivation.qi >= techData.qi_cost) {
+                gameState.cultivation.qi -= techData.qi_cost;
+                playerDamage = Math.floor(combatState.player.attack * techData.damage_multiplier);
                 combatState.enemy.hp -= playerDamage;
-                addLogMessage(`Você ataca ${combatState.enemy.name} e causa ${playerDamage} de dano.`, 'combat');
-                break;
-            case 'qi_strike':
+                addLogMessage(`Você usa ${techData.name}, causando ${playerDamage} de dano.`, 'combat');
+
+                if (techData.special_effect && techData.special_effect.type === 'stun') {
+                    if (Math.random() < techData.special_effect.chance) {
+                        combatState.enemy.status_effects.push({ type: 'stun' });
+                        addLogMessage(`${combatState.enemy.name} fica atordoado!`, 'combat');
+                    }
+                }
+                updateUI();
+            } else {
+                addLogMessage(`Qi insuficiente para usar ${techData.name}.`, 'notification');
+                return;
+            }
+        } else {
+            switch(action) {
+                case 'attack':
+                    playerDamage = Math.max(1, combatState.player.attack - combatState.enemy.defense);
+                    combatState.enemy.hp -= playerDamage;
+                    addLogMessage(`Você ataca ${combatState.enemy.name} e causa ${playerDamage} de dano.`, 'combat');
+                    break;
+                case 'qi_strike':
                 const qiCost = 20;
                 if (gameState.cultivation.qi >= qiCost) {
                     gameState.cultivation.qi -= qiCost;
@@ -842,7 +919,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         updateCombatUI();
+        endPlayerTurn();
+    }
 
+    function endPlayerTurn() {
         if (combatState.enemy.hp <= 0) {
             addLogMessage(`${combatState.enemy.name} foi derrotado!`, 'reward');
             endCombat(true);
@@ -856,10 +936,46 @@ document.addEventListener('DOMContentLoaded', () => {
     function enemyTurn() {
         if (combatState.turn !== 'enemy') return;
 
-        const enemyDamage = Math.max(1, combatState.enemy.attack - (combatState.playerDefending ? combatState.player.defense * 2 : combatState.player.defense));
-        combatState.player.hp -= enemyDamage;
+        // Processar efeitos de status no inimigo
+        const isStunned = combatState.enemy.status_effects.find(e => e.type === 'stun');
+        if (isStunned) {
+            addLogMessage(`${combatState.enemy.name} está atordoado e não consegue se mover!`, 'combat');
+            combatState.enemy.status_effects = combatState.enemy.status_effects.filter(e => e.type !== 'stun'); // Remove stun
+            combatState.turn = 'player'; // Passa o turno de volta
+            return;
+        }
 
-        addLogMessage(`${combatState.enemy.name} ataca e causa ${enemyDamage} de dano.`, 'combat');
+        // Lógica da IA para decidir a ação
+        const knownTechniques = combatState.enemy.techniques || [];
+        const activeTechniques = knownTechniques
+            .map(id => allGameData.techniques.find(t => t.id === id))
+            .filter(t => t && t.type === 'active_combat');
+
+        let enemyDamage = 0;
+        let usedTechnique = false;
+
+        if (activeTechniques.length > 0 && Math.random() < 0.4) { // 40% de chance de usar técnica
+            const techToUse = getRandomElement(activeTechniques);
+            enemyDamage = Math.floor(combatState.enemy.attack * techToUse.damage_multiplier);
+            combatState.player.hp -= enemyDamage;
+            addLogMessage(`${combatState.enemy.name} usa ${techToUse.name}, causando ${enemyDamage} de dano!`, 'combat');
+
+            if (techToUse.special_effect && techToUse.special_effect.type === 'stun') {
+                if (Math.random() < techToUse.special_effect.chance) {
+                    combatState.player.status_effects.push({ type: 'stun' });
+                    addLogMessage(`Você fica atordoado!`, 'combat');
+                }
+            }
+            usedTechnique = true;
+        }
+
+        if (!usedTechnique) {
+            // Ataque normal
+            enemyDamage = Math.max(1, combatState.enemy.attack - (combatState.playerDefending ? combatState.player.defense * 2 : combatState.player.defense));
+            combatState.player.hp -= enemyDamage;
+            addLogMessage(`${combatState.enemy.name} ataca e causa ${enemyDamage} de dano.`, 'combat');
+        }
+
         updateCombatUI();
 
         if (combatState.player.hp <= 0) {

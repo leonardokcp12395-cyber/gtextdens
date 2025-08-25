@@ -22,6 +22,7 @@
   {
     "id": "demonic_wolf",
     "name": "Lobo Demoníaco",
+    "techniques": ["rending_claw"],
     "combat": {
       "maxHp": 75,
       "hp": 75,

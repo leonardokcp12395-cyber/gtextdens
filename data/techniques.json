@@ -4,43 +4,52 @@
         "name": "Forma Básica da Espada",
         "description": "Uma técnica de espada simples, mas eficaz, que melhora ligeiramente sua proeza em combate.",
         "type": "universal",
-        "effects": {
-            "combat": {
-                "attack": 2
-            }
-        }
+        "effects": { "combat": { "attack": 2 } }
     },
     {
         "id": "hidden_cloud_meditation",
         "name": "Meditação da Nuvem Oculta",
         "description": "Uma técnica de respiração que acalma a mente e aprofunda a conexão com o Qi.",
         "type": "sect_hidden_cloud_sect",
-        "effects": {
-            "attributes": {
-                "mind": 2
-            }
-        }
+        "effects": { "attributes": { "mind": 2 } }
     },
     {
         "id": "iron_fist_stance",
         "name": "Postura do Punho de Ferro",
         "description": "Uma postura de combate que enrijece o corpo, aumentando a capacidade de resistir a golpes.",
         "type": "sect_iron_body_sect",
-        "effects": {
-            "combat": {
-                "defense": 2
-            }
-        }
+        "effects": { "combat": { "defense": 2 } }
     },
     {
         "id": "heavenly_qi_circulation",
         "name": "Circulação Celestial de Qi",
         "description": "Uma técnica lendária que otimiza o fluxo de Qi, aumentando permanentemente sua capacidade máxima.",
         "type": "rare",
-        "effects": {
-            "cultivation": {
-                "maxQi": 500
-            }
-        }
+        "effects": { "cultivation": { "maxQi": 500 } }
+    },
+    {
+        "id": "stunning_palm",
+        "name": "Palma Atordoante",
+        "description": "Um golpe preciso que visa os pontos de pressão do inimigo, com chance de paralisá-lo por um turno.",
+        "type": "active_combat",
+        "qi_cost": 30,
+        "damage_multiplier": 0.7,
+        "special_effect": { "type": "stun", "chance": 0.3 }
+    },
+    {
+        "id": "iron_body_fortification",
+        "name": "Fortificação do Corpo de Ferro",
+        "description": "Você aprende a usar Qi para endurecer sua pele como metal, aumentando sua vida máxima.",
+        "type": "sect_iron_body_sect",
+        "effects": { "combat": { "maxHp": 25 } }
+  },
+  {
+    "id": "rending_claw",
+    "name": "Garra Dilacerante",
+    "description": "Um ataque selvagem que causa dano extra.",
+    "type": "active_combat",
+    "qi_cost": 0,
+    "damage_multiplier": 1.3,
+    "special_effect": null
     }
 ]
