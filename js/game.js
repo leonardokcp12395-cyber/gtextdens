@@ -108,6 +108,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Legacy bonuses would be applied here if they existed
         return {
             id, name: `${firstName} ${lastName}`, gender, personality,
+            age: 6, // NPCs start at the same age as the player
             attributes: { ...baseAttributes },
             lifespan: 80,
             sectId: null, sectRank: 0, contribution: 0,
@@ -122,6 +123,31 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
+    function progressNpcs() {
+        if (!gameState.npcs) return;
+        for (const npcId in gameState.npcs) {
+            const npc = gameState.npcs[npcId];
+
+            // 1. Age and attribute progression
+            npc.age = (npc.age || gameState.age); // Sync age if it's off
+            npc.age++;
+            npc.attributes.body += Math.floor(Math.random() * 2); // 0 or 1
+            npc.attributes.mind += Math.floor(Math.random() * 2); // 0 or 1
+
+            // 2. Cultivation progression (simple version)
+            if (Math.random() < 0.2) { // 20% chance to level up each year
+                npc.cultivation.level++;
+            }
+
+            // 3. Recalculate combat stats based on new attributes
+            npc.combat.maxHp = npc.attributes.body * 5;
+            npc.combat.hp = npc.combat.maxHp; // Refill HP annually
+            npc.combat.attack = 5 + Math.floor(npc.attributes.body / 2);
+            npc.combat.defense = 2 + Math.floor(npc.attributes.mind / 5);
+            npc.combat.speed = 10 + Math.floor(npc.attributes.mind / 2);
+        }
+    }
+
     // --- EVENT LOGIC ---
 function areConditionsMet(conditions) {
     if (!conditions) return true;
@@ -130,6 +156,9 @@ function areConditionsMet(conditions) {
         switch (key) {
             case 'age': if (gameState.age !== value) return false; break;
             case 'min_age': if (gameState.age < value) return false; break;
+            case 'min_cultivation_realm_id':
+                if (gameState.cultivation.realmId < value) return false;
+                break;
             case 'min_sect_rank':
                 if (!gameState.sect.id || gameState.sect.rank < value) return false;
                 break;
@@ -238,6 +267,18 @@ function handleSpecialEffects(effectKey) {
     }
 
     switch (effectKey) {
+        case 'show_sect_actions':
+            showSectActions();
+            break;
+        case 'try_promotion':
+            tryPromotion();
+            break;
+        case 'show_mission_board':
+            showMissionBoard();
+            break;
+        case 'show_sect_store':
+            showSectStore();
+            break;
         case 'start_combat_rival':
             // Esta função vai buscar os dados atualizados do rival em vez de um inimigo genérico
             const rivalData = {
@@ -285,6 +326,164 @@ function handleSpecialEffects(effectKey) {
         }
     }
 
+    function showSectActions() {
+        const sect = allGameData.sects.find(s => s.id === gameState.sect.id);
+        if (!sect) return;
+
+        elements.eventContent.innerHTML = `<p>Você está no pátio da ${sect.name}. O que você gostaria de fazer?</p>`;
+        elements.choicesContainer.innerHTML = '';
+
+        const choices = [
+            { text: "Visitar a Loja da Seita", effect: "show_sect_store" },
+            { text: "Ver Quadro de Missões", effect: "show_mission_board" },
+            { text: "Tentar Promoção", effect: "try_promotion" },
+            { text: "Voltar", effect: "main_screen" }
+        ];
+
+        choices.forEach(choice => {
+            const button = document.createElement('button');
+            button.textContent = choice.text;
+            button.onclick = () => {
+                if (choice.effect === 'main_screen') {
+                    checkAndTriggerEvents(); // Or simply show a default message
+                } else {
+                    handleSpecialEffects(choice.effect);
+                }
+            };
+            elements.choicesContainer.appendChild(button);
+        });
+    }
+
+    function showSectStore() {
+        const sect = allGameData.sects.find(s => s.id === gameState.sect.id);
+        const playerRank = gameState.sect.rank;
+        const playerContribution = gameState.resources.contribution;
+
+        elements.eventContent.innerHTML = `<p>Bem-vindo à loja da ${sect.name}. Sua Contribuição: ${playerContribution}</p>`;
+        elements.choicesContainer.innerHTML = '';
+
+        sect.store.forEach(storeItem => {
+            const itemData = allGameData.items.find(i => i.id === storeItem.id);
+            if (!itemData) return;
+
+            const canAfford = playerContribution >= storeItem.cost_contribution;
+            const meetsRank = playerRank >= storeItem.min_rank;
+
+            const button = document.createElement('button');
+            button.innerHTML = `${itemData.name} - ${storeItem.cost_contribution} Contrib. <br><small>${itemData.description}</small>`;
+            button.disabled = !canAfford || !meetsRank;
+
+            if (!meetsRank) {
+                 button.innerHTML += `<br><small style="color: red;">Rank necessário: ${sect.ranks[storeItem.min_rank].name}</small>`;
+            } else if (!canAfford) {
+                button.innerHTML += `<br><small style="color: red;">Contribuição insuficiente</small>`;
+            }
+
+            button.onclick = () => {
+                gameState.resources.contribution -= storeItem.cost_contribution;
+                applyEffects(itemData.effects);
+                addLogMessage(`Você comprou ${itemData.name}.`, 'reward');
+                showSectStore(); // Refresh the store view
+            };
+            elements.choicesContainer.appendChild(button);
+        });
+
+        const backButton = document.createElement('button');
+        backButton.textContent = "Voltar para Ações da Seita";
+        backButton.onclick = showSectActions;
+        elements.choicesContainer.appendChild(backButton);
+    }
+
+    function showMissionBoard() {
+        const sectId = gameState.sect.id;
+        const playerRank = gameState.sect.rank;
+
+        elements.eventContent.innerHTML = `<p>Quadro de Missões da Seita</p>`;
+        elements.choicesContainer.innerHTML = '';
+
+        const availableMissions = allGameData.missions.filter(m => m.sect_id === sectId && playerRank >= m.min_rank);
+        console.log("Available missions:", JSON.stringify(availableMissions));
+
+        if (availableMissions.length === 0) {
+            elements.eventContent.innerHTML += `<p>Não há missões disponíveis para o seu ranking no momento.</p>`;
+        }
+
+        availableMissions.forEach(mission => {
+            const button = document.createElement('button');
+            // For now, missions are simple "do it now" tasks.
+            button.innerHTML = `${mission.title}<br><small>${mission.description}</small><br><small>Recompensa: ${mission.reward.contribution} Contrib.</small>`;
+
+            button.onclick = () => {
+                acceptSectMission(mission);
+            };
+            elements.choicesContainer.appendChild(button);
+        });
+
+        const backButton = document.createElement('button');
+        backButton.textContent = "Voltar para Ações da Seita";
+        backButton.onclick = showSectActions;
+        elements.choicesContainer.appendChild(backButton);
+    }
+
+    function acceptSectMission(mission) {
+        // For now, missions are completed instantly.
+        // A more complex system could have objectives and turn delays.
+        addLogMessage(`Você completou a missão: ${mission.title}.`, 'reward', true);
+        applyEffects({ resources: { contribution: mission.reward.contribution } });
+        if(mission.reward.attributes) {
+            applyEffects({ attributes: mission.reward.attributes });
+        }
+
+        // Return to the sect actions menu
+        showSectActions();
+        updateUI();
+    }
+
+    function tryPromotion() {
+        const sect = allGameData.sects.find(s => s.id === gameState.sect.id);
+        const currentRank = gameState.sect.rank;
+        const nextRank = sect.ranks.find(r => r.id === currentRank + 1);
+
+        if (!nextRank) {
+            addLogMessage("Você já alcançou o ranking mais alto da sua seita!", "notification");
+            showSectActions();
+            return;
+        }
+
+        const reqs = nextRank.requirements;
+        let canPromote = true;
+        let missingReqs = [];
+
+        if (reqs.cultivation_realm_id > gameState.cultivation.realmId) {
+            canPromote = false;
+            missingReqs.push(`Reino de Cultivo: ${allGameData.realms[reqs.cultivation_realm_id].name}`);
+        }
+        if (reqs.cultivation_level > gameState.cultivation.level) {
+            canPromote = false;
+            missingReqs.push(`Nível de Cultivo: ${reqs.cultivation_level}`);
+        }
+        if (reqs.contribution > gameState.resources.contribution) {
+            canPromote = false;
+            missingReqs.push(`Contribuição: ${reqs.contribution}`);
+        }
+
+        if (canPromote) {
+            gameState.sect.rank++;
+            gameState.resources.contribution -= reqs.contribution;
+            addLogMessage(`Parabéns! Você foi promovido para ${nextRank.name}!`, 'milestone', true);
+            updateUI();
+            showSectActions();
+        } else {
+            let message = "Você não cumpre os requisitos para a promoção. Falta:<br> - " + missingReqs.join('<br> - ');
+            elements.eventContent.innerHTML = `<p>${message}</p>`;
+            const backButton = document.createElement('button');
+            backButton.textContent = "Voltar";
+            backButton.onclick = showSectActions;
+            elements.choicesContainer.innerHTML = '';
+            elements.choicesContainer.appendChild(backButton);
+        }
+    }
+
     function meditate() {
         // Simple meditation logic
         const qiGained = gameState.player.attributes.mind;
@@ -301,6 +500,8 @@ function handleSpecialEffects(effectKey) {
         // Basic progression
         gameState.player.attributes.body++;
         gameState.player.attributes.mind++;
+
+        progressNpcs(); // Progress NPCs alongside the player
 
         if (gameState.age >= gameState.player.lifespan) {
             endGame("old_age");
@@ -413,14 +614,43 @@ function handleSpecialEffects(effectKey) {
         attackBtn.onclick = () => takeCombatTurn('attack');
         elements.combatActions.appendChild(attackBtn);
 
-        // Adiciona botões para técnicas de combate ativas aqui no futuro
+        const defendBtn = document.createElement('button');
+        defendBtn.textContent = 'Defender';
+        defendBtn.className = 'combat-action-btn';
+        defendBtn.onclick = () => takeCombatTurn('defend');
+        elements.combatActions.appendChild(defendBtn);
+
+        // Adiciona botões para técnicas de combate ativas
+        gameState.player.techniques.forEach(techId => {
+            const techData = allGameData.techniques.find(t => t.id === techId);
+            if (techData && techData.type === 'active_combat') {
+                const techBtn = document.createElement('button');
+                techBtn.textContent = `${techData.name} (${techData.qi_cost} Qi)`;
+                techBtn.className = 'combat-action-btn tech';
+                techBtn.disabled = gameState.cultivation.qi < techData.qi_cost;
+                techBtn.onclick = () => takeCombatTurn('technique', techData);
+                elements.combatActions.appendChild(techBtn);
+            }
+        });
     }
 
-    function takeCombatTurn(action) {
+    function takeCombatTurn(action, techData = null) {
         // Lógica do turno do jogador
-        let playerDamage = Math.max(1, combatState.player.attack - combatState.enemy.defense);
-        combatState.enemy.hp -= playerDamage;
-        addCombatLog(`Você ataca e causa ${playerDamage} de dano!`);
+        if (action === 'attack') {
+            let playerDamage = Math.max(1, combatState.player.attack - combatState.enemy.defense);
+            combatState.enemy.hp -= playerDamage;
+            addCombatLog(`Você ataca e causa ${playerDamage} de dano!`);
+        } else if (action === 'defend') {
+            combatState.player.isDefending = true;
+            addCombatLog(`Você se prepara para defender.`);
+        } else if (action === 'technique' && techData) {
+            gameState.cultivation.qi -= techData.qi_cost;
+            let techDamage = Math.floor(combatState.player.attack * techData.damage_multiplier);
+            techDamage = Math.max(1, techDamage - combatState.enemy.defense);
+            combatState.enemy.hp -= techDamage;
+            addCombatLog(`Você usa ${techData.name} e causa ${techDamage} de dano!`);
+            // Handle special effects like stun later
+        }
 
         updateCombatUI();
         if (combatState.enemy.hp <= 0) {
@@ -428,11 +658,33 @@ function handleSpecialEffects(effectKey) {
             return;
         }
 
-        // Lógica do turno do inimigo (simples por agora)
+        // Lógica do turno do inimigo (melhorada)
         setTimeout(() => {
-            let enemyDamage = Math.max(1, combatState.enemy.attack - combatState.player.defense);
+            // IA Inimiga: Decide se usa uma técnica ou um ataque normal
+            const enemyTechniques = combatState.enemyInfo.techniques
+                .map(id => allGameData.techniques.find(t => t.id === id))
+                .filter(t => t && t.type === 'active_combat');
+
+            const techToUse = enemyTechniques.length > 0 && Math.random() < 0.33 ? enemyTechniques[0] : null; // 33% chance de usar a primeira técnica
+
+            let enemyDamage;
+            if (techToUse) {
+                enemyDamage = Math.floor(combatState.enemy.attack * techToUse.damage_multiplier);
+                addCombatLog(`${combatState.enemyInfo.name} usa a técnica ${techToUse.name}!`);
+            } else {
+                enemyDamage = combatState.enemy.attack;
+            }
+
+            enemyDamage = Math.max(1, enemyDamage - combatState.player.defense);
+
+            if (combatState.player.isDefending) {
+                enemyDamage = Math.max(0, Math.floor(enemyDamage / 2));
+                addCombatLog(`O ataque causa apenas ${enemyDamage} de dano graças à sua defesa!`);
+                combatState.player.isDefending = false;
+            } else {
+                addCombatLog(`O ataque causa ${enemyDamage} de dano!`);
+            }
             combatState.player.hp -= enemyDamage;
-            addCombatLog(`${combatState.enemyInfo.name} ataca e causa ${enemyDamage} de dano!`);
 
             updateCombatUI();
             if (combatState.player.hp <= 0) {
@@ -463,7 +715,46 @@ function handleSpecialEffects(effectKey) {
         elements.playerName.textContent = gameState.player.name;
         elements.age.textContent = gameState.age;
         elements.lifespan.textContent = gameState.player.lifespan;
-        // ... (update all other UI elements) ...
+
+        // Update attributes
+        elements.body.textContent = gameState.player.attributes.body;
+        elements.mind.textContent = gameState.player.attributes.mind;
+
+        // Update cultivation
+        const realm = allGameData.realms?.[gameState.cultivation.realmId] || { name: 'Mortal' };
+        elements.realm.textContent = realm.name;
+        elements.level.textContent = gameState.cultivation.level;
+        elements.qi.textContent = gameState.cultivation.qi;
+        elements.maxQi.textContent = gameState.cultivation.maxQi;
+
+        // Update resources
+        elements.money.textContent = gameState.resources.money;
+        elements.talentPoints.textContent = gameState.resources.talentPoints;
+        elements.contribution.textContent = gameState.resources.contribution;
+
+        // Show/hide sect button
+        if (gameState.sect.id) {
+            elements.sectActionsBtn.classList.remove('hidden');
+        } else {
+            elements.sectActionsBtn.classList.add('hidden');
+        }
+
+        // Update Relationships panel to show NPC progress
+        elements.relationshipsList.innerHTML = '';
+        for (const npcId in gameState.npcs) {
+            const npc = gameState.npcs[npcId];
+            const relationship = gameState.relationships[npcId];
+            const li = document.createElement('li');
+
+            const rivalTag = npcId === gameState.rivalId ? ' <span class="rival-tag">[RIVAL]</span>' : '';
+            const realm = allGameData.realms?.[npc.cultivation.realmId] || { name: 'Mortal' };
+
+            li.innerHTML = `
+                <strong>${npc.name}${rivalTag}</strong><br>
+                <span class="npc-details">Idade: ${npc.age} | ${realm.name} Nv. ${npc.cultivation.level} | Relação: ${relationship.score} (${relationship.state})</span>
+            `;
+            elements.relationshipsList.appendChild(li);
+        }
 
         if (gameState.life_log) {
             elements.lifeLogList.innerHTML = '';
