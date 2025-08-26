@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jornada do Dao Imortal</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-container">
+        <div id="character-panel" class="panel">
+            <h2>Personagem</h2>
+            <p><strong>Idade:</strong> <span id="char-age">0</span></p>
+            <hr>
+            <h3>Atributos</h3>
+            <p><strong>Corpo:</strong> <span id="attr-body">10</span></p>
+            <p><strong>Mente:</strong> <span id="attr-mind">10</span></p>
+        </div>
+
+        <div id="event-panel" class="panel">
+            <h2>Diário da Jornada</h2>
+            <div id="event-content">
+                <p>Você nasceu. O caminho é longo e incerto.</p>
+            </div>
+            <div id="choices-container"></div>
+            <button id="next-year-btn">Avançar Ano</button>
+        </div>
+
+        <div id="resources-panel" class="panel">
+            <h2>Recursos</h2>
+            <p><strong>Dinheiro:</strong> <span id="res-money">10</span></p>
+        </div>
+    </div>
+    <script src="game.js"></script>
+</body>
+</html>
