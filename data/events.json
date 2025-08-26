@@ -130,5 +130,25 @@
       { "text": "Lutar!", "effects": { "special": "start_combat_rival" } },
       { "text": "Tentar acalmá-lo.", "effects": { "relationships": { "rival": -5 }, "attributes": { "mind": -1 } }, "resultKey": "rival_ambush_calmed" }
     ]
+  },
+  {
+    "id": "rival_jealousy",
+    "type": "repeatable",
+    "conditions": { "player_stronger_than_rival": true, "rival_relationship_state": "Neutro", "probability": 0.2 },
+    "text": "Você encontra [RIVAL] treinando. Ele olha para você, e você vê uma ponta de inveja em seus olhos. 'Você tem tido sorte, [PLAYER_NAME]. Mas a sorte acaba.'",
+    "choices": [
+        { "text": "Ignorá-lo.", "effects": { "relationships": { "rival": -2 } } },
+        { "text": "'Sorte não tem nada a ver com isso.'", "effects": { "relationships": { "rival": -5 } } }
+    ]
+  },
+  {
+    "id": "rival_mockery",
+    "type": "repeatable",
+    "conditions": { "player_stronger_than_rival": false, "rival_relationship_state": "Neutro", "probability": 0.2 },
+    "text": "Você passa por [RIVAL], que está exibindo uma nova técnica para outros discípulos. Ele para e diz em voz alta: 'Veja, [PLAYER_NAME], é assim que se faz. Talvez um dia você aprenda.'",
+    "choices": [
+        { "text": "Encará-lo em silêncio.", "effects": { "relationships": { "rival": -3 } } },
+        { "text": "Rir da sua arrogância.", "effects": { "relationships": { "rival": -1 } } }
+    ]
   }
 ]

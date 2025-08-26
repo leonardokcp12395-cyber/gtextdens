@@ -98,6 +98,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- PROCEDURAL GENERATION ---
     function getRandomElement(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+    function getCharacterPowerLevel(character) {
+        if (!character) return 0;
+        const attr = character.attributes;
+        const cult = character.cultivation;
+        // Simple formula: attributes contribute, but cultivation level is a major multiplier
+        return (attr.body + attr.mind) * (cult.level + (cult.realmId * 10));
+    }
+
+    function updateRelationshipStates() {
+        for (const npcId in gameState.relationships) {
+            const rel = gameState.relationships[npcId];
+            if (rel.score > 50) {
+                rel.state = 'Amigo';
+            } else if (rel.score < -50) {
+                rel.state = 'Inimigo';
+            } else {
+                rel.state = 'Neutro';
+            }
+        }
+    }
+
     function generateCharacter(id, gender) {
         const { nomes, personalidades } = allGameData;
         const firstName = getRandomElement(nomes[gender]);
@@ -171,6 +192,11 @@ function areConditionsMet(conditions) {
                 const player = gameState.player;
                 if(value === true && player.sectId !== rival.sectId) return false;
                 if(value === false && player.sectId === rival.sectId && player.sectId !== null) return false;
+                break;
+            case 'player_stronger_than_rival':
+                const playerPower = getCharacterPowerLevel(gameState.player);
+                const rivalPower = getCharacterPowerLevel(gameState.npcs[gameState.rivalId]);
+                if ((playerPower > rivalPower) !== value) return false;
                 break;
             case 'probability':
                 if (Math.random() > value) return false;
@@ -270,6 +296,9 @@ function handleSpecialEffects(effectKey) {
         case 'show_sect_actions':
             showSectActions();
             break;
+        case 'show_technique_pavilion':
+            showTechniquePavilion();
+            break;
         case 'try_promotion':
             tryPromotion();
             break;
@@ -336,6 +365,7 @@ function handleSpecialEffects(effectKey) {
         const choices = [
             { text: "Visitar a Loja da Seita", effect: "show_sect_store" },
             { text: "Ver Quadro de Missões", effect: "show_mission_board" },
+            { text: "Pavilhão de Técnicas", effect: "show_technique_pavilion" },
             { text: "Tentar Promoção", effect: "try_promotion" },
             { text: "Voltar", effect: "main_screen" }
         ];
@@ -385,6 +415,51 @@ function handleSpecialEffects(effectKey) {
                 addLogMessage(`Você comprou ${itemData.name}.`, 'reward');
                 showSectStore(); // Refresh the store view
             };
+            elements.choicesContainer.appendChild(button);
+        });
+
+        const backButton = document.createElement('button');
+        backButton.textContent = "Voltar para Ações da Seita";
+        backButton.onclick = showSectActions;
+        elements.choicesContainer.appendChild(backButton);
+    }
+
+    function showTechniquePavilion() {
+        const sect = allGameData.sects.find(s => s.id === gameState.sect.id);
+        const playerRank = gameState.sect.rank;
+        const playerContribution = gameState.resources.contribution;
+
+        elements.eventContent.innerHTML = `<p>O Pavilhão de Técnicas da seita. Sua Contribuição: ${playerContribution}</p>`;
+        elements.choicesContainer.innerHTML = '';
+
+        sect.techniques.forEach(sectTech => {
+            const techData = allGameData.techniques.find(t => t.id === sectTech.id);
+            if (!techData) return;
+
+            const canAfford = playerContribution >= sectTech.cost_contribution;
+            const meetsRank = playerRank >= sectTech.min_rank;
+            const alreadyKnown = gameState.player.techniques.includes(sectTech.id);
+
+            const button = document.createElement('button');
+            button.innerHTML = `${techData.name} - ${sectTech.cost_contribution} Contrib. <br><small>${techData.description}</small>`;
+            button.disabled = !canAfford || !meetsRank || alreadyKnown;
+
+            if (alreadyKnown) {
+                button.innerHTML += `<br><small style="color: green;">Já aprendido</small>`;
+            } else if (!meetsRank) {
+                button.innerHTML += `<br><small style="color: red;">Rank necessário: ${sect.ranks[sectTech.min_rank].name}</small>`;
+            } else if (!canAfford) {
+                button.innerHTML += `<br><small style="color: red;">Contribuição insuficiente</small>`;
+            }
+
+            if (!alreadyKnown) {
+                button.onclick = () => {
+                    gameState.resources.contribution -= sectTech.cost_contribution;
+                    // The 'learn_technique' special effect handles adding the tech and applying passive effects
+                    handleSpecialEffects(`learn_technique_${sectTech.id}`);
+                    showTechniquePavilion(); // Refresh the view
+                };
+            }
             elements.choicesContainer.appendChild(button);
         });
 
@@ -484,8 +559,43 @@ function handleSpecialEffects(effectKey) {
         }
     }
 
+    function tryBreakthrough() {
+        const realm = allGameData.realms[gameState.cultivation.realmId];
+        const successChance = (gameState.player.attributes.mind + gameState.player.attributes.luck) / realm.breakthrough_difficulty;
+
+        if (Math.random() < successChance) {
+            // SUCCESS
+            gameState.cultivation.level++;
+            gameState.cultivation.qi = 0;
+            gameState.cultivation.maxQi = Math.floor(gameState.cultivation.maxQi * 1.2);
+            gameState.player.attributes.body += realm.breakthrough_bonus.body;
+            gameState.player.attributes.mind += realm.breakthrough_bonus.mind;
+            gameState.player.lifespan += realm.breakthrough_bonus.lifespan;
+
+            addLogMessage("Você conseguiu! Uma onda de poder flui através de você, fortalecendo seu corpo e alma. Você alcançou um novo nível!", 'milestone', true);
+
+            // Check for realm advancement
+            if (gameState.cultivation.level >= realm.levels_to_next) {
+                gameState.cultivation.level = 1;
+                gameState.cultivation.realmId++;
+                const newRealm = allGameData.realms[gameState.cultivation.realmId];
+                addLogMessage(`Um poder imenso se condensa dentro de você! Você avançou para o ${newRealm.name}!`, 'milestone', true);
+            }
+        } else {
+            // FAILURE
+            gameState.cultivation.qi = 0;
+            gameState.player.attributes.body = Math.max(1, gameState.player.attributes.body - 1);
+            addLogMessage("A tentativa de breakthrough falhou! A energia retrocede violentamente, ferindo seu corpo. Você se sente enfraquecido.", 'notification', true);
+        }
+        updateUI();
+        saveGameState();
+    }
+
     function meditate() {
-        // Simple meditation logic
+        if (gameState.cultivation.qi >= gameState.cultivation.maxQi) {
+            tryBreakthrough();
+            return;
+        }
         const qiGained = gameState.player.attributes.mind;
         gameState.cultivation.qi = Math.min(gameState.cultivation.qi + qiGained, gameState.cultivation.maxQi);
         addLogMessage(`Você meditou e ganhou ${qiGained} Qi.`, 'notification');
@@ -502,6 +612,7 @@ function handleSpecialEffects(effectKey) {
         gameState.player.attributes.mind++;
 
         progressNpcs(); // Progress NPCs alongside the player
+        updateRelationshipStates(); // Update states like friend/enemy based on score
 
         if (gameState.age >= gameState.player.lifespan) {
             endGame("old_age");
@@ -737,6 +848,15 @@ function handleSpecialEffects(effectKey) {
             elements.sectActionsBtn.classList.remove('hidden');
         } else {
             elements.sectActionsBtn.classList.add('hidden');
+        }
+
+        // Update Meditate/Breakthrough button
+        if (gameState.cultivation.qi >= gameState.cultivation.maxQi) {
+            elements.meditateBtn.textContent = "Tentar Breakthrough!";
+            elements.meditateBtn.classList.add('breakthrough-ready');
+        } else {
+            elements.meditateBtn.textContent = "Meditar";
+            elements.meditateBtn.classList.remove('breakthrough-ready');
         }
 
         // Update Relationships panel to show NPC progress
