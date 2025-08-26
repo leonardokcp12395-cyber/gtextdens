@@ -235,18 +235,31 @@ function areConditionsMet(conditions) {
 }
 
     function checkAndTriggerEvents() {
-        const allEvents = [...allGameData.events, ...allGameData.randomEvents];
-        const possibleEvents = allEvents.filter(event => {
+        // 1. Prioritize Story Events
+        const possibleStoryEvents = allGameData.events.filter(event => {
             if (event.type === 'once' && gameState.triggeredEvents.includes(event.id)) return false;
             return areConditionsMet(event.conditions);
         });
 
-        if (possibleEvents.length > 0) {
-            const eventToTrigger = getRandomElement(possibleEvents);
+        if (possibleStoryEvents.length > 0) {
+            const eventToTrigger = getRandomElement(possibleStoryEvents);
             showEvent(eventToTrigger);
             if (eventToTrigger.type === 'once') gameState.triggeredEvents.push(eventToTrigger.id);
             return true;
         }
+
+        // 2. If no story event, consider a random event
+        const possibleRandomEvents = allGameData.randomEvents.filter(event => {
+             // We'll give all random events a 20% chance to occur each year
+            return areConditionsMet(event.conditions) && Math.random() < 0.2;
+        });
+
+        if (possibleRandomEvents.length > 0) {
+            const eventToTrigger = getRandomElement(possibleRandomEvents);
+            showEvent(eventToTrigger);
+            return true;
+        }
+
         return false;
     }
 
@@ -367,13 +380,14 @@ function handleSpecialEffects(effectKey) {
                 const button = document.createElement('button');
                 button.textContent = processText(choice.text);
                 button.addEventListener('click', () => {
+                    console.log(`Button clicked for choice: ${choice.text}`);
                     const resultText = choice.resultKey ? allStrings.results[choice.resultKey] : "Sua escolha foi feita.";
                     if (resultText) {
                         elements.eventContent.innerHTML += `<p><em>${processText(resultText)}</em></p>`;
                         addLogMessage(resultText, 'event');
                     }
                     applyEffects(choice.effects);
-                    elements.choicesContainer.innerHTML = '';
+                    elements.choicesContainer.innerHTML = ''; // Reverting to simpler clear for now
                     updateUI();
                     saveGameState();
                 }, { once: true });
@@ -890,8 +904,24 @@ function handleSpecialEffects(effectKey) {
         updateUI();
     }
 
+    function flashElement(element, highlightClass) {
+        element.classList.add(highlightClass);
+        setTimeout(() => {
+            element.classList.remove(highlightClass);
+        }, 500);
+    }
+
     function updateUI() {
         if (!gameState || !gameState.player) return;
+
+        // Flash attributes on change
+        const oldBody = parseInt(elements.body.textContent);
+        const oldMind = parseInt(elements.mind.textContent);
+
+        if (gameState.player.attributes.body > oldBody) flashElement(elements.body, 'highlight-green');
+        if (gameState.player.attributes.body < oldBody) flashElement(elements.body, 'highlight-red');
+        if (gameState.player.attributes.mind > oldMind) flashElement(elements.mind, 'highlight-green');
+        if (gameState.player.attributes.mind < oldMind) flashElement(elements.mind, 'highlight-red');
 
         elements.playerName.textContent = gameState.player.name;
         elements.age.textContent = gameState.age;

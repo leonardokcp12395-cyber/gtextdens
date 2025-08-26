@@ -211,6 +211,13 @@ button:disabled {
 .combat-action-btn[data-action="qi_strike"] {
     background-color: #0984e3;
 }
+.combat-action-btn.tech {
+    background-color: #8e44ad;
+    color: #fff;
+}
+.combat-action-btn.tech:hover {
+    background-color: #9b59b6;
+}
 .combat-action-btn[data-action="qi_strike"]:hover {
     background-color: #74b9ff;
 }
@@ -368,4 +375,57 @@ hr {
     padding: 5px 15px;
     margin-top: 0;
     flex-shrink: 0;
+}
+
+.highlight-green {
+    transition: color 0.1s ease-in-out;
+    color: var(--color-accent-success) !important;
+}
+
+.highlight-red {
+    transition: color 0.1s ease-in-out;
+    color: var(--color-accent-danger) !important;
+}
+
+/* --- Mobile Responsiveness --- */
+@media (max-width: 768px) {
+    body {
+        padding: 5px;
+        font-size: 14px;
+    }
+
+    .game-container {
+        flex-direction: column;
+        height: auto; /* Allow container to grow */
+    }
+
+    #event-panel {
+        order: -1; /* Move the main event panel to the top */
+    }
+
+    .panel {
+        padding: 15px;
+    }
+
+    h2, h3 {
+        font-size: 1.2rem;
+        padding-bottom: 8px;
+    }
+
+    button {
+        padding: 14px;
+        font-size: 1rem;
+    }
+
+    #actions-container {
+        flex-wrap: wrap;
+    }
+
+    #actions-container button {
+        flex-grow: 1;
+    }
+
+    #end-game-summary {
+        flex-direction: column;
+    }
 }
