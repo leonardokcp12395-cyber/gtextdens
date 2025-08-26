@@ -65,5 +65,28 @@
     "description": "Aumenta a Mente e acelera o ganho de Qi.",
     "type": "sect_spirit_elixir_sect",
     "effects": { "attributes": { "mind": 3 } }
-    }
+  },
+  {
+    "id": "shadow_step",
+    "name": "Passo Sombrio",
+    "description": "Uma técnica de movimento que aumenta a velocidade em combate.",
+    "type": "universal",
+    "effects": { "combat": { "speed": 5 } }
+  },
+  {
+    "id": "qi_blast",
+    "name": "Explosão de Qi",
+    "description": "Um ataque bruto que consome uma grande quantidade de Qi para causar dano massivo.",
+    "type": "active_combat",
+    "qi_cost": 100,
+    "damage_multiplier": 2.5,
+    "special_effect": null
+  },
+  {
+    "id": "serene_mind",
+    "name": "Mente Serena",
+    "description": "Uma técnica de foco que aumenta permanentemente sua resiliência mental.",
+    "type": "rare",
+    "effects": { "attributes": { "mind": 5 } }
+  }
 ]

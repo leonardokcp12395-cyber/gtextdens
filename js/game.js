@@ -1,4 +1,12 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // --- CONSTANTS ---
+    const LEGACY_BONUSES = [
+        { id: 'start_with_more_money', name: 'Herança Abastada', description: 'Comece sua próxima vida com 100 moedas extras.', cost: 100, type: 'resource', effects: { resources: { money: 100 } } },
+        { id: 'start_with_stronger_body', name: 'Fundação Corporal Robusta', description: 'Sua linhagem tem corpos naturalmente fortes. Comece com +5 em Corpo.', cost: 200, type: 'attribute', effects: { attributes: { body: 5 } } },
+        { id: 'start_with_sharper_mind', name: 'Mente Desperta', description: 'Sua alma reencarna com uma mente afiada. Comece com +5 em Mente.', cost: 200, type: 'attribute', effects: { attributes: { mind: 5 } } },
+        { id: 'start_with_technique', name: 'Memória Muscular', description: 'Você retém o conhecimento de uma técnica básica. Comece com a Forma Básica da Espada.', cost: 400, type: 'technique', effects: { techniques: ['basic_sword_form'] } }
+    ];
+
     // --- GLOBAL VARIABLES ---
     let gameState = {};
     let allGameData = {};
@@ -119,14 +127,33 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function generateCharacter(id, gender) {
+    function generateCharacter(id, gender, isPlayer = false) {
         const { nomes, personalidades } = allGameData;
         const firstName = getRandomElement(nomes[gender]);
         const lastName = getRandomElement(nomes.apelidos);
         const personality = getRandomElement(personalidades);
         const baseAttributes = { body: 10, mind: 10, soul: 10, luck: 5 };
+        const baseTechniques = [];
 
-        // Legacy bonuses would be applied here if they existed
+        if (isPlayer) {
+            const legacyData = getLegacyData();
+            for (const bonusId in legacyData.purchased) {
+                if (legacyData.purchased[bonusId]) {
+                    const bonus = LEGACY_BONUSES.find(b => b.id === bonusId);
+                    if (bonus) {
+                        if (bonus.effects.attributes) {
+                            for (const attr in bonus.effects.attributes) {
+                                baseAttributes[attr] += bonus.effects.attributes[attr];
+                            }
+                        }
+                        if (bonus.effects.techniques) {
+                            baseTechniques.push(...bonus.effects.techniques);
+                        }
+                    }
+                }
+            }
+        }
+
         return {
             id, name: `${firstName} ${lastName}`, gender, personality,
             age: 6, // NPCs start at the same age as the player
@@ -134,7 +161,7 @@ document.addEventListener('DOMContentLoaded', () => {
             lifespan: 80,
             sectId: null, sectRank: 0, contribution: 0,
             cultivation: { realmId: 0, level: 1 },
-            techniques: [],
+            techniques: baseTechniques,
             combat: {
                 maxHp: baseAttributes.body * 5, hp: baseAttributes.body * 5,
                 attack: 5 + Math.floor(baseAttributes.body / 2),
@@ -632,36 +659,47 @@ function handleSpecialEffects(effectKey) {
 
     function endGame(reason) {
         addLogMessage("Sua jornada chegou ao fim.", "milestone", true);
+        const finalGameState = { ...gameState }; // Capture final state
 
         // --- 1. Calculate Legacy Points ---
         let pointsEarned = 0;
-        pointsEarned += Math.floor(gameState.age * 0.5);
-        pointsEarned += (gameState.cultivation.realmId || 0) * 100;
-        pointsEarned += (gameState.cultivation.level || 0) * 10;
-        pointsEarned += Math.floor((gameState.resources.money || 0) / 10);
-        pointsEarned += (gameState.resources.talentPoints || 0) * 2;
-        pointsEarned += (gameState.player.techniques?.length || 0) * 25;
+        pointsEarned += Math.floor(finalGameState.age * 0.5);
+        pointsEarned += (finalGameState.cultivation.realmId || 0) * 100;
+        pointsEarned += (finalGameState.cultivation.level || 0) * 10;
+        pointsEarned += Math.floor((finalGameState.resources.money || 0) / 10);
+        pointsEarned += (finalGameState.resources.talentPoints || 0) * 2;
+        pointsEarned += (finalGameState.player.techniques?.length || 0) * 25;
 
         // --- 2. Update and Save Legacy Data ---
-        let legacyData = JSON.parse(localStorage.getItem('immortalJourneyLegacy')) || { totalPoints: 0, bonuses: {} };
+        let legacyData = getLegacyData();
         legacyData.totalPoints += pointsEarned;
+        saveLegacyData(legacyData);
+
+        // --- 3. Show Legacy Screen ---
+        showLegacyScreen(finalGameState, pointsEarned, legacyData);
+
+        // --- 4. Clean Up Game Save ---
+        localStorage.removeItem('immortalJourneySave');
+    }
+
+    function getLegacyData() {
+        return JSON.parse(localStorage.getItem('immortalJourneyLegacy')) || { totalPoints: 0, purchased: {} };
+    }
+
+    function saveLegacyData(legacyData) {
         localStorage.setItem('immortalJourneyLegacy', JSON.stringify(legacyData));
+    }
 
-        // --- 3. Get UI Elements ---
+    function showLegacyScreen(finalGameState, pointsEarned, legacyData) {
+        // --- Populate Final Stats ---
         const finalStatsList = document.getElementById('final-stats-list');
-        const finalChronicleList = document.getElementById('final-chronicle-list');
-        const legacyPointsEarnedEl = document.getElementById('legacy-points-earned');
-        const legacyPointsTotalEl = document.getElementById('legacy-points-total');
-
-        // --- 4. Populate Final Stats ---
-        finalStatsList.innerHTML = ''; // Clear previous stats
-        const realmName = allGameData.realms?.[gameState.cultivation.realmId]?.name || 'Mortal';
+        finalStatsList.innerHTML = '';
+        const realmName = allGameData.realms?.[finalGameState.cultivation.realmId]?.name || 'Mortal';
         const finalStats = {
-            "Causa da Morte": allStrings.death_reasons[reason] || allStrings.death_reasons.unknown,
-            "Idade Final": gameState.age,
-            "Reino de Cultivo": `${realmName} (Nível ${gameState.cultivation.level})`,
-            "Dinheiro": gameState.resources.money,
-            "Técnicas Aprendidas": gameState.player.techniques?.length || 0
+            "Idade Final": finalGameState.age,
+            "Reino de Cultivo": `${realmName} (Nível ${finalGameState.cultivation.level})`,
+            "Dinheiro": finalGameState.resources.money,
+            "Técnicas Aprendidas": finalGameState.player.techniques?.length || 0
         };
         for (const [key, value] of Object.entries(finalStats)) {
             const li = document.createElement('li');
@@ -669,10 +707,11 @@ function handleSpecialEffects(effectKey) {
             finalStatsList.appendChild(li);
         }
 
-        // --- 5. Populate Final Chronicle ---
-        finalChronicleList.innerHTML = ''; // Clear previous log
-        if (gameState.life_log) {
-            gameState.life_log.forEach(log => {
+        // --- Populate Final Chronicle ---
+        const finalChronicleList = document.getElementById('final-chronicle-list');
+        finalChronicleList.innerHTML = '';
+        if (finalGameState.life_log) {
+            finalGameState.life_log.forEach(log => {
                 const li = document.createElement('li');
                 li.innerHTML = `<strong>Ano ${log.age}:</strong> ${log.message}`;
                 li.classList.add(`log-type-${log.type}`);
@@ -680,13 +719,44 @@ function handleSpecialEffects(effectKey) {
             });
         }
 
-        // --- 6. Display Legacy Points ---
-        legacyPointsEarnedEl.textContent = pointsEarned;
-        legacyPointsTotalEl.textContent = legacyData.totalPoints;
+        // --- Populate Legacy Bonuses ---
+        const legacyPointsTotalEl = document.getElementById('legacy-points-total');
+        const legacyBonusesContainer = document.getElementById('legacy-bonuses-container');
+        legacyBonusesContainer.innerHTML = '';
 
-        // --- 7. Show Screen & Clean Up ---
+        legacyPointsTotalEl.textContent = legacyData.totalPoints;
+        document.getElementById('legacy-points-earned').textContent = pointsEarned;
+
+        LEGACY_BONUSES.forEach(bonus => {
+            const bonusDiv = document.createElement('div');
+            bonusDiv.className = 'legacy-bonus';
+
+            const isPurchased = legacyData.purchased[bonus.id];
+            const canAfford = legacyData.totalPoints >= bonus.cost;
+
+            bonusDiv.innerHTML = `
+                <h4>${bonus.name} (${bonus.cost} pts)</h4>
+                <p>${bonus.description}</p>
+            `;
+
+            const buyButton = document.createElement('button');
+            buyButton.textContent = isPurchased ? 'Comprado' : 'Comprar';
+            buyButton.disabled = isPurchased || !canAfford;
+
+            if (!isPurchased) {
+                buyButton.onclick = () => {
+                    legacyData.totalPoints -= bonus.cost;
+                    legacyData.purchased[bonus.id] = true;
+                    saveLegacyData(legacyData);
+                    showLegacyScreen(finalGameState, pointsEarned, legacyData); // Refresh screen
+                };
+            }
+
+            bonusDiv.appendChild(buyButton);
+            legacyBonusesContainer.appendChild(bonusDiv);
+        });
+
         elements.legacyScreen.classList.remove('hidden');
-        localStorage.removeItem('immortalJourneySave');
     }
 
     function addCombatLog(message) {
@@ -890,17 +960,30 @@ function handleSpecialEffects(effectKey) {
 
     function startNewGame() {
         const playerGender = Math.random() < 0.5 ? 'masculino' : 'feminino';
-        const player = generateCharacter('player', playerGender);
+        const player = generateCharacter('player', playerGender, true); // Pass true for isPlayer
 
         const rivalGender = Math.random() < 0.5 ? 'masculino' : 'feminino';
-        const rival = generateCharacter('rival_1', rivalGender);
+        const rival = generateCharacter('rival_1', rivalGender, false);
+
+        const baseResources = { money: 20, talentPoints: 5, contribution: 0 };
+        const legacyData = getLegacyData();
+        for (const bonusId in legacyData.purchased) {
+            if (legacyData.purchased[bonusId]) {
+                const bonus = LEGACY_BONUSES.find(b => b.id === bonusId);
+                if (bonus && bonus.effects.resources) {
+                    for (const res in bonus.effects.resources) {
+                        baseResources[res] += bonus.effects.resources[res];
+                    }
+                }
+            }
+        }
 
         gameState = {
             player: player,
             npcs: { 'rival_1': rival },
             rivalId: 'rival_1',
             age: 6,
-            resources: { money: 20, talentPoints: 5, contribution: 0 },
+            resources: baseResources,
             cultivation: { realmId: 0, level: 1, qi: 0, maxQi: 10 },
             sect: { id: null, rank: 0 },
             triggeredEvents: [],

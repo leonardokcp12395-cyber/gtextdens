@@ -336,3 +336,36 @@ hr {
 #final-chronicle-list li:last-child {
     border-bottom: none;
 }
+
+#legacy-bonuses-container {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #444;
+    padding: 10px;
+    margin-top: 1rem;
+    background-color: #1a1a1a;
+}
+
+.legacy-bonus {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    border-bottom: 1px solid #333;
+}
+
+.legacy-bonus:last-child {
+    border-bottom: none;
+}
+
+.legacy-bonus p {
+    margin: 0 1rem 0 0;
+    flex-grow: 1;
+}
+
+.legacy-bonus button {
+    width: auto;
+    padding: 5px 15px;
+    margin-top: 0;
+    flex-shrink: 0;
+}

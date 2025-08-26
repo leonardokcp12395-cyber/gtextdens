@@ -150,5 +150,24 @@
         { "text": "Encará-lo em silêncio.", "effects": { "relationships": { "rival": -3 } } },
         { "text": "Rir da sua arrogância.", "effects": { "relationships": { "rival": -1 } } }
     ]
+  },
+  {
+    "id": "hermit_encounter",
+    "type": "repeatable",
+    "conditions": { "min_age": 20, "probability": 0.02 },
+    "text": "Você encontra um velho eremita meditando sob uma cachoeira. Ele abre um olho e lhe oferece um único conselho enigmático.",
+    "choices": [
+        { "text": "Ouvir atentamente.", "effects": { "attributes": { "mind": 2 } }, "resultKey": "hermit_wisdom_accepted" }
+    ]
+  },
+  {
+    "id": "sect_sabotage_accusation",
+    "type": "once",
+    "conditions": { "rival_relationship_state": "Inimigo", "rival_in_same_sect": true },
+    "text": "Um ancião da seita o convoca. '[RIVAL] acusou você de sabotar o cultivo dele. O que você tem a dizer em sua defesa?'",
+    "choices": [
+        { "text": "'É uma mentira descarada!'", "effects": { "relationships": { "rival": -15 } } },
+        { "text": "Permanecer em silêncio digno.", "effects": { "attributes": { "mind": 1 } } }
+    ]
   }
 ]

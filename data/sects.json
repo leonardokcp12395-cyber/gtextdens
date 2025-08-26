@@ -21,7 +21,8 @@
     ],
     "techniques": [
       { "id": "hidden_cloud_meditation", "cost_contribution": 150, "min_rank": 1 },
-      { "id": "stunning_palm", "cost_contribution": 400, "min_rank": 2 }
+      { "id": "stunning_palm", "cost_contribution": 400, "min_rank": 2 },
+      { "id": "qi_blast", "cost_contribution": 800, "min_rank": 3 }
     ]
   },
   {
@@ -66,7 +67,8 @@
     ],
     "store": [],
     "techniques": [
-      { "id": "swift_blade_art", "cost_contribution": 200, "min_rank": 1 }
+      { "id": "swift_blade_art", "cost_contribution": 200, "min_rank": 1 },
+      { "id": "shadow_step", "cost_contribution": 350, "min_rank": 2 }
     ]
   },
   {
