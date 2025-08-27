@@ -40,5 +40,19 @@
     "description": "Queimar este incenso antes de meditar ajuda a clarear a mente.",
     "type": "consumable",
     "effects": { "attributes": { "mind": 1 } }
+  },
+  {
+    "id": "qi_pill",
+    "name": "Pílula de Qi",
+    "description": "Uma pílula padrão que restaura uma boa quantidade de Qi.",
+    "type": "consumable",
+    "effects": { "cultivation": { "qi": 100 } }
+  },
+  {
+    "id": "ginseng_vitality",
+    "name": "Ginseng da Vitalidade",
+    "description": "Uma erva rara que emana uma aura de vida. Fortalece a constituição.",
+    "type": "consumable",
+    "effects": { "attributes": { "body": 3 } }
   }
 ]

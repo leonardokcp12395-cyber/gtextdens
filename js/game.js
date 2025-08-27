@@ -30,6 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
         money: document.getElementById('res-money'),
         talentPoints: document.getElementById('talent-points'),
         contribution: document.getElementById('res-contribution'),
+        spiritStones: document.getElementById('res-spirit-stones'),
         meditateBtn: document.getElementById('meditate-btn'),
         nextYearBtn: document.getElementById('next-year-btn'),
         talentsBtn: document.getElementById('talents-btn'),
@@ -43,6 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
         sectInfo: document.getElementById('sect-info'),
         sectName: document.getElementById('sect-name'),
         sectRank: document.getElementById('sect-rank'),
+        sectBenefit: document.getElementById('sect-benefit'),
         sectContribution: document.getElementById('sect-contribution'),
         lifespan: document.getElementById('char-lifespan'),
         legacyScreen: document.getElementById('legacy-screen'),
@@ -84,46 +86,56 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- LIFE CHRONICLE ---
     function addLogMessage(message, type = 'event', important = false) {
-        if (!gameState.life_log) {
-            gameState.life_log = [];
-        }
-        const logEntry = {
-            age: gameState.age,
-            message: processText(message),
-            type: type, // 'milestone', 'reward', 'notification', 'combat'
-        };
+        if (!gameState.life_log) gameState.life_log = [];
+        const logEntry = { age: gameState.age, message: processText(message), type: type };
         gameState.life_log.push(logEntry);
-
-        if (gameState.life_log.length > 150) { // Performance cap
-            gameState.life_log.shift();
-        }
-
-        // A small visual cue for important messages can be added here later
-        if (important) {
-            // e.g., showNotification(logEntry.message, type);
-        }
+        if (gameState.life_log.length > 150) gameState.life_log.shift();
     }
 
-    // --- PROCEDURAL GENERATION ---
+    // --- PROCEDURAL GENERATION & CORE SYSTEMS ---
     function getRandomElement(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+    function showTalents() {
+        const container = elements.talentsContainer;
+        container.innerHTML = '';
+        elements.talentsScreenPoints.textContent = gameState.resources.talentPoints;
+        allGameData.talents.forEach(talent => {
+            const talentDiv = document.createElement('div');
+            talentDiv.className = 'talent';
+            const hasTalent = gameState.player.talents.includes(talent.id);
+            const canAfford = gameState.resources.talentPoints >= talent.cost;
+            const meetsReqs = talent.requirements.every(req => gameState.player.talents.includes(req));
+            talentDiv.innerHTML = `<h4>${talent.name} (${talent.cost} pts)</h4><p>${talent.description}</p><small>Requisitos: ${talent.requirements.join(', ') || 'Nenhum'}</small>`;
+            const buyButton = document.createElement('button');
+            buyButton.textContent = hasTalent ? 'Adquirido' : 'Comprar';
+            buyButton.disabled = hasTalent || !canAfford || !meetsReqs;
+            if (!hasTalent) {
+                buyButton.onclick = () => {
+                    gameState.resources.talentPoints -= talent.cost;
+                    gameState.player.talents.push(talent.id);
+                    applyEffects(talent.effects);
+                    updateUI();
+                    showTalents();
+                };
+            }
+            talentDiv.appendChild(buyButton);
+            container.appendChild(talentDiv);
+        });
+    }
+
     function getCharacterPowerLevel(character) {
         if (!character) return 0;
         const attr = character.attributes;
         const cult = character.cultivation;
-        // Simple formula: attributes contribute, but cultivation level is a major multiplier
         return (attr.body + attr.mind) * (cult.level + (cult.realmId * 10));
     }
 
     function updateRelationshipStates() {
         for (const npcId in gameState.relationships) {
             const rel = gameState.relationships[npcId];
-            if (rel.score > 50) {
-                rel.state = 'Amigo';
-            } else if (rel.score < -50) {
-                rel.state = 'Inimigo';
-            } else {
-                rel.state = 'Neutro';
-            }
+            if (rel.score > 50) rel.state = 'Amigo';
+            else if (rel.score < -50) rel.state = 'Inimigo';
+            else rel.state = 'Neutro';
         }
     }
 
@@ -134,33 +146,26 @@ document.addEventListener('DOMContentLoaded', () => {
         const personality = getRandomElement(personalidades);
         const baseAttributes = { body: 10, mind: 10, soul: 10, luck: 5 };
         const baseTechniques = [];
-
         if (isPlayer) {
             const legacyData = getLegacyData();
             for (const bonusId in legacyData.purchased) {
                 if (legacyData.purchased[bonusId]) {
                     const bonus = LEGACY_BONUSES.find(b => b.id === bonusId);
                     if (bonus) {
-                        if (bonus.effects.attributes) {
-                            for (const attr in bonus.effects.attributes) {
-                                baseAttributes[attr] += bonus.effects.attributes[attr];
-                            }
-                        }
-                        if (bonus.effects.techniques) {
-                            baseTechniques.push(...bonus.effects.techniques);
-                        }
+                        if (bonus.effects.attributes) for (const attr in bonus.effects.attributes) baseAttributes[attr] += bonus.effects.attributes[attr];
+                        if (bonus.effects.techniques) baseTechniques.push(...bonus.effects.techniques);
                     }
                 }
             }
         }
-
         return {
             id, name: `${firstName} ${lastName}`, gender, personality,
-            age: 6, // NPCs start at the same age as the player
+            age: 6,
             attributes: { ...baseAttributes },
             lifespan: 80,
             sectId: null, sectRank: 0, contribution: 0,
             cultivation: { realmId: 0, level: 1 },
+            talents: [],
             techniques: baseTechniques,
             combat: {
                 maxHp: baseAttributes.body * 5, hp: baseAttributes.body * 5,
@@ -175,95 +180,60 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!gameState.npcs) return;
         for (const npcId in gameState.npcs) {
             const npc = gameState.npcs[npcId];
-
-            // 1. Age and attribute progression
-            npc.age = (npc.age || gameState.age); // Sync age if it's off
-            npc.age++;
-            npc.attributes.body += Math.floor(Math.random() * 2); // 0 or 1
-            npc.attributes.mind += Math.floor(Math.random() * 2); // 0 or 1
-
-            // 2. Cultivation progression (simple version)
-            if (Math.random() < 0.2) { // 20% chance to level up each year
-                npc.cultivation.level++;
-            }
-
-            // 3. Recalculate combat stats based on new attributes
+            npc.age = (npc.age || gameState.age) + 1;
+            npc.attributes.body += Math.floor(Math.random() * 2);
+            npc.attributes.mind += Math.floor(Math.random() * 2);
+            if (Math.random() < 0.2) npc.cultivation.level++;
             npc.combat.maxHp = npc.attributes.body * 5;
-            npc.combat.hp = npc.combat.maxHp; // Refill HP annually
+            npc.combat.hp = npc.combat.maxHp;
             npc.combat.attack = 5 + Math.floor(npc.attributes.body / 2);
             npc.combat.defense = 2 + Math.floor(npc.attributes.mind / 5);
             npc.combat.speed = 10 + Math.floor(npc.attributes.mind / 2);
         }
     }
 
-    // --- EVENT LOGIC ---
-function areConditionsMet(conditions) {
-    if (!conditions) return true;
-    for (const key in conditions) {
-        const value = conditions[key];
-        switch (key) {
-            case 'age': if (gameState.age !== value) return false; break;
-            case 'min_age': if (gameState.age < value) return false; break;
-            case 'min_cultivation_realm_id':
-                if (gameState.cultivation.realmId < value) return false;
-                break;
-            case 'min_sect_rank':
-                if (!gameState.sect.id || gameState.sect.rank < value) return false;
-                break;
-            case 'rival_relationship_state':
-                const rivalRelationship = gameState.relationships[gameState.rivalId];
-                if (!rivalRelationship || rivalRelationship.state !== value) return false;
-                break;
-            case 'rival_in_same_sect':
-                const rival = gameState.npcs[gameState.rivalId];
-                const player = gameState.player;
-                if(value === true && player.sectId !== rival.sectId) return false;
-                if(value === false && player.sectId === rival.sectId && player.sectId !== null) return false;
-                break;
-            case 'player_stronger_than_rival':
-                const playerPower = getCharacterPowerLevel(gameState.player);
-                const rivalPower = getCharacterPowerLevel(gameState.npcs[gameState.rivalId]);
-                if ((playerPower > rivalPower) !== value) return false;
-                break;
-            case 'probability':
-                if (Math.random() > value) return false;
-                break;
-            // Adiciona mais condições aqui conforme precisares
+    function areConditionsMet(conditions) {
+        if (!conditions) return true;
+        for (const key in conditions) {
+            const value = conditions[key];
+            switch (key) {
+                case 'age': if (gameState.age !== value) return false; break;
+                case 'min_age': if (gameState.age < value) return false; break;
+                case 'min_cultivation_realm_id': if (gameState.cultivation.realmId < value) return false; break;
+                case 'min_sect_rank': if (!gameState.sect.id || gameState.sect.rank < value) return false; break;
+                case 'required_sect_id': if (!gameState.sect.id || gameState.sect.id !== value) return false; break;
+                case 'rival_relationship_state':
+                    if (!gameState.relationships[gameState.rivalId] || gameState.relationships[gameState.rivalId].state !== value) return false;
+                    break;
+                case 'rival_in_same_sect':
+                    const rival = gameState.npcs[gameState.rivalId];
+                    if ((gameState.player.sectId === rival.sectId && gameState.player.sectId !== null) !== value) return false;
+                    break;
+                case 'player_stronger_than_rival':
+                    if ((getCharacterPowerLevel(gameState.player) > getCharacterPowerLevel(gameState.npcs[gameState.rivalId])) !== value) return false;
+                    break;
+                case 'probability': if (Math.random() > value) return false; break;
+            }
         }
+        return true;
     }
-    return true;
-}
 
     function checkAndTriggerEvents() {
-        // 1. Prioritize Story Events
-        const possibleStoryEvents = allGameData.events.filter(event => {
-            if (event.type === 'once' && gameState.triggeredEvents.includes(event.id)) return false;
-            return areConditionsMet(event.conditions);
-        });
-
+        const possibleStoryEvents = allGameData.events.filter(event => !gameState.triggeredEvents.includes(event.id) && areConditionsMet(event.conditions));
         if (possibleStoryEvents.length > 0) {
             const eventToTrigger = getRandomElement(possibleStoryEvents);
-            showEvent(eventToTrigger);
             if (eventToTrigger.type === 'once') gameState.triggeredEvents.push(eventToTrigger.id);
-            return true;
-        }
-
-        // 2. If no story event, consider a random event
-        const possibleRandomEvents = allGameData.randomEvents.filter(event => {
-             // We'll give all random events a 20% chance to occur each year
-            return areConditionsMet(event.conditions) && Math.random() < 0.2;
-        });
-
-        if (possibleRandomEvents.length > 0) {
-            const eventToTrigger = getRandomElement(possibleRandomEvents);
             showEvent(eventToTrigger);
             return true;
         }
-
+        const possibleRandomEvents = allGameData.randomEvents.filter(event => areConditionsMet(event.conditions) && Math.random() < 0.2);
+        if (possibleRandomEvents.length > 0) {
+            showEvent(getRandomElement(possibleRandomEvents));
+            return true;
+        }
         return false;
     }
 
-    // --- CORE GAME LOGIC ---
     function saveGameState() {
         if (Object.keys(gameState).length > 0) localStorage.setItem('immortalJourneySave', JSON.stringify(gameState));
     }
@@ -271,110 +241,64 @@ function areConditionsMet(conditions) {
     function processText(text) {
         if (!text) return '';
         const rival = gameState.rivalId ? gameState.npcs[gameState.rivalId] : null;
-        let processedText = text.replace(/\[RIVAL\]/g, rival ? rival.name : 'Rival');
-        return processedText.replace(/\[PLAYER_NAME\]/g, gameState.player.name);
+        return text.replace(/\[RIVAL\]/g, rival ? rival.name : 'Rival').replace(/\[PLAYER_NAME\]/g, gameState.player.name);
     }
 
-function applyEffects(effects) {
-    if (!effects) return;
-
-    // Atributos do Jogador
-    if (effects.attributes) {
-        for (const attr in effects.attributes) {
-            gameState.player.attributes[attr] = (gameState.player.attributes[attr] || 0) + effects.attributes[attr];
-        }
-    }
-    // Recursos
-    if (effects.resources) {
-        for (const res in effects.resources) {
-            gameState.resources[res] = (gameState.resources[res] || 0) + effects.resources[res];
-        }
-    }
-    // Cultivo
-    if (effects.cultivation) {
-        for (const cult in effects.cultivation) {
-            gameState.cultivation[cult] = (gameState.cultivation[cult] || 0) + effects.cultivation[cult];
-        }
-    }
-    // Combate (bónus passivos)
-    if (effects.combat) {
-        for (const stat in effects.combat) {
-            gameState.player.combat[stat] = (gameState.player.combat[stat] || 0) + effects.combat[stat];
-        }
-    }
-    // Relações
-    if (effects.relationships) {
-        for (const npcKey in effects.relationships) { // ex: "rival"
-            const npcId = npcKey === 'rival' ? gameState.rivalId : npcKey;
-            if (gameState.relationships[npcId]) {
-                gameState.relationships[npcId].score += effects.relationships[npcKey];
+    function applyEffects(effects) {
+        if (!effects) return;
+        if (effects.attributes) for (const attr in effects.attributes) gameState.player.attributes[attr] = (gameState.player.attributes[attr] || 0) + effects.attributes[attr];
+        if (effects.resources) for (const res in effects.resources) gameState.resources[res] = (gameState.resources[res] || 0) + effects.resources[res];
+        if (effects.cultivation) for (const cult in effects.cultivation) gameState.cultivation[cult] = (gameState.cultivation[cult] || 0) + effects.cultivation[cult];
+        if (effects.combat) for (const stat in effects.combat) gameState.player.combat[stat] = (gameState.player.combat[stat] || 0) + effects.combat[stat];
+        if (effects.relationships) {
+            for (const npcKey in effects.relationships) {
+                const npcId = npcKey === 'rival' ? gameState.rivalId : npcKey;
+                if (gameState.relationships[npcId]) gameState.relationships[npcId].score += effects.relationships[npcKey];
             }
         }
+        if (effects.special) handleSpecialEffects(effects.special);
     }
-     // Efeitos especiais são tratados à parte
-    if (effects.special) {
-        handleSpecialEffects(effects.special);
-    }
-}
 
-// Adiciona esta função (podes expandi-la depois)
-function handleSpecialEffects(effectKey) {
-    addLogMessage(`Efeito especial ativado: ${effectKey}`, 'notification');
-
-    if (effectKey.startsWith('learn_technique_')) {
-        const techId = effectKey.replace('learn_technique_', '');
-        if (!gameState.player.techniques.includes(techId)) {
-            gameState.player.techniques.push(techId);
-            const tech = allGameData.techniques.find(t => t.id === techId);
-            if(tech.effects) applyEffects(tech.effects); // Aplica efeitos passivos da técnica
-            addLogMessage(`Você aprendeu a técnica: ${tech.name}!`, 'milestone', true);
+    function handleSpecialEffects(effectKey) {
+        addLogMessage(`Efeito especial ativado: ${effectKey}`, 'notification');
+        if (effectKey.startsWith('learn_technique_')) {
+            const techId = effectKey.replace('learn_technique_', '');
+            if (!gameState.player.techniques.includes(techId)) {
+                gameState.player.techniques.push(techId);
+                const tech = allGameData.techniques.find(t => t.id === techId);
+                if (tech.effects) applyEffects(tech.effects);
+                addLogMessage(`Você aprendeu a técnica: ${tech.name}!`, 'milestone', true);
+            }
+            return;
         }
-        return;
+        switch (effectKey) {
+            case 'show_sect_actions': showSectActions(); break;
+            case 'show_technique_pavilion': showTechniquePavilion(); break;
+            case 'try_promotion': tryPromotion(); break;
+            case 'show_mission_board': showMissionBoard(); break;
+            case 'show_sect_store': showSectStore(); break;
+            case 'start_combat_rival':
+                const rivalData = { id: gameState.rivalId, name: gameState.npcs[gameState.rivalId].name, combat: gameState.npcs[gameState.rivalId].combat, techniques: gameState.npcs[gameState.rivalId].techniques || [] };
+                startCombat(rivalData);
+                break;
+            case 'start_combat_tournament_disciple':
+                const tournamentDisciple = allGameData.enemies.find(e => e.id === 'tournament_disciple');
+                if (tournamentDisciple) startCombat(JSON.parse(JSON.stringify(tournamentDisciple)));
+                break;
+            case 'start_combat_demonic_wolf':
+                const demonicWolf = allGameData.enemies.find(e => e.id === 'demonic_wolf');
+                if (demonicWolf) startCombat(JSON.parse(JSON.stringify(demonicWolf)));
+                break;
+            case 'face_tribulation': addLogMessage("Os céus rugem enquanto você enfrenta a tribulação!", "milestone", true); break;
+            default: console.warn(`Efeito especial não implementado: ${effectKey}`);
+        }
     }
-
-    switch (effectKey) {
-        case 'show_sect_actions':
-            showSectActions();
-            break;
-        case 'show_technique_pavilion':
-            showTechniquePavilion();
-            break;
-        case 'try_promotion':
-            tryPromotion();
-            break;
-        case 'show_mission_board':
-            showMissionBoard();
-            break;
-        case 'show_sect_store':
-            showSectStore();
-            break;
-        case 'start_combat_rival':
-            // Esta função vai buscar os dados atualizados do rival em vez de um inimigo genérico
-            const rivalData = {
-                id: gameState.rivalId,
-                name: gameState.npcs[gameState.rivalId].name,
-                combat: gameState.npcs[gameState.rivalId].combat,
-                techniques: gameState.npcs[gameState.rivalId].techniques || []
-            };
-            startCombat(rivalData);
-            break;
-        case 'face_tribulation':
-            // Lógica para a tribulação aqui...
-            addLogMessage("Os céus rugem enquanto você enfrenta a tribulação!", "milestone", true);
-            // ... um combate especial ou uma série de testes de atributos poderiam acontecer aqui.
-            break;
-        // Adiciona mais 'cases' para os outros efeitos especiais do teu events.json
-        default:
-            console.warn(`Efeito especial não implementado: ${effectKey}`);
-    }
-}
 
     function showEvent(event) {
         elements.eventContent.innerHTML = `<p>${processText(event.text)}</p>`;
         elements.choicesContainer.innerHTML = '';
         elements.eventImage.src = event.image || 'img/events/default.png';
         elements.eventImage.style.display = event.image ? 'block' : 'none';
-
         if (event.choices) {
             event.choices.forEach(choice => {
                 const button = document.createElement('button');
@@ -386,11 +310,7 @@ function handleSpecialEffects(effectKey) {
                         addLogMessage(resultText, 'event');
                     }
                     applyEffects(choice.effects);
-
-                    while (elements.choicesContainer.firstChild) {
-                        elements.choicesContainer.removeChild(elements.choicesContainer.firstChild);
-                    }
-
+                    while (elements.choicesContainer.firstChild) elements.choicesContainer.removeChild(elements.choicesContainer.firstChild);
                     updateUI();
                     saveGameState();
                 }, { once: true });
@@ -400,12 +320,8 @@ function handleSpecialEffects(effectKey) {
     }
 
     function showSectActions() {
-        const sect = allGameData.sects.find(s => s.id === gameState.sect.id);
-        if (!sect) return;
-
-        elements.eventContent.innerHTML = `<p>Você está no pátio da ${sect.name}. O que você gostaria de fazer?</p>`;
+        elements.eventContent.innerHTML = `<p>Você está no pátio da ${allGameData.sects.find(s => s.id === gameState.sect.id).name}. O que você gostaria de fazer?</p>`;
         elements.choicesContainer.innerHTML = '';
-
         const choices = [
             { text: "Visitar a Loja da Seita", effect: "show_sect_store" },
             { text: "Ver Quadro de Missões", effect: "show_mission_board" },
@@ -413,55 +329,36 @@ function handleSpecialEffects(effectKey) {
             { text: "Tentar Promoção", effect: "try_promotion" },
             { text: "Voltar", effect: "main_screen" }
         ];
-
         choices.forEach(choice => {
             const button = document.createElement('button');
             button.textContent = choice.text;
-            button.onclick = () => {
-                if (choice.effect === 'main_screen') {
-                    checkAndTriggerEvents(); // Or simply show a default message
-                } else {
-                    handleSpecialEffects(choice.effect);
-                }
-            };
+            button.onclick = () => choice.effect === 'main_screen' ? checkAndTriggerEvents() : handleSpecialEffects(choice.effect);
             elements.choicesContainer.appendChild(button);
         });
     }
 
     function showSectStore() {
         const sect = allGameData.sects.find(s => s.id === gameState.sect.id);
-        const playerRank = gameState.sect.rank;
-        const playerContribution = gameState.resources.contribution;
-
-        elements.eventContent.innerHTML = `<p>Bem-vindo à loja da ${sect.name}. Sua Contribuição: ${playerContribution}</p>`;
+        elements.eventContent.innerHTML = `<p>Bem-vindo à loja da ${sect.name}. Sua Contribuição: ${gameState.resources.contribution}</p>`;
         elements.choicesContainer.innerHTML = '';
-
         sect.store.forEach(storeItem => {
             const itemData = allGameData.items.find(i => i.id === storeItem.id);
             if (!itemData) return;
-
-            const canAfford = playerContribution >= storeItem.cost_contribution;
-            const meetsRank = playerRank >= storeItem.min_rank;
-
+            const canAfford = gameState.resources.contribution >= storeItem.cost_contribution;
+            const meetsRank = gameState.sect.rank >= storeItem.min_rank;
             const button = document.createElement('button');
             button.innerHTML = `${itemData.name} - ${storeItem.cost_contribution} Contrib. <br><small>${itemData.description}</small>`;
             button.disabled = !canAfford || !meetsRank;
-
-            if (!meetsRank) {
-                 button.innerHTML += `<br><small style="color: red;">Rank necessário: ${sect.ranks[storeItem.min_rank].name}</small>`;
-            } else if (!canAfford) {
-                button.innerHTML += `<br><small style="color: red;">Contribuição insuficiente</small>`;
-            }
-
+            if (!meetsRank) button.innerHTML += `<br><small style="color: red;">Rank necessário: ${sect.ranks[storeItem.min_rank].name}</small>`;
+            else if (!canAfford) button.innerHTML += `<br><small style="color: red;">Contribuição insuficiente</small>`;
             button.onclick = () => {
                 gameState.resources.contribution -= storeItem.cost_contribution;
                 applyEffects(itemData.effects);
                 addLogMessage(`Você comprou ${itemData.name}.`, 'reward');
-                showSectStore(); // Refresh the store view
+                showSectStore();
             };
             elements.choicesContainer.appendChild(button);
         });
-
         const backButton = document.createElement('button');
         backButton.textContent = "Voltar para Ações da Seita";
         backButton.onclick = showSectActions;
@@ -470,43 +367,29 @@ function handleSpecialEffects(effectKey) {
 
     function showTechniquePavilion() {
         const sect = allGameData.sects.find(s => s.id === gameState.sect.id);
-        const playerRank = gameState.sect.rank;
-        const playerContribution = gameState.resources.contribution;
-
-        elements.eventContent.innerHTML = `<p>O Pavilhão de Técnicas da seita. Sua Contribuição: ${playerContribution}</p>`;
+        elements.eventContent.innerHTML = `<p>O Pavilhão de Técnicas da seita. Sua Contribuição: ${gameState.resources.contribution}</p>`;
         elements.choicesContainer.innerHTML = '';
-
         sect.techniques.forEach(sectTech => {
             const techData = allGameData.techniques.find(t => t.id === sectTech.id);
             if (!techData) return;
-
-            const canAfford = playerContribution >= sectTech.cost_contribution;
-            const meetsRank = playerRank >= sectTech.min_rank;
+            const canAfford = gameState.resources.contribution >= sectTech.cost_contribution;
+            const meetsRank = gameState.sect.rank >= sectTech.min_rank;
             const alreadyKnown = gameState.player.techniques.includes(sectTech.id);
-
             const button = document.createElement('button');
             button.innerHTML = `${techData.name} - ${sectTech.cost_contribution} Contrib. <br><small>${techData.description}</small>`;
             button.disabled = !canAfford || !meetsRank || alreadyKnown;
-
-            if (alreadyKnown) {
-                button.innerHTML += `<br><small style="color: green;">Já aprendido</small>`;
-            } else if (!meetsRank) {
-                button.innerHTML += `<br><small style="color: red;">Rank necessário: ${sect.ranks[sectTech.min_rank].name}</small>`;
-            } else if (!canAfford) {
-                button.innerHTML += `<br><small style="color: red;">Contribuição insuficiente</small>`;
-            }
-
+            if (alreadyKnown) button.innerHTML += `<br><small style="color: green;">Já aprendido</small>`;
+            else if (!meetsRank) button.innerHTML += `<br><small style="color: red;">Rank necessário: ${sect.ranks[sectTech.min_rank].name}</small>`;
+            else if (!canAfford) button.innerHTML += `<br><small style="color: red;">Contribuição insuficiente</small>`;
             if (!alreadyKnown) {
                 button.onclick = () => {
                     gameState.resources.contribution -= sectTech.cost_contribution;
-                    // The 'learn_technique' special effect handles adding the tech and applying passive effects
                     handleSpecialEffects(`learn_technique_${sectTech.id}`);
-                    showTechniquePavilion(); // Refresh the view
+                    showTechniquePavilion();
                 };
             }
             elements.choicesContainer.appendChild(button);
         });
-
         const backButton = document.createElement('button');
         backButton.textContent = "Voltar para Ações da Seita";
         backButton.onclick = showSectActions;
@@ -516,28 +399,16 @@ function handleSpecialEffects(effectKey) {
     function showMissionBoard() {
         const sectId = gameState.sect.id;
         const playerRank = gameState.sect.rank;
-
         elements.eventContent.innerHTML = `<p>Quadro de Missões da Seita</p>`;
         elements.choicesContainer.innerHTML = '';
-
         const availableMissions = allGameData.missions.filter(m => m.sect_id === sectId && playerRank >= m.min_rank);
-        console.log("Available missions:", JSON.stringify(availableMissions));
-
-        if (availableMissions.length === 0) {
-            elements.eventContent.innerHTML += `<p>Não há missões disponíveis para o seu ranking no momento.</p>`;
-        }
-
+        if (availableMissions.length === 0) elements.eventContent.innerHTML += `<p>Não há missões disponíveis para o seu ranking no momento.</p>`;
         availableMissions.forEach(mission => {
             const button = document.createElement('button');
-            // For now, missions are simple "do it now" tasks.
             button.innerHTML = `${mission.title}<br><small>${mission.description}</small><br><small>Recompensa: ${mission.reward.contribution} Contrib.</small>`;
-
-            button.onclick = () => {
-                acceptSectMission(mission);
-            };
+            button.onclick = () => acceptSectMission(mission);
             elements.choicesContainer.appendChild(button);
         });
-
         const backButton = document.createElement('button');
         backButton.textContent = "Voltar para Ações da Seita";
         backButton.onclick = showSectActions;
@@ -545,15 +416,22 @@ function handleSpecialEffects(effectKey) {
     }
 
     function acceptSectMission(mission) {
-        // For now, missions are completed instantly.
-        // A more complex system could have objectives and turn delays.
         addLogMessage(`Você completou a missão: ${mission.title}.`, 'reward', true);
-        applyEffects({ resources: { contribution: mission.reward.contribution } });
-        if(mission.reward.attributes) {
+        if (mission.reward.contribution) {
+            applyEffects({ resources: { contribution: mission.reward.contribution } });
+        }
+        if (mission.reward.attributes) {
             applyEffects({ attributes: mission.reward.attributes });
         }
-
-        // Return to the sect actions menu
+        if (mission.reward.items) {
+            mission.reward.items.forEach(itemId => {
+                const itemData = allGameData.items.find(i => i.id === itemId);
+                if (itemData) {
+                    applyEffects(itemData.effects);
+                    addLogMessage(`Você recebeu o item: ${itemData.name}!`, 'reward');
+                }
+            });
+        }
         showSectActions();
         updateUI();
     }
@@ -562,17 +440,14 @@ function handleSpecialEffects(effectKey) {
         const sect = allGameData.sects.find(s => s.id === gameState.sect.id);
         const currentRank = gameState.sect.rank;
         const nextRank = sect.ranks.find(r => r.id === currentRank + 1);
-
         if (!nextRank) {
             addLogMessage("Você já alcançou o ranking mais alto da sua seita!", "notification");
             showSectActions();
             return;
         }
-
         const reqs = nextRank.requirements;
         let canPromote = true;
         let missingReqs = [];
-
         if (reqs.cultivation_realm_id > gameState.cultivation.realmId) {
             canPromote = false;
             missingReqs.push(`Reino de Cultivo: ${allGameData.realms[reqs.cultivation_realm_id].name}`);
@@ -585,7 +460,6 @@ function handleSpecialEffects(effectKey) {
             canPromote = false;
             missingReqs.push(`Contribuição: ${reqs.contribution}`);
         }
-
         if (canPromote) {
             gameState.sect.rank++;
             gameState.resources.contribution -= reqs.contribution;
@@ -606,19 +480,14 @@ function handleSpecialEffects(effectKey) {
     function tryBreakthrough() {
         const realm = allGameData.realms[gameState.cultivation.realmId];
         const successChance = (gameState.player.attributes.mind + gameState.player.attributes.luck) / realm.breakthrough_difficulty;
-
         if (Math.random() < successChance) {
-            // SUCCESS
             gameState.cultivation.level++;
             gameState.cultivation.qi = 0;
             gameState.cultivation.maxQi = Math.floor(gameState.cultivation.maxQi * 1.2);
             gameState.player.attributes.body += realm.breakthrough_bonus.body;
             gameState.player.attributes.mind += realm.breakthrough_bonus.mind;
             gameState.player.lifespan += realm.breakthrough_bonus.lifespan;
-
             addLogMessage("Você conseguiu! Uma onda de poder flui através de você, fortalecendo seu corpo e alma. Você alcançou um novo nível!", 'milestone', true);
-
-            // Check for realm advancement
             if (gameState.cultivation.level >= realm.levels_to_next) {
                 gameState.cultivation.level = 1;
                 gameState.cultivation.realmId++;
@@ -626,7 +495,6 @@ function handleSpecialEffects(effectKey) {
                 addLogMessage(`Um poder imenso se condensa dentro de você! Você avançou para o ${newRealm.name}!`, 'milestone', true);
             }
         } else {
-            // FAILURE
             gameState.cultivation.qi = 0;
             gameState.player.attributes.body = Math.max(1, gameState.player.attributes.body - 1);
             addLogMessage("A tentativa de breakthrough falhou! A energia retrocede violentamente, ferindo seu corpo. Você se sente enfraquecido.", 'notification', true);
@@ -640,7 +508,10 @@ function handleSpecialEffects(effectKey) {
             tryBreakthrough();
             return;
         }
-        const qiGained = gameState.player.attributes.mind;
+        let qiGained = gameState.player.attributes.mind;
+        if (gameState.player.talents.includes('fast_learner')) {
+            qiGained = Math.floor(qiGained * 1.5);
+        }
         gameState.cultivation.qi = Math.min(gameState.cultivation.qi + qiGained, gameState.cultivation.maxQi);
         addLogMessage(`Você meditou e ganhou ${qiGained} Qi.`, 'notification');
         updateUI();
@@ -650,35 +521,35 @@ function handleSpecialEffects(effectKey) {
     function advanceYear() {
         gameState.age++;
         addLogMessage(`Você envelheceu para ${gameState.age} anos.`, 'milestone');
-
-        // Basic progression
         gameState.player.attributes.body++;
         gameState.player.attributes.mind++;
-
-        progressNpcs(); // Progress NPCs alongside the player
-        updateRelationshipStates(); // Update states like friend/enemy based on score
-
+        progressNpcs();
+        updateRelationshipStates();
+        if (gameState.sect.id) {
+            const sect = allGameData.sects.find(s => s.id === gameState.sect.id);
+            if (sect && sect.benefit_template.type === 'passive_qi_gain') {
+                let benefitValue = sect.benefit_template.base_value + (sect.benefit_template.value_per_rank * gameState.sect.rank);
+                gameState.cultivation.qi = Math.min(gameState.cultivation.qi + benefitValue, gameState.cultivation.maxQi);
+                addLogMessage(`Sua seita lhe concedeu ${benefitValue} de Qi.`, 'reward');
+            }
+        }
         if (gameState.age >= gameState.player.lifespan) {
             endGame("old_age");
             return;
         }
-
         const eventTriggered = checkAndTriggerEvents();
         if (!eventTriggered) {
             elements.eventContent.innerHTML = "<p>Um ano tranquilo se passa.</p>";
             elements.choicesContainer.innerHTML = '';
             elements.eventImage.style.display = 'none';
         }
-
         updateUI();
         saveGameState();
     }
 
     function endGame(reason) {
         addLogMessage("Sua jornada chegou ao fim.", "milestone", true);
-        const finalGameState = { ...gameState }; // Capture final state
-
-        // --- 1. Calculate Legacy Points ---
+        const finalGameState = { ...gameState };
         let pointsEarned = 0;
         pointsEarned += Math.floor(finalGameState.age * 0.5);
         pointsEarned += (finalGameState.cultivation.realmId || 0) * 100;
@@ -686,16 +557,10 @@ function handleSpecialEffects(effectKey) {
         pointsEarned += Math.floor((finalGameState.resources.money || 0) / 10);
         pointsEarned += (finalGameState.resources.talentPoints || 0) * 2;
         pointsEarned += (finalGameState.player.techniques?.length || 0) * 25;
-
-        // --- 2. Update and Save Legacy Data ---
         let legacyData = getLegacyData();
         legacyData.totalPoints += pointsEarned;
         saveLegacyData(legacyData);
-
-        // --- 3. Show Legacy Screen ---
         showLegacyScreen(finalGameState, pointsEarned, legacyData);
-
-        // --- 4. Clean Up Game Save ---
         localStorage.removeItem('immortalJourneySave');
     }
 
@@ -708,7 +573,6 @@ function handleSpecialEffects(effectKey) {
     }
 
     function showLegacyScreen(finalGameState, pointsEarned, legacyData) {
-        // --- Populate Final Stats ---
         const finalStatsList = document.getElementById('final-stats-list');
         finalStatsList.innerHTML = '';
         const realmName = allGameData.realms?.[finalGameState.cultivation.realmId]?.name || 'Mortal';
@@ -723,8 +587,6 @@ function handleSpecialEffects(effectKey) {
             li.innerHTML = `<strong>${key}:</strong> ${value}`;
             finalStatsList.appendChild(li);
         }
-
-        // --- Populate Final Chronicle ---
         const finalChronicleList = document.getElementById('final-chronicle-list');
         finalChronicleList.innerHTML = '';
         if (finalGameState.life_log) {
@@ -735,44 +597,31 @@ function handleSpecialEffects(effectKey) {
                 finalChronicleList.appendChild(li);
             });
         }
-
-        // --- Populate Legacy Bonuses ---
         const legacyPointsTotalEl = document.getElementById('legacy-points-total');
         const legacyBonusesContainer = document.getElementById('legacy-bonuses-container');
         legacyBonusesContainer.innerHTML = '';
-
         legacyPointsTotalEl.textContent = legacyData.totalPoints;
         document.getElementById('legacy-points-earned').textContent = pointsEarned;
-
         LEGACY_BONUSES.forEach(bonus => {
             const bonusDiv = document.createElement('div');
             bonusDiv.className = 'legacy-bonus';
-
             const isPurchased = legacyData.purchased[bonus.id];
             const canAfford = legacyData.totalPoints >= bonus.cost;
-
-            bonusDiv.innerHTML = `
-                <h4>${bonus.name} (${bonus.cost} pts)</h4>
-                <p>${bonus.description}</p>
-            `;
-
+            bonusDiv.innerHTML = `<h4>${bonus.name} (${bonus.cost} pts)</h4><p>${bonus.description}</p>`;
             const buyButton = document.createElement('button');
             buyButton.textContent = isPurchased ? 'Comprado' : 'Comprar';
             buyButton.disabled = isPurchased || !canAfford;
-
             if (!isPurchased) {
                 buyButton.onclick = () => {
                     legacyData.totalPoints -= bonus.cost;
                     legacyData.purchased[bonus.id] = true;
                     saveLegacyData(legacyData);
-                    showLegacyScreen(finalGameState, pointsEarned, legacyData); // Refresh screen
+                    showLegacyScreen(finalGameState, pointsEarned, legacyData);
                 };
             }
-
             bonusDiv.appendChild(buyButton);
             legacyBonusesContainer.appendChild(bonusDiv);
         });
-
         elements.legacyScreen.classList.remove('hidden');
     }
 
@@ -780,7 +629,6 @@ function handleSpecialEffects(effectKey) {
         const logEntry = document.createElement('p');
         logEntry.textContent = message;
         elements.combatLog.appendChild(logEntry);
-        // Scroll to the bottom
         elements.combatLog.scrollTop = elements.combatLog.scrollHeight;
     }
 
@@ -791,7 +639,7 @@ function handleSpecialEffects(effectKey) {
             enemyInfo: enemyData,
             turn: 'player'
         };
-        elements.combatLog.innerHTML = ''; // Clear previous combat logs
+        elements.combatLog.innerHTML = '';
         elements.combatScreen.classList.remove('hidden');
         elements.actionsContainer.classList.add('hidden');
         updateCombatUI();
@@ -803,22 +651,17 @@ function handleSpecialEffects(effectKey) {
         elements.combatPlayerHp.textContent = `${combatState.player.hp} / ${combatState.player.maxHp}`;
         elements.combatEnemyName.textContent = combatState.enemyInfo.name;
         elements.combatEnemyHp.textContent = `${combatState.enemy.hp} / ${combatState.enemy.maxHp}`;
-
-        // Gera as ações do jogador
         elements.combatActions.innerHTML = '';
         const attackBtn = document.createElement('button');
         attackBtn.textContent = 'Ataque Físico';
         attackBtn.className = 'combat-action-btn';
         attackBtn.onclick = () => takeCombatTurn('attack');
         elements.combatActions.appendChild(attackBtn);
-
         const defendBtn = document.createElement('button');
         defendBtn.textContent = 'Defender';
         defendBtn.className = 'combat-action-btn';
         defendBtn.onclick = () => takeCombatTurn('defend');
         elements.combatActions.appendChild(defendBtn);
-
-        // Adiciona botões para técnicas de combate ativas
         gameState.player.techniques.forEach(techId => {
             const techData = allGameData.techniques.find(t => t.id === techId);
             if (techData && techData.type === 'active_combat') {
@@ -833,7 +676,6 @@ function handleSpecialEffects(effectKey) {
     }
 
     function takeCombatTurn(action, techData = null) {
-        // Lógica do turno do jogador
         if (action === 'attack') {
             let playerDamage = Math.max(1, combatState.player.attack - combatState.enemy.defense);
             combatState.enemy.hp -= playerDamage;
@@ -847,24 +689,15 @@ function handleSpecialEffects(effectKey) {
             techDamage = Math.max(1, techDamage - combatState.enemy.defense);
             combatState.enemy.hp -= techDamage;
             addCombatLog(`Você usa ${techData.name} e causa ${techDamage} de dano!`);
-            // Handle special effects like stun later
         }
-
         updateCombatUI();
         if (combatState.enemy.hp <= 0) {
             endCombat(true);
             return;
         }
-
-        // Lógica do turno do inimigo (melhorada)
         setTimeout(() => {
-            // IA Inimiga: Decide se usa uma técnica ou um ataque normal
-            const enemyTechniques = combatState.enemyInfo.techniques
-                .map(id => allGameData.techniques.find(t => t.id === id))
-                .filter(t => t && t.type === 'active_combat');
-
-            const techToUse = enemyTechniques.length > 0 && Math.random() < 0.33 ? enemyTechniques[0] : null; // 33% chance de usar a primeira técnica
-
+            const enemyTechniques = combatState.enemyInfo.techniques.map(id => allGameData.techniques.find(t => t.id === id)).filter(t => t && t.type === 'active_combat');
+            const techToUse = enemyTechniques.length > 0 && Math.random() < 0.33 ? enemyTechniques[0] : null;
             let enemyDamage;
             if (techToUse) {
                 enemyDamage = Math.floor(combatState.enemy.attack * techToUse.damage_multiplier);
@@ -872,9 +705,7 @@ function handleSpecialEffects(effectKey) {
             } else {
                 enemyDamage = combatState.enemy.attack;
             }
-
             enemyDamage = Math.max(1, enemyDamage - combatState.player.defense);
-
             if (combatState.player.isDefending) {
                 enemyDamage = Math.max(0, Math.floor(enemyDamage / 2));
                 addCombatLog(`O ataque causa apenas ${enemyDamage} de dano graças à sua defesa!`);
@@ -883,26 +714,23 @@ function handleSpecialEffects(effectKey) {
                 addCombatLog(`O ataque causa ${enemyDamage} de dano!`);
             }
             combatState.player.hp -= enemyDamage;
-
             updateCombatUI();
             if (combatState.player.hp <= 0) {
                 endCombat(false);
                 return;
             }
-        }, 1000); // Pequeno atraso para dar tempo de ler
+        }, 1000);
     }
 
     function endCombat(playerWon) {
         elements.combatScreen.classList.add('hidden');
         elements.actionsContainer.classList.remove('hidden');
-
         if (playerWon) {
             addLogMessage(`Você derrotou ${combatState.enemyInfo.name}!`, 'reward', true);
-            // Adiciona recompensas de combate aqui (dinheiro, itens, etc.)
         } else {
             addLogMessage(`Você foi derrotado por ${combatState.enemyInfo.name}...`, 'combat', true);
-            gameState.player.combat.hp = 1; // Sobrevive por pouco
-            endGame('combat'); // Ou termina o jogo
+            gameState.player.combat.hp = 1;
+            endGame('combat');
         }
         updateUI();
     }
@@ -916,44 +744,39 @@ function handleSpecialEffects(effectKey) {
 
     function updateUI() {
         if (!gameState || !gameState.player) return;
-
-        // Flash attributes on change
         const oldBody = parseInt(elements.body.textContent);
         const oldMind = parseInt(elements.mind.textContent);
-
         if (gameState.player.attributes.body > oldBody) flashElement(elements.body, 'highlight-green');
         if (gameState.player.attributes.body < oldBody) flashElement(elements.body, 'highlight-red');
         if (gameState.player.attributes.mind > oldMind) flashElement(elements.mind, 'highlight-green');
         if (gameState.player.attributes.mind < oldMind) flashElement(elements.mind, 'highlight-red');
-
         elements.playerName.textContent = gameState.player.name;
         elements.age.textContent = gameState.age;
         elements.lifespan.textContent = gameState.player.lifespan;
-
-        // Update attributes
         elements.body.textContent = gameState.player.attributes.body;
         elements.mind.textContent = gameState.player.attributes.mind;
-
-        // Update cultivation
         const realm = allGameData.realms?.[gameState.cultivation.realmId] || { name: 'Mortal' };
         elements.realm.textContent = realm.name;
         elements.level.textContent = gameState.cultivation.level;
         elements.qi.textContent = gameState.cultivation.qi;
         elements.maxQi.textContent = gameState.cultivation.maxQi;
-
-        // Update resources
         elements.money.textContent = gameState.resources.money;
         elements.talentPoints.textContent = gameState.resources.talentPoints;
         elements.contribution.textContent = gameState.resources.contribution;
+        elements.spiritStones.textContent = gameState.resources.spirit_stones || 0;
 
-        // Show/hide sect button
         if (gameState.sect.id) {
-            elements.sectActionsBtn.classList.remove('hidden');
+            elements.sectInfo.classList.remove('hidden');
+            const sect = allGameData.sects.find(s => s.id === gameState.sect.id);
+            const rank = sect.ranks[gameState.sect.rank];
+            elements.sectName.textContent = sect.name;
+            elements.sectRank.textContent = rank.name;
+            let benefitValue = sect.benefit_template.base_value + (sect.benefit_template.value_per_rank * gameState.sect.rank);
+            elements.sectBenefit.textContent = sect.benefit_template.description.replace('{value}', benefitValue);
         } else {
-            elements.sectActionsBtn.classList.add('hidden');
+            elements.sectInfo.classList.add('hidden');
         }
 
-        // Update Meditate/Breakthrough button
         if (gameState.cultivation.qi >= gameState.cultivation.maxQi) {
             elements.meditateBtn.textContent = "Tentar Breakthrough!";
             elements.meditateBtn.classList.add('breakthrough-ready');
@@ -961,24 +784,16 @@ function handleSpecialEffects(effectKey) {
             elements.meditateBtn.textContent = "Meditar";
             elements.meditateBtn.classList.remove('breakthrough-ready');
         }
-
-        // Update Relationships panel to show NPC progress
         elements.relationshipsList.innerHTML = '';
         for (const npcId in gameState.npcs) {
             const npc = gameState.npcs[npcId];
             const relationship = gameState.relationships[npcId];
             const li = document.createElement('li');
-
             const rivalTag = npcId === gameState.rivalId ? ' <span class="rival-tag">[RIVAL]</span>' : '';
-            const realm = allGameData.realms?.[npc.cultivation.realmId] || { name: 'Mortal' };
-
-            li.innerHTML = `
-                <strong>${npc.name}${rivalTag}</strong><br>
-                <span class="npc-details">Idade: ${npc.age} | ${realm.name} Nv. ${npc.cultivation.level} | Relação: ${relationship.score} (${relationship.state})</span>
-            `;
+            const npcRealm = allGameData.realms?.[npc.cultivation.realmId] || { name: 'Mortal' };
+            li.innerHTML = `<strong>${npc.name}${rivalTag}</strong><br><span class="npc-details">Idade: ${npc.age} | ${npcRealm.name} Nv. ${npc.cultivation.level} | Relação: ${relationship.score} (${relationship.state})</span>`;
             elements.relationshipsList.appendChild(li);
         }
-
         if (gameState.life_log) {
             elements.lifeLogList.innerHTML = '';
             const recentLogs = gameState.life_log.slice(-15).reverse();
@@ -993,12 +808,10 @@ function handleSpecialEffects(effectKey) {
 
     function startNewGame() {
         const playerGender = Math.random() < 0.5 ? 'masculino' : 'feminino';
-        const player = generateCharacter('player', playerGender, true); // Pass true for isPlayer
-
+        const player = generateCharacter('player', playerGender, true);
         const rivalGender = Math.random() < 0.5 ? 'masculino' : 'feminino';
         const rival = generateCharacter('rival_1', rivalGender, false);
-
-        const baseResources = { money: 20, talentPoints: 5, contribution: 0 };
+        const baseResources = { money: 20, talentPoints: 5, contribution: 0, spirit_stones: 0 };
         const legacyData = getLegacyData();
         for (const bonusId in legacyData.purchased) {
             if (legacyData.purchased[bonusId]) {
@@ -1010,7 +823,6 @@ function handleSpecialEffects(effectKey) {
                 }
             }
         }
-
         gameState = {
             player: player,
             npcs: { 'rival_1': rival },
@@ -1022,11 +834,8 @@ function handleSpecialEffects(effectKey) {
             triggeredEvents: [],
             active_mission: null,
             life_log: [],
-            relationships: {
-                'rival_1': { score: 0, state: 'neutral' }
-            }
+            relationships: { 'rival_1': { score: 0, state: 'neutral' } }
         };
-
         addLogMessage("Você nasceu. O mundo aguarda para testemunhar sua lenda.", "milestone", true);
         updateUI();
         saveGameState();
@@ -1037,17 +846,18 @@ function handleSpecialEffects(effectKey) {
         const savedGame = localStorage.getItem('immortalJourneySave');
         if (savedGame) {
             gameState = JSON.parse(savedGame);
-            if (!gameState.life_log) gameState.life_log = []; // Backwards compatibility
+            if (!gameState.life_log) gameState.life_log = [];
         } else {
             startNewGame();
         }
 
-        // This space intentionally left blank after removing testing code.
-
         // Attach event listeners
         elements.nextYearBtn.addEventListener('click', advanceYear);
         elements.meditateBtn.addEventListener('click', meditate);
-        elements.talentsBtn.addEventListener('click', () => elements.talentsScreen.classList.remove('hidden'));
+        elements.talentsBtn.addEventListener('click', () => {
+            showTalents();
+            elements.talentsScreen.classList.remove('hidden');
+        });
         elements.closeTalentsBtn.addEventListener('click', () => elements.talentsScreen.classList.add('hidden'));
         elements.sectActionsBtn.addEventListener('click', () => handleSpecialEffects('show_sect_actions'));
         elements.startNewJourneyBtn.addEventListener('click', () => {

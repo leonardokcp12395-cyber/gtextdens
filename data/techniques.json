@@ -88,5 +88,21 @@
     "description": "Uma técnica de foco que aumenta permanentemente sua resiliência mental.",
     "type": "rare",
     "effects": { "attributes": { "mind": 5 } }
+  },
+  {
+    "id": "unbreakable_stance",
+    "name": "Postura Inquebrável",
+    "description": "Uma técnica de defesa ativa. Gaste Qi para reduzir drasticamente o dano no próximo turno.",
+    "type": "active_combat",
+    "qi_cost": 50,
+    "damage_multiplier": 0,
+    "special_effect": { "type": "super_defend", "multiplier": 0.8 }
+  },
+  {
+    "id": "iron_body_sutra",
+    "name": "Sutra do Corpo de Ferro",
+    "description": "Um manual antigo que detalha métodos para fortalecer o corpo a um nível sobre-humano.",
+    "type": "rare",
+    "effects": { "attributes": { "body": 5 } }
   }
 ]

@@ -41,5 +41,16 @@
     "reward": {
       "contribution": 30
     }
+  },
+  {
+    "id": "clear_haunted_forest",
+    "sect_id": "iron_body_sect",
+    "title": "Limpar a Floresta Assombrada",
+    "description": "Bestas demoníacas têm sido avistadas na floresta próxima. A seita pede que um discípulo corajoso vá investigar e limpar a área.",
+    "min_rank": 2,
+    "reward": {
+      "contribution": 100,
+      "items": ["ginseng_vitality"]
+    }
   }
 ]

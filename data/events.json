@@ -169,5 +169,56 @@
         { "text": "'É uma mentira descarada!'", "effects": { "relationships": { "rival": -15 } } },
         { "text": "Permanecer em silêncio digno.", "effects": { "attributes": { "mind": 1 } } }
     ]
+  },
+  {
+    "id": "sect_library_duty",
+    "type": "repeatable",
+    "conditions": { "min_sect_rank": 1, "probability": 0.15 },
+    "text": "Você é designado para organizar os pergaminhos na biblioteca da seita. É um trabalho tranquilo. Você pode se apressar para ganhar mais mérito ou pode aproveitar para estudar um pouco.",
+    "choices": [
+        { "text": "Focar no trabalho e terminá-lo rapidamente.", "effects": { "resources": { "contribution": 25 } }, "resultKey": "library_duty_contribution" },
+        { "text": "Trabalhar devagar e absorver o conhecimento.", "effects": { "attributes": { "mind": 1 } }, "resultKey": "library_duty_mind" }
+    ]
+  },
+  {
+    "id": "sect_tournament_announcement",
+    "type": "once",
+    "conditions": { "min_sect_rank": 1, "min_age": 18 },
+    "text": "Um anúncio é colocado no pátio principal da sua seita: um grande torneio será realizado no próximo ano para determinar o discípulo mais forte da nova geração. A glória e grandes recompensas aguardam o vencedor.",
+    "choices": [
+      { "text": "Vou treinar arduamente para isto!", "effects": { "attributes": { "body": 2, "mind": 1 } }, "resultKey": "tournament_training_start" },
+      { "text": "Não tenho interesse em tais exibições.", "effects": { "attributes": { "mind": 1 } }, "resultKey": "tournament_ignored" }
+    ]
+  },
+  {
+    "id": "tournament_first_round",
+    "type": "once",
+    "conditions": { "age": 19, "min_sect_rank": 1 },
+    "text": "O dia do torneio da seita chegou. As arquibancadas estão cheias de discípulos e anciãos. Seu primeiro oponente sobe ao palco. Ele parece confiante.",
+    "choices": [
+      { "text": "Lutar com tudo que tenho.", "effects": { "special": "start_combat_tournament_disciple" } },
+      { "text": "Estudar o oponente primeiro.", "effects": { "attributes": { "mind": 1 } }, "resultKey": "tournament_studied_opponent" }
+    ]
+  },
+  {
+    "id": "mysterious_master_encounter",
+    "type": "once",
+    "image": "img/events/master.png",
+    "conditions": { "min_cultivation_realm_id": 2, "min_age": 30 },
+    "text": "Em uma clareira isolada nas montanhas, você encontra uma figura idosa pescando em um lago sem peixes. Ele se vira para você e sorri. 'Sinto uma grande ambição em você, jovem. Mas a ambição sem sabedoria é como um rio sem margens.'",
+    "choices": [
+      { "text": "Pedir humildemente por orientação.", "effects": { "special": "learn_technique_serene_mind" }, "resultKey": "master_guidance_accepted" },
+      { "text": "Agradecer e seguir seu caminho.", "effects": { "attributes": { "mind": 2 } }, "resultKey": "master_ignored" }
+    ]
+  },
+  {
+    "id": "haunted_forest",
+    "type": "repeatable",
+    "conditions": { "min_age": 15, "probability": 0.1 },
+    "text": "Você ouve rumores sobre uma floresta assombrada nas proximidades, onde bestas demoníacas vagam. Dizem que ervas raras crescem lá, mas o perigo é grande.",
+    "choices": [
+      { "text": "Aventurar-se na floresta.", "effects": { "special": "start_combat_demonic_wolf" }, "resultKey": "haunted_forest_entered" },
+      { "text": "É melhor evitar esse lugar.", "effects": {}, "resultKey": "haunted_forest_avoided" }
+    ]
   }
 ]

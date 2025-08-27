@@ -54,5 +54,29 @@
       "defense": 6,
       "speed": 14
     }
+  },
+  {
+    "id": "tournament_disciple",
+    "name": "Discípulo do Torneio",
+    "techniques": ["stunning_palm"],
+    "combat": {
+      "maxHp": 80,
+      "hp": 80,
+      "attack": 12,
+      "defense": 6,
+      "speed": 10
+    }
+  },
+  {
+    "id": "ancient_guardian",
+    "name": "Guardião Antigo",
+    "techniques": ["unbreakable_stance"],
+    "combat": {
+      "maxHp": 200,
+      "hp": 200,
+      "attack": 20,
+      "defense": 15,
+      "speed": 8
+    }
   }
 ]

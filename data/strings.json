@@ -40,5 +40,19 @@
   "swift_blade_test_passed": "Você se move como um borrão, sua lâmina um mero sussurro no ar. Seu mestre assente, impressionado.",
   "spirit_elixir_task_done": "As horas passam, mas sua mente permanece focada. O alquimista lhe agradece com um sorriso e um pagamento justo por seu tempo.",
     "tribulation_faced": "Você reúne todo o seu poder para enfrentar os céus!",
-    "hermit_wisdom_accepted": "As palavras do eremita ecoam em sua mente, abrindo novas perspectivas."
+    "hermit_wisdom_accepted": "As palavras do eremita ecoam em sua mente, abrindo novas perspectivas.",
+    "library_duty_contribution": "Você termina a tarefa eficientemente e é recompensado por seu esforço.",
+    "library_duty_mind": "As horas passam voando enquanto você se perde nos textos antigos. Você sente sua mente mais clara.",
+    "tournament_training_start": "Você se dedica ao treinamento, sentindo seu corpo e espírito se preparando para o desafio que virá.",
+    "tournament_ignored": "Você desvia o olhar do anúncio. Há coisas mais importantes para focar do que a glória vazia.",
+    "tournament_studied_opponent": "Você observa seu oponente, notando suas aberturas e estilo de luta. Conhecimento é poder.",
+    "master_guidance_accepted": "O mestre sorri e compartilha uma profunda sabedoria com você, revelando uma técnica que acalma a mente e fortalece o espírito.",
+    "master_ignored": "Você agradece ao velho por suas palavras, mas decide seguir seu próprio caminho. A sabedoria deve vir de dentro.",
+    "haunted_forest_entered": "Você adentra a floresta escura. O ar é pesado e um uivo ecoa à distância. Você se prepara para o perigo.",
+    "haunted_forest_avoided": "A prudência vence a curiosidade. Você se afasta da floresta, sentindo um arrepio na espinha.",
+    "qi_spot_meditated": "O Qi puro e denso flui para dentro de você, nutrindo seus meridianos. Você se sente revigorado.",
+    "insight_internalized": "Uma nova compreensão floresce em sua mente. O caminho do cultivo parece um pouco mais claro agora.",
+    "merchant_helped": "O mercador agradece profusamente e lhe entrega uma bolsa de moedas como recompensa.",
+    "sparring_accepted": "O treino é vigoroso e você aprende algumas coisas novas sobre combate.",
+    "sparring_declined": "Você recusa o convite. Talvez em outra ocasião."
 }

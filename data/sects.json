@@ -47,7 +47,8 @@
     ],
     "techniques": [
       { "id": "iron_fist_stance", "cost_contribution": 150, "min_rank": 1 },
-      { "id": "iron_body_fortification", "cost_contribution": 250, "min_rank": 2 }
+      { "id": "iron_body_fortification", "cost_contribution": 250, "min_rank": 2 },
+      { "id": "unbreakable_stance", "cost_contribution": 600, "min_rank": 3 }
     ]
   },
   {

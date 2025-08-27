@@ -28,5 +28,35 @@
         "resultKey": "stumble_unlucky"
       }
     ]
+  },
+  {
+    "id": "qi_gathering_spot",
+    "text": "Você descobre um pequeno local escondido onde o Qi do ambiente é particularmente denso e puro.",
+    "choices": [
+      { "text": "Meditar aqui por um tempo.", "effects": { "resources": { "qi": 50 } }, "resultKey": "qi_spot_meditated" }
+    ]
+  },
+  {
+    "id": "sudden_insight",
+    "text": "Durante a meditação, você tem uma súbita epifania sobre os princípios do cultivo, sentindo seu entendimento se aprofundar.",
+    "choices": [
+      { "text": "Internalizar a percepção.", "effects": { "attributes": { "mind": 2 } }, "resultKey": "insight_internalized" }
+    ]
+  },
+  {
+    "id": "lost_merchant",
+    "text": "Você encontra um mercador perdido nas colinas. Ele oferece uma pequena recompensa por sua ajuda para encontrar o caminho de volta.",
+    "choices": [
+      { "text": "Ajudá-lo.", "effects": { "resources": { "money": 100 } }, "resultKey": "merchant_helped" },
+      { "text": "Ignorá-lo.", "effects": {}, "resultKey": "merchant_ignored" }
+    ]
+  },
+  {
+    "id": "sparring_request",
+    "text": "Um discípulo da sua seita o convida para uma sessão de treino amigável para aprimorar suas habilidades.",
+    "choices": [
+      { "text": "Aceitar o desafio.", "effects": { "attributes": { "body": 1, "mind": 1 } }, "resultKey": "sparring_accepted" },
+      { "text": "Recusar educadamente.", "effects": {}, "resultKey": "sparring_declined" }
+    ]
   }
 ]
