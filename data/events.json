@@ -1,0 +1,173 @@
+[
+  {
+    "id": "found_coin_age_5",
+    "type": "once",
+    "conditions": { "age": 5 },
+    "text": "Enquanto caminhava por uma estrada poeirenta, você avista algo brilhando no chão. É uma moeda de cobre!",
+    "choices": [
+      { "text": "Apanhar a moeda.", "effects": { "resources": { "money": 1 } }, "resultKey": "found_coin_success" }
+    ]
+  },
+  {
+    "id": "study_or_play_age_7",
+    "type": "once",
+    "conditions": { "age": 7 },
+    "text": "O dia está lindo lá fora, perfeito para correr e treinar o corpo. No entanto, um livro antigo sobre táticas de batalha também chama a sua atenção na prateleira.",
+    "choices": [
+      { "text": "Ir treinar lá fora.", "effects": { "attributes": { "body": 1 } }, "resultKey": "study_or_play_body" },
+      { "text": "Ficar e estudar o livro.", "effects": { "attributes": { "mind": 1 } }, "resultKey": "study_or_play_mind" }
+    ]
+  },
+  {
+    "id": "rival_ambush",
+    "type": "once",
+    "conditions": { "rival_relationship_state": "Inimigo", "min_age": 18 },
+    "text": "Enquanto você viaja por uma área isolada, [RIVAL] aparece de repente, com uma expressão hostil. 'Eu sabia que te encontraria aqui, [PLAYER_NAME]. É hora de acertarmos as contas!'",
+    "choices": [
+      { "text": "Lutar!", "effects": { "special": "start_combat_rival" } },
+      { "text": "Tentar acalmá-lo.", "effects": { "relationships": { "rival": 5 }, "attributes": { "mind": -1 } }, "resultKey": "rival_ambush_calmed" }
+    ]
+  },
+  {
+    "id": "friendly_spar",
+    "type": "once",
+    "conditions": { "rival_relationship_state": "Amigo", "min_age": 18 },
+    "text": "[RIVAL] se aproxima de você com um sorriso. '[PLAYER_NAME], que tal um treino amigável? Podemos testar nossas habilidades e ajudar um ao outro a melhorar.'",
+    "choices": [
+      { "text": "Aceitar o treino.", "effects": { "attributes": { "body": 2, "mind": 1 }, "relationships": { "rival": 10 } }, "resultKey": "friendly_spar_accepted" },
+      { "text": "Recusar educadamente.", "effects": {}, "resultKey": "friendly_spar_declined" }
+    ]
+  },
+  {
+    "id": "sect_elder_gift",
+    "type": "once",
+    "conditions": { "min_sect_rank": 2 },
+    "text": "Impressionado com seu rápido progresso, um Ancião da sua seita o convoca. 'Sua dedicação é exemplar', diz ele, entregando-lhe um manual antigo. 'Estude-o. Ele irá servi-lo bem.'",
+    "choices": [
+      { "text": "Agradecer e aceitar o manual.", "effects": { "special": "learn_technique_heavenly_qi_circulation" }, "resultKey": "sect_elder_gift_accepted" }
+    ]
+  },
+  {
+    "id": "ruins_discovery",
+    "image": "img/events/ruins.png",
+    "conditions": { "min_age": 25, "probability": 0.05 },
+    "text": "Você descobre ruínas antigas e desmoronadas durante suas viagens. Dentro, você encontra um pedestal com um único manual de técnica empoeirado.",
+    "choices": [
+      { "text": "Estudar o manual.", "effects": { "special": "learn_random_technique" }, "resultKey": "ruins_manual_studied" }
+    ]
+  },
+  {
+    "id": "cultivation_bottleneck",
+    "type": "once",
+    "conditions": { "min_cultivation_realm_id": 2 },
+    "text": "Ao tentar meditar, você sente uma resistência teimosa em seus meridianos. Parece que você atingiu um gargalo em seu cultivo. Superá-lo exigirá mais do que apenas Qi.",
+    "choices": [
+      { "text": "Isso exigirá paciência e talvez uma oportunidade.", "effects": { "attributes": { "mind": 1 } }, "resultKey": "cultivation_bottleneck_realized" }
+    ]
+  },
+  {
+    "id": "mysterious_merchant",
+    "conditions": { "min_age": 20, "probability": 0.1 },
+    "text": "Um mercador misterioso com um manto encapuzado monta uma barraca na beira da estrada. Ele acena para você, revelando um item peculiar.",
+    "choices": [
+      { "text": "Comprar a 'Pílula da Sorte Súbita' por 50 moedas.", "effects": { "resources": { "money": -50 }, "attributes": { "luck": 2 } }, "resultKey": "merchant_bought_pill" },
+      { "text": "Ignorar o mercador.", "effects": {}, "resultKey": "merchant_ignored" }
+    ]
+  },
+  {
+    "id": "sect_rivalry_confrontation",
+    "conditions": { "min_age": 18, "rival_in_same_sect": false, "probability": 0.2 },
+    "text": "Você encontra [RIVAL] perto de um mercado. Ele nota o emblema da sua seita e zomba. 'Ainda perdendo seu tempo com esses fracos? Minha seita esmagaria a sua sem pensar duas vezes.'",
+    "choices": [
+      { "text": "Defender a honra da sua seita.", "effects": { "relationships": { "rival": -10 } }, "resultKey": "sect_rivalry_defended" },
+      { "text": "Ignorar o comentário patético.", "effects": { "relationships": { "rival": -2 } }, "resultKey": "sect_rivalry_ignored" }
+    ]
+  },
+  {
+    "id": "sect_brother_encounter",
+    "conditions": { "min_age": 18, "rival_in_same_sect": true, "probability": 0.2 },
+    "text": "Você vê [RIVAL] treinando arduamente no pátio da seita. Ele acena com a cabeça em reconhecimento. 'Irmão [PLAYER_NAME]. É bom ver que você também está se esforçando pela glória da nossa seita.'",
+    "choices": [
+      { "text": "'Juntos, vamos fortalecer a seita.'", "effects": { "relationships": { "rival": 10 } }, "resultKey": "sect_brother_agreed" },
+      { "text": "Apenas acenar de volta.", "effects": { "relationships": { "rival": 2 } }, "resultKey": "sect_brother_nodded" }
+    ]
+  },
+  {
+    "id": "swift_blade_sect_test",
+    "type": "once",
+    "conditions": { "required_sect_id": "swift_blade_sect", "min_sect_rank": 1 },
+    "text": "Seu mestre na Seita da Lâmina Veloz quer testar sua velocidade. 'Seja mais rápido que o vento, [PLAYER_NAME]'.",
+    "choices": [
+        { "text": "Aceitar o desafio.", "effects": { "combat": { "speed": 1 } }, "resultKey": "swift_blade_test_passed" }
+    ]
+  },
+  {
+    "id": "spirit_elixir_sect_task",
+    "type": "once",
+    "conditions": { "required_sect_id": "spirit_elixir_sect", "min_sect_rank": 1 },
+    "text": "Um alquimista sênior pede sua ajuda para catalogar ervas raras. É um trabalho meticuloso que exige grande foco mental.",
+    "choices": [
+        { "text": "Ajudá-lo por várias horas.", "effects": { "attributes": { "mind": 2 }, "resources": { "contribution": 20 } }, "resultKey": "spirit_elixir_task_done" }
+    ]
+  },
+    {
+    "id": "breakthrough_tribulation",
+    "type": "once",
+    "image": "img/events/tribulation.png",
+    "conditions": { "min_cultivation_realm_id": 3 },
+    "text": "Ao tentar avançar para o Reino do Núcleo Dourado, os céus escurecem e nuvens de tempestade se formam. Uma tribulação celestial desce sobre você! Você deve resistir para provar seu valor.",
+    "choices": [
+        { "text": "Enfrentar a tribulação de frente!", "effects": { "special": "face_tribulation" }, "resultKey": "tribulation_faced" }
+    ]
+  },
+  {
+    "id": "rival_ambush",
+    "type": "once",
+    "image": "img/events/ambush.png",
+    "conditions": { "rival_relationship_state": "Inimigo", "min_age": 18 },
+    "text": "Enquanto você viaja por uma área isolada, [RIVAL] aparece de repente, com uma expressão hostil. 'Eu sabia que te encontraria aqui, [PLAYER_NAME]. É hora de acertarmos as contas!'",
+    "choices": [
+      { "text": "Lutar!", "effects": { "special": "start_combat_rival" } },
+      { "text": "Tentar acalmá-lo.", "effects": { "relationships": { "rival": -5 }, "attributes": { "mind": -1 } }, "resultKey": "rival_ambush_calmed" }
+    ]
+  },
+  {
+    "id": "rival_jealousy",
+    "type": "repeatable",
+    "conditions": { "player_stronger_than_rival": true, "rival_relationship_state": "Neutro", "probability": 0.2 },
+    "text": "Você encontra [RIVAL] treinando. Ele olha para você, e você vê uma ponta de inveja em seus olhos. 'Você tem tido sorte, [PLAYER_NAME]. Mas a sorte acaba.'",
+    "choices": [
+        { "text": "Ignorá-lo.", "effects": { "relationships": { "rival": -2 } } },
+        { "text": "'Sorte não tem nada a ver com isso.'", "effects": { "relationships": { "rival": -5 } } }
+    ]
+  },
+  {
+    "id": "rival_mockery",
+    "type": "repeatable",
+    "conditions": { "player_stronger_than_rival": false, "rival_relationship_state": "Neutro", "probability": 0.2 },
+    "text": "Você passa por [RIVAL], que está exibindo uma nova técnica para outros discípulos. Ele para e diz em voz alta: 'Veja, [PLAYER_NAME], é assim que se faz. Talvez um dia você aprenda.'",
+    "choices": [
+        { "text": "Encará-lo em silêncio.", "effects": { "relationships": { "rival": -3 } } },
+        { "text": "Rir da sua arrogância.", "effects": { "relationships": { "rival": -1 } } }
+    ]
+  },
+  {
+    "id": "hermit_encounter",
+    "type": "repeatable",
+    "conditions": { "min_age": 20, "probability": 0.02 },
+    "text": "Você encontra um velho eremita meditando sob uma cachoeira. Ele abre um olho e lhe oferece um único conselho enigmático.",
+    "choices": [
+        { "text": "Ouvir atentamente.", "effects": { "attributes": { "mind": 2 } }, "resultKey": "hermit_wisdom_accepted" }
+    ]
+  },
+  {
+    "id": "sect_sabotage_accusation",
+    "type": "once",
+    "conditions": { "rival_relationship_state": "Inimigo", "rival_in_same_sect": true },
+    "text": "Um ancião da seita o convoca. '[RIVAL] acusou você de sabotar o cultivo dele. O que você tem a dizer em sua defesa?'",
+    "choices": [
+        { "text": "'É uma mentira descarada!'", "effects": { "relationships": { "rival": -15 } } },
+        { "text": "Permanecer em silêncio digno.", "effects": { "attributes": { "mind": 1 } } }
+    ]
+  }
+]

@@ -1,0 +1,38 @@
+[
+  {
+    "id": 0,
+    "name": "Mortal",
+    "levels": 9,
+    "baseMaxQi": 100,
+    "qiPerLevel": 50,
+    "attributeBonusOnBreakthrough": { "body": 1, "mind": 1 },
+    "lifespan_bonus": 0
+  },
+  {
+    "id": 1,
+    "name": "Condensação de Qi",
+    "levels": 9,
+    "baseMaxQi": 1000,
+    "qiPerLevel": 250,
+    "attributeBonusOnBreakthrough": { "body": 5, "mind": 5 },
+    "lifespan_bonus": 20
+  },
+  {
+    "id": 2,
+    "name": "Estabelecimento de Fundação",
+    "levels": 9,
+    "baseMaxQi": 5000,
+    "qiPerLevel": 1000,
+    "attributeBonusOnBreakthrough": { "body": 10, "mind": 10 },
+    "lifespan_bonus": 50
+  },
+  {
+    "id": 3,
+    "name": "Núcleo Dourado",
+    "levels": 9,
+    "baseMaxQi": 25000,
+    "qiPerLevel": 5000,
+    "attributeBonusOnBreakthrough": { "body": 25, "mind": 25 },
+    "lifespan_bonus": 100
+  }
+]

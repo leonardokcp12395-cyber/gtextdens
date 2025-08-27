@@ -1,0 +1,64 @@
+[
+  {
+    "id": "body_t_1",
+    "name": "Corpo Robusto",
+    "description": "Seu corpo é naturalmente mais forte. Ganha +5 HP Máximo.",
+    "cost": 1,
+    "requirements": [],
+    "effects": {
+      "combat": {
+        "maxHp": 5
+      }
+    }
+  },
+  {
+    "id": "mind_t_1",
+    "name": "Mente Aguçada",
+    "description": "Sua mente processa informações mais rápido. Ganha +1 de Mente.",
+    "cost": 1,
+    "requirements": [],
+    "effects": {
+      "attributes": {
+        "mind": 1
+      }
+    }
+  },
+  {
+    "id": "body_t_2",
+    "name": "Vigor de Aço",
+    "description": "Sua resiliência é notável. Ganha +1 de Defesa.",
+    "cost": 2,
+    "requirements": [
+      "body_t_1"
+    ],
+    "effects": {
+      "combat": {
+        "defense": 1
+      }
+    }
+  },
+  {
+    "id": "fast_learner",
+    "name": "Aprendiz Rápido",
+    "description": "Você tem uma afinidade natural com o fluxo de Qi. Ganha 50% a mais de Qi ao meditar.",
+    "cost": 3,
+    "requirements": ["mind_t_1"],
+    "effects": {}
+  },
+  {
+    "id": "mind_t_2",
+    "name": "Mente de Sábio",
+    "description": "Sua clareza mental é impressionante, melhorando sua capacidade de cultivo e de combate.",
+    "cost": 3,
+    "requirements": ["mind_t_1"],
+    "effects": { "attributes": { "mind": 2 }, "combat": { "attack": 1 } }
+  },
+  {
+    "id": "speed_t_1",
+    "name": "Passos Leves",
+    "description": "Você se move com uma graça incomum, tornando-se mais rápido em combate.",
+    "cost": 2,
+    "requirements": [],
+    "effects": { "combat": { "speed": 2 } }
+  }
+]

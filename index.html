@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jornada do Dao Imortal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Source+Sans+Pro:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="game-container">
+        <div id="character-panel" class="panel">
+            <h2><span id="player-name"></span></h2>
+            <p><strong>Idade:</strong> <span id="char-age">0</span> / <span id="char-lifespan">80</span></p>
+            <hr>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3>Atributos</h3>
+                <button id="talents-btn" style="width: auto; padding: 5px 10px; margin-top: 0;">Talentos (<span id="talent-points">0</span>)</button>
+            </div>
+            <p><strong>Corpo:</strong> <span id="attr-body">10</span></p>
+            <p><strong>Mente:</strong> <span id="attr-mind">10</span></p>
+            <hr>
+            <div id="sect-info" class="hidden">
+                <h3>Seita</h3>
+                <p><strong>Nome:</strong> <span id="sect-name">Nenhuma</span></p>
+                <p><strong>Rank:</strong> <span id="sect-rank">Nenhum</span></p>
+                <p><strong>Contribuição:</strong> <span id="sect-contribution">0</span></p>
+            </div>
+        </div>
+
+        <div id="cultivation-panel" class="panel">
+            <h2>Cultivo</h2>
+            <p><strong>Reino:</strong> <span id="cult-realm">Mortal</span></p>
+            <p><strong>Nível:</strong> <span id="cult-level">1</span></p>
+            <p><strong>Qi:</strong> <span id="cult-qi">0</span> / <span id="cult-max-qi">100</span></p>
+        </div>
+
+        <div id="event-panel" class="panel">
+            <img id="event-image" class="hidden" src="" alt="Imagem do Evento">
+            <h2>Diário da Jornada</h2>
+            <div id="event-content">
+                <p>Você nasceu. O caminho é longo e incerto.</p>
+            </div>
+            <div id="choices-container"></div>
+            <div id="actions-container">
+                <button id="sect-actions-btn" class="hidden">Ações da Seita</button>
+                <button id="meditate-btn">Meditar</button>
+                <button id="next-year-btn">Avançar Ano</button>
+            </div>
+
+            <div id="combat-screen" class="hidden">
+                <div class="combat-panels-container">
+                    <div id="combat-player-stats" class="combat-stats-panel">
+                        <h3>Você</h3>
+                        <p>HP: <span id="combat-player-hp">100</span></p>
+                    </div>
+                    <div id="combat-enemy-stats" class="combat-stats-panel">
+                        <h3 id="combat-enemy-name">Inimigo</h3>
+                        <p>HP: <span id="combat-enemy-hp">100</span></p>
+                    </div>
+                </div>
+                <div id="combat-log" class="panel">
+                    <!-- Log de combate temporário -->
+                </div>
+                <div id="combat-actions">
+                    <!-- Ações de combate dinâmicas -->
+                </div>
+            </div>
+        </div>
+
+        <div id="right-panels-container">
+            <div id="resources-panel" class="panel">
+                <h2>Recursos</h2>
+                <p><strong>Dinheiro:</strong> <span id="res-money">10</span></p>
+                <p><strong>Contribuição:</strong> <span id="res-contribution">0</span></p>
+            </div>
+
+            <div id="relationships-panel" class="panel">
+                <h2>Relações</h2>
+                <ul id="relationships-list"></ul>
+            </div>
+            <div id="techniques-panel" class="panel">
+                <h2>Técnicas</h2>
+                <ul id="techniques-list"></ul>
+            </div>
+        </div>
+    </div>
+
+    <div id="life-chronicle-panel" class="panel">
+        <h2>Crônica da Vida</h2>
+        <ul id="life-log-list"></ul>
+    </div>
+
+    <!-- Overlays -->
+    <div id="talents-screen" class="hidden fullscreen-overlay">
+        <div class="panel">
+            <h2>Árvore de Talentos</h2>
+            <p>Você tem <span id="talents-screen-points">0</span> Pontos de Talento.</p>
+            <hr>
+            <div id="talents-container"></div>
+            <button id="close-talents-btn">Fechar</button>
+        </div>
+    </div>
+
+    <div id="legacy-screen" class="hidden fullscreen-overlay">
+        <div class="panel">
+            <h2>Legado da Jornada</h2>
+
+            <div id="end-game-summary">
+                <div id="final-stats">
+                    <h3>Status Final</h3>
+                    <ul id="final-stats-list">
+                        <!-- Populated by JS -->
+                    </ul>
+                </div>
+                <div id="final-chronicle">
+                    <h3>Crônica da Vida</h3>
+                    <ul id="final-chronicle-list">
+                        <!-- Populated by JS -->
+                    </ul>
+                </div>
+            </div>
+
+            <hr>
+            <p>Esta vida lhe rendeu <span id="legacy-points-earned">0</span> Pontos de Legado.</p>
+            <p><strong>Total de Pontos de Legado: <span id="legacy-points-total">0</span></strong></p>
+            <hr>
+            <h4>Bônus para a Próxima Vida</h4>
+            <div id="legacy-bonuses-container">
+                <p>Em breve...</p>
+            </div>
+            <button id="start-new-journey-btn">Começar Nova Jornada</button>
+            <button id="reset-progress-btn" class="danger-btn">Resetar Todo o Progresso</button>
+        </div>
+    </div>
+
+    <script src="js/game.js"></script>
+</body>
+</html>
