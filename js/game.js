@@ -249,6 +249,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (effects.attributes) for (const attr in effects.attributes) gameState.player.attributes[attr] = (gameState.player.attributes[attr] || 0) + effects.attributes[attr];
         if (effects.resources) for (const res in effects.resources) gameState.resources[res] = (gameState.resources[res] || 0) + effects.resources[res];
         if (effects.cultivation) for (const cult in effects.cultivation) gameState.cultivation[cult] = (gameState.cultivation[cult] || 0) + effects.cultivation[cult];
+        if (effects.lifespan) gameState.player.lifespan += effects.lifespan;
         if (effects.combat) for (const stat in effects.combat) gameState.player.combat[stat] = (gameState.player.combat[stat] || 0) + effects.combat[stat];
         if (effects.relationships) {
             for (const npcKey in effects.relationships) {
@@ -277,6 +278,7 @@ document.addEventListener('DOMContentLoaded', () => {
             case 'try_promotion': tryPromotion(); break;
             case 'show_mission_board': showMissionBoard(); break;
             case 'show_sect_store': showSectStore(); break;
+            case 'show_special_merchant': showSpecialMerchantStore(); break;
             case 'start_combat_rival':
                 const rivalData = { id: gameState.rivalId, name: gameState.npcs[gameState.rivalId].name, combat: gameState.npcs[gameState.rivalId].combat, techniques: gameState.npcs[gameState.rivalId].techniques || [] };
                 startCombat(rivalData);
@@ -362,6 +364,39 @@ document.addEventListener('DOMContentLoaded', () => {
         const backButton = document.createElement('button');
         backButton.textContent = "Voltar para Ações da Seita";
         backButton.onclick = showSectActions;
+        elements.choicesContainer.appendChild(backButton);
+    }
+
+    function showSpecialMerchantStore() {
+        elements.eventContent.innerHTML = `<p>O mercador exibe seus produtos. Você tem ${gameState.resources.spirit_stones || 0} Pedras Espirituais.</p>`;
+        elements.choicesContainer.innerHTML = '';
+        const specialItems = allGameData.items.filter(item => item.source === 'special_merchant');
+
+        specialItems.forEach(item => {
+            const canAfford = (gameState.resources.spirit_stones || 0) >= item.cost_spirit_stones;
+            const button = document.createElement('button');
+            button.innerHTML = `${item.name} - ${item.cost_spirit_stones} Pedras Espirituais <br><small>${item.description}</small>`;
+            button.disabled = !canAfford;
+            if (!canAfford) {
+                button.innerHTML += `<br><small style="color: red;">Pedras Espirituais insuficientes</small>`;
+            }
+            button.onclick = () => {
+                gameState.resources.spirit_stones -= item.cost_spirit_stones;
+                applyEffects(item.effects);
+                addLogMessage(`Você comprou ${item.name}.`, 'reward', true);
+                showSpecialMerchantStore(); // Refresh the store view
+            };
+            elements.choicesContainer.appendChild(button);
+        });
+
+        const backButton = document.createElement('button');
+        backButton.textContent = "Sair";
+        backButton.onclick = () => {
+            // Go back to the main screen by clearing the event and showing default actions
+            elements.eventContent.innerHTML = "<p>Você se afasta da tenda do mercador.</p>";
+            elements.choicesContainer.innerHTML = '';
+            elements.eventImage.style.display = 'none';
+        };
         elements.choicesContainer.appendChild(backButton);
     }
 

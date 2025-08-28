@@ -220,5 +220,16 @@
       { "text": "Aventurar-se na floresta.", "effects": { "special": "start_combat_demonic_wolf" }, "resultKey": "haunted_forest_entered" },
       { "text": "É melhor evitar esse lugar.", "effects": {}, "resultKey": "haunted_forest_avoided" }
     ]
+  },
+  {
+    "id": "special_merchant_encounter",
+    "type": "repeatable",
+    "image": "img/events/ruins.png",
+    "conditions": { "min_age": 25, "probability": 0.05 },
+    "text": "Em uma estrada poeirenta, você encontra uma tenda luxuosa que não estava lá ontem. Um mercador com vestes exóticas sorri para você. 'Interessado em mercadorias verdadeiramente raras, jovem cultivador? Apenas para aqueles que podem pagar o preço, é claro.' Ele gesticula para seus produtos, que parecem brilhar com um poder incomum.",
+    "choices": [
+      { "text": "Deixe-me ver o que você tem.", "effects": { "special": "show_special_merchant" }, "resultKey": "special_merchant_browsing" },
+      { "text": "Não tenho tempo para isso.", "effects": {}, "resultKey": "special_merchant_ignored" }
+    ]
   }
 ]

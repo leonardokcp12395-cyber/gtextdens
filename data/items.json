@@ -54,5 +54,32 @@
     "description": "Uma erva rara que emana uma aura de vida. Fortalece a constituição.",
     "type": "consumable",
     "effects": { "attributes": { "body": 3 } }
+  },
+  {
+    "id": "phoenix_feather",
+    "name": "Pena de Fênix",
+    "description": "Uma pena que queima com uma chama suave e quente. Dizem que contém uma centelha da imortalidade.",
+    "type": "consumable",
+    "source": "special_merchant",
+    "cost_spirit_stones": 10,
+    "effects": { "lifespan": 10 }
+  },
+  {
+    "id": "dragon_scale_armor_manual",
+    "name": "Manual da Armadura de Escamas de Dragão",
+    "description": "Um manual que ensina a circular Qi para formar uma armadura protetora invisível, resistente como escamas de dragão.",
+    "type": "consumable",
+    "source": "special_merchant",
+    "cost_spirit_stones": 8,
+    "effects": { "combat": { "defense": 10 } }
+  },
+  {
+    "id": "void_crystal",
+    "name": "Cristal do Vazio",
+    "description": "Um cristal que parece absorver a luz ao seu redor. Quebrá-lo libera uma onda de energia pura que pode expandir sua capacidade de Qi.",
+    "type": "consumable",
+    "source": "special_merchant",
+    "cost_spirit_stones": 5,
+    "effects": { "cultivation": { "maxQi": 500 } }
   }
 ]
