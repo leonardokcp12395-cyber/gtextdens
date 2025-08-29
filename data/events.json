@@ -231,5 +231,16 @@
       { "text": "Deixe-me ver o que você tem.", "effects": { "special": "show_special_merchant" }, "resultKey": "special_merchant_browsing" },
       { "text": "Não tenho tempo para isso.", "effects": {}, "resultKey": "special_merchant_ignored" }
     ]
+  },
+  {
+    "id": "ancient_guardian_tomb",
+    "type": "once",
+    "image": "img/events/ruins.png",
+    "conditions": { "min_cultivation_realm_id": 3, "probability": 0.1 },
+    "text": "Explorando uma cadeia de montanhas remotas, você descobre a entrada de uma tumba antiga, selada há eras. Uma inscrição na porta avisa sobre um guardião eterno protegendo o tesouro do primeiro mestre da tumba. O ar vibra com poder.",
+    "choices": [
+      { "text": "Entrar na tumba e enfrentar o guardião.", "effects": { "special": "start_combat_ancient_guardian" }, "resultKey": "tomb_entered" },
+      { "text": "Recuar. Este poder está além de mim por enquanto.", "effects": {}, "resultKey": "tomb_avoided" }
+    ]
   }
 ]
