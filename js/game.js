@@ -33,6 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
         spiritStones: document.getElementById('res-spirit-stones'),
         meditateBtn: document.getElementById('meditate-btn'),
         nextYearBtn: document.getElementById('next-year-btn'),
+        endJourneyBtn: document.getElementById('end-journey-btn'),
         talentsBtn: document.getElementById('talents-btn'),
         sectActionsBtn: document.getElementById('sect-actions-btn'),
         combatPlayerHp: document.getElementById('combat-player-hp'),
@@ -299,8 +300,12 @@ document.addEventListener('DOMContentLoaded', () => {
     function showEvent(event) {
         elements.eventContent.innerHTML = `<p>${processText(event.text)}</p>`;
         elements.choicesContainer.innerHTML = '';
-        elements.eventImage.src = event.image || 'img/events/default.png';
-        elements.eventImage.style.display = event.image ? 'block' : 'none';
+        if (event.image) {
+            elements.eventImage.src = event.image;
+            elements.eventImage.style.display = 'block';
+        } else {
+            elements.eventImage.style.display = 'none';
+        }
         if (event.choices) {
             event.choices.forEach(choice => {
                 const button = document.createElement('button');
@@ -903,6 +908,12 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.resetProgressBtn.addEventListener('click', () => {
             localStorage.clear();
             window.location.reload();
+        });
+
+        elements.endJourneyBtn.addEventListener('click', () => {
+            if (confirm("Tem certeza de que deseja terminar sua jornada atual? Todo o progresso desta vida será convertido em Pontos de Legado.")) {
+                endGame('ended_journey');
+            }
         });
 
         updateUI();
