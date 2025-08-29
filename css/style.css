@@ -105,10 +105,15 @@ button:disabled {
     background-color: #ffeaa7;
 }
 
-#actions-container {
+#map-container, #turn-container {
     display: flex;
     gap: 10px;
     margin-top: 20px;
+    justify-content: center;
+}
+
+#map-container button {
+    flex-grow: 1;
 }
 
 #meditate-btn {

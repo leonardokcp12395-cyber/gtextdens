@@ -181,8 +181,7 @@ document.addEventListener('DOMContentLoaded', () => {
             case 'start_combat_ancient_guardian':
                 const ancientGuardian = allGameData.enemies.find(e => e.id === 'ancient_guardian');
                 if (ancientGuardian) {
-                    const rewards = { resources: { spirit_stones: 5, money: 1000 } };
-                    startCombat(JSON.parse(JSON.stringify(ancientGuardian)), rewards);
+                    startCombat(JSON.parse(JSON.stringify(ancientGuardian)));
                 }
                 break;
             case 'face_tribulation': addLogMessage("Os céus rugem enquanto você enfrenta a tribulação!", "milestone"); break;
@@ -319,11 +318,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- UI RENDERING & MANAGEMENT ---
-
-    /**
-     * Displays a specific event in the event panel.
-     * @param {object} event - The event object to display.
-     */
     function showEvent(event) {
         elements.eventContent.innerHTML = `<p>${processText(event.text)}</p>`;
         elements.choicesContainer.innerHTML = '';
@@ -353,15 +347,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    /**
-     * Renders all the UI elements with the current game state data.
-     * This function is called after any state change to keep the UI in sync.
-     */
     function updateUI() {
         if (!gameState || !gameState.player) return;
-
-        // --- Attribute Flashing ---
-        // Store old values before updating the text, then compare and flash if changed.
         const oldBody = parseInt(elements.body.textContent);
         const oldMind = parseInt(elements.mind.textContent);
         if (gameState.player.attributes.body > oldBody) flashElement(elements.body, 'highlight-green');
@@ -369,7 +356,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (gameState.player.attributes.mind > oldMind) flashElement(elements.mind, 'highlight-green');
         if (gameState.player.attributes.mind < oldMind) flashElement(elements.mind, 'highlight-red');
 
-        // --- Resource Flashing ---
         const oldMoney = parseInt(elements.money.textContent || '0');
         const oldContribution = parseInt(elements.contribution.textContent || '0');
         const oldSpiritStones = parseInt(elements.spiritStones.textContent || '0');
@@ -380,7 +366,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if ((gameState.resources.spirit_stones || 0) > oldSpiritStones) flashElement(elements.spiritStones, 'highlight-green');
         if ((gameState.resources.spirit_stones || 0) < oldSpiritStones) flashElement(elements.spiritStones, 'highlight-red');
 
-        // --- Update All Text Content ---
         elements.playerName.textContent = gameState.player.name;
         elements.age.textContent = gameState.age;
         elements.lifespan.textContent = gameState.player.lifespan;
@@ -398,7 +383,6 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.contribution.textContent = gameState.resources.contribution;
         elements.spiritStones.textContent = gameState.resources.spirit_stones || 0;
 
-        // --- Update Conditional UI ---
         if (gameState.sect.id) {
             elements.sectInfo.classList.remove('hidden');
             const sect = allGameData.sects.find(s => s.id === gameState.sect.id);
@@ -419,7 +403,6 @@ document.addEventListener('DOMContentLoaded', () => {
             elements.meditateBtn.classList.remove('breakthrough-ready');
         }
 
-        // --- Update Lists ---
         elements.relationshipsList.innerHTML = '';
         for (const npcId in gameState.npcs) {
             const npc = gameState.npcs[npcId];
@@ -443,11 +426,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    /**
-     * Flashes an element with a temporary highlight class.
-     * @param {HTMLElement} element - The DOM element to flash.
-     * @param {string} highlightClass - The CSS class to apply for the flash.
-     */
     function flashElement(element, highlightClass) {
         element.classList.add(highlightClass);
         setTimeout(() => {
@@ -456,9 +434,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- INITIALIZATION ---
-    /**
-     * Starts a new game, either from scratch or by applying legacy bonuses.
-     */
     function startNewGame() {
         const playerGender = Math.random() < 0.5 ? 'masculino' : 'feminino';
         const player = generateCharacter('player', playerGender, true);
@@ -498,11 +473,6 @@ document.addEventListener('DOMContentLoaded', () => {
         checkAndTriggerEvents();
     }
 
-    /**
-     * Initializes the game.
-     * It either loads a saved game from localStorage or starts a new one.
-     * It also attaches all the main event listeners for the UI.
-     */
     function initializeGame() {
         const savedGame = localStorage.getItem('immortalJourneySave');
         if (savedGame) {
