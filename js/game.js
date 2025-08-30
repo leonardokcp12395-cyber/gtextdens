@@ -331,6 +331,217 @@ function endGame(reason) {
     localStorage.removeItem('immortalJourneySave');
 }
 
+// --- COMBAT SYSTEM ---
+// SUBSTITUA TODAS AS SUAS FUNÇÕES DE COMBATE POR ESTE BLOCO ATUALIZADO
+
+/**
+ * Starts a combat encounter.
+ * @param {object} enemyData - The enemy object from allGameData.enemies.
+ * @param {object} [options={}] - Optional parameters for the combat.
+ * @param {string} options.onWinEffect - A special effect key to trigger on victory.
+ * @param {object} options.reward - A reward object to grant on victory.
+ */
+function startCombat(enemyData, options = {}) {
+    elements.eventContent.innerHTML = '';
+    elements.choicesContainer.innerHTML = '';
+    elements.actionsContainer.classList.add('hidden'); // Esconde ações normais
+    elements.combatScreen.classList.remove('hidden');   // Mostra a tela de combate
+    elements.eventImage.style.display = 'none';
+
+    combatState = {
+        player: {
+            ...gameState.player.combat,
+            hp: gameState.player.combat.maxHp,
+            qi: gameState.cultivation.qi,
+            statusEffects: {} // Para futuros efeitos como veneno, etc.
+        },
+        enemy: {
+            ...enemyData.combat,
+            name: enemyData.name,
+            techniques: enemyData.techniques || [],
+            statusEffects: {}
+        },
+        onWin: options
+    };
+
+    elements.combatLog.innerHTML = `<p class="log-type-notification">Você encontrou ${combatState.enemy.name}!</p>`;
+    updateCombatUI();
+    renderCombatActions(); // Gera os botões de ação do jogador
+}
+
+/**
+ * Updates all combat-related UI elements with the current combatState.
+ */
+function updateCombatUI() {
+    elements.combatPlayerHp.textContent = `${combatState.player.hp} / ${gameState.player.combat.maxHp} (Qi: ${combatState.player.qi})`;
+    elements.combatEnemyName.textContent = combatState.enemy.name;
+    elements.combatEnemyHp.textContent = `${combatState.enemy.hp} / ${combatState.enemy.maxHp}`;
+}
+
+/**
+ * Dynamically creates the action buttons for the player's turn.
+ */
+function renderCombatActions() {
+    elements.combatActions.innerHTML = ''; // Limpa ações antigas
+
+    // Botão de Ataque Básico
+    const basicAttackBtn = document.createElement('button');
+    basicAttackBtn.textContent = 'Ataque Básico';
+    basicAttackBtn.className = 'combat-action-btn';
+    basicAttackBtn.addEventListener('click', () => executePlayerTurn(null));
+    elements.combatActions.appendChild(basicAttackBtn);
+
+    // Botões de Técnicas
+    gameState.player.techniques.forEach(techId => {
+        const tech = allGameData.techniques.find(t => t.id === techId);
+        if (tech && tech.type === 'active_combat') {
+            const techBtn = document.createElement('button');
+            techBtn.textContent = `${tech.name} (${tech.qi_cost} Qi)`;
+            techBtn.className = 'combat-action-btn tech';
+            if (combatState.player.qi < tech.qi_cost) {
+                techBtn.disabled = true;
+            }
+            techBtn.addEventListener('click', () => executePlayerTurn(techId));
+            elements.combatActions.appendChild(techBtn);
+        }
+    });
+}
+
+/**
+ * Executes the player's chosen action and transitions to the enemy's turn.
+ * @param {string|null} techId - The ID of the technique used, or null for a basic attack.
+ */
+function executePlayerTurn(techId) {
+    let damage = 0;
+    let attackLog = '';
+    const tech = techId ? allGameData.techniques.find(t => t.id === techId) : null;
+
+    if (tech) {
+        // Ataque com Técnica
+        combatState.player.qi -= tech.qi_cost;
+        damage = Math.max(1, Math.floor((combatState.player.attack * (tech.damage_multiplier || 1)) - combatState.enemy.defense));
+        attackLog = `Você usa <span class="log-tech-name">${tech.name}</span> e causa <span class="damage-enemy">${damage}</span> de dano!`;
+
+        // Lógica de Efeitos Especiais
+        if (tech.special_effect && tech.special_effect.type === 'stun' && Math.random() < tech.special_effect.chance) {
+            combatState.enemy.statusEffects.stunned = 1; // Atordoa por 1 turno
+            attackLog += ` O inimigo está atordoado!`;
+        }
+    } else {
+        // Ataque Básico
+        damage = Math.max(1, combatState.player.attack - combatState.enemy.defense);
+        attackLog = `Você ataca e causa <span class="damage-enemy">${damage}</span> de dano.`;
+    }
+
+    combatState.enemy.hp -= damage;
+    addCombatLog(attackLog, 'player');
+
+    updateCombatUI();
+
+    if (combatState.enemy.hp <= 0) {
+        endCombat(true);
+        return;
+    }
+
+    // Atraso para o turno do inimigo para dar tempo de ler o log
+    setTimeout(executeEnemyTurn, 1000);
+}
+
+/**
+ * Executes the enemy's turn.
+ */
+function executeEnemyTurn() {
+    // Verifica se o inimigo está atordoado
+    if (combatState.enemy.statusEffects.stunned > 0) {
+        addCombatLog(`${combatState.enemy.name} está atordoado e não pode se mover!`, 'system');
+        combatState.enemy.statusEffects.stunned--;
+        renderCombatActions(); // Re-renderiza as ações para o próximo turno do jogador
+        return;
+    }
+
+    let damage = 0;
+    let attackLog = '';
+    const enemyAttack = combatState.enemy;
+
+    // IA Inimiga Simples: 40% de chance de usar uma técnica, se tiver alguma
+    const usableTechniques = enemyAttack.techniques.map(id => allGameData.techniques.find(t => t.id === id)).filter(Boolean);
+    const techToUse = usableTechniques.length > 0 && Math.random() < 0.4 ? usableTechniques[0] : null;
+
+    if (techToUse) {
+        // Ataque com Técnica Inimiga
+        damage = Math.max(1, Math.floor((enemyAttack.attack * (techToUse.damage_multiplier || 1)) - combatState.player.defense));
+        attackLog = `${enemyAttack.name} usa <span class="log-tech-name">${techToUse.name}</span> e lhe causa <span class="damage">${damage}</span> de dano!`;
+    } else {
+        // Ataque Básico Inimigo
+        damage = Math.max(1, enemyAttack.attack - combatState.player.defense);
+        attackLog = `${enemyAttack.name} ataca e lhe causa <span class="damage">${damage}</span> de dano.`;
+    }
+
+    combatState.player.hp -= damage;
+    addCombatLog(attackLog, 'enemy');
+    updateCombatUI();
+
+    if (combatState.player.hp <= 0) {
+        endCombat(false);
+        return;
+    }
+
+    renderCombatActions(); // Habilita os botões para o turno do jogador
+}
+
+/**
+ * Ends the combat and displays the result.
+ * @param {boolean} playerWon - True if the player won, false otherwise.
+ */
+function endCombat(playerWon) {
+    elements.combatActions.innerHTML = ''; // Limpa os botões de ação
+
+    if (playerWon) {
+        addCombatLog(`Você derrotou ${combatState.enemy.name}!`, 'reward');
+        if (combatState.onWin.reward) {
+            applyEffects(combatState.onWin.reward);
+            addCombatLog('Você recebeu uma recompensa!', 'reward');
+        }
+        if (combatState.onWin.onWinEffect) {
+            handleSpecialEffects(combatState.onWin.onWinEffect);
+        }
+        // Recupera o Qi gasto no combate e atualiza o estado global
+        gameState.cultivation.qi = combatState.player.qi;
+
+    } else {
+        addCombatLog('Você foi derrotado...', 'death');
+        endGame('combat'); // Acaba o jogo se o jogador for derrotado
+        return;
+    }
+
+    // Botão para fechar a tela de combate
+    const closeButton = document.createElement('button');
+    closeButton.textContent = 'Continuar Jornada';
+    closeButton.addEventListener('click', () => {
+        elements.combatScreen.classList.add('hidden');
+        elements.actionsContainer.classList.remove('hidden');
+        updateUI();
+        saveGameState();
+        // Dispara um evento vazio para o jogador ter algo para fazer após o combate
+        showEvent({ text: "Após a batalha, você recupera o fôlego e avalia o que fazer a seguir." });
+    });
+    elements.combatActions.appendChild(closeButton);
+}
+
+/**
+ * Adds a message to the combat log.
+ * @param {string} message - The message to log.
+ * @param {string} type - 'player', 'enemy', 'system', 'reward', 'death'.
+ */
+function addCombatLog(message, type) {
+    const p = document.createElement('p');
+    p.innerHTML = message;
+    p.className = `log-type-${type}`;
+    elements.combatLog.appendChild(p);
+    // Auto-scroll para a mensagem mais recente
+    elements.combatLog.scrollTop = elements.combatLog.scrollHeight;
+}
+
     // --- UI RENDERING & MANAGEMENT ---
     // SUBSTITUA a sua função showEvent pela versão abaixo.
     // (Esta é apenas uma pequena correção para garantir que a UI principal seja escondida ao mostrar a tela de legado)

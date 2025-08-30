@@ -467,3 +467,20 @@ hr {
     opacity: 1;
     visibility: visible;
 }
+
+/* Adicione no final do seu arquivo style.css */
+
+.combat-action-btn.tech {
+    background-color: #8e44ad; /* Roxo */
+    color: #fff;
+}
+
+.combat-action-btn.tech:hover:not(:disabled) {
+    background-color: #9b59b6;
+}
+
+.log-tech-name {
+    color: #a29bfe; /* Cor de destaque para nomes de técnicas */
+    font-weight: bold;
+    font-style: italic;
+}
