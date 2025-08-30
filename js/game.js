@@ -103,6 +103,23 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- CORE SYSTEMS ---
 
     /**
+     * Retrieves the legacy data object from localStorage.
+     * @returns {object} The legacy data, including totalPoints and purchased bonuses.
+     */
+    function getLegacyData() {
+        return JSON.parse(localStorage.getItem('immortalJourneyLegacy')) || { totalPoints: 0, purchased: {} };
+    }
+
+    /**
+     * Saves the legacy data object to localStorage.
+     * @param {object} legacyData - The legacy data to save.
+     */
+    function saveLegacyData(legacyData) {
+        localStorage.setItem('immortalJourneyLegacy', JSON.stringify(legacyData));
+    }
+
+
+    /**
      * Adds a message to the player's life log.
      * @param {string} message - The message to log.
      * @param {string} type - The type of log entry (e.g., 'event', 'reward', 'combat'), used for styling.
@@ -287,38 +304,42 @@ document.addEventListener('DOMContentLoaded', () => {
         saveGameState();
     }
 
-    /**
-     * Ends the current game, calculates legacy points, and shows the legacy screen.
-     * @param {string} reason - The reason for the game ending (e.g., 'old_age', 'combat').
-     */
-    function endGame(reason) {
-        addLogMessage("Sua jornada chegou ao fim.", "milestone");
-        const finalGameState = { ...gameState };
+function endGame(reason) {
+    addLogMessage("Sua jornada chegou ao fim.", "milestone");
+    const finalGameState = { ...gameState };
 
-        let pointsEarned = 0;
-        pointsEarned += Math.floor(finalGameState.age * 0.5);
-        pointsEarned += (finalGameState.cultivation.realmId || 0) * 100;
-        pointsEarned += (finalGameState.cultivation.level || 0) * 10;
-        pointsEarned += Math.floor((finalGameState.resources.money || 0) / 10);
-        pointsEarned += (finalGameState.resources.talentPoints || 0) * 2;
-        pointsEarned += (finalGameState.player.techniques?.length || 0) * 25;
+    let pointsEarned = 0;
+    pointsEarned += Math.floor(finalGameState.age * 0.5);
+    pointsEarned += (finalGameState.cultivation.realmId || 0) * 100;
+    pointsEarned += (finalGameState.cultivation.level || 0) * 10;
+    pointsEarned += Math.floor((finalGameState.resources.money || 0) / 10);
+    pointsEarned += (finalGameState.resources.talentPoints || 0) * 2;
+    pointsEarned += (finalGameState.player.techniques?.length || 0) * 25;
 
-        // Anti-farming measure for the "End Journey" button.
-        if (reason === 'ended_journey' && finalGameState.age < 18) {
-            addLogMessage("Sua jornada foi muito curta para deixar um legado significativo.", "notification");
-            pointsEarned = 0;
-        }
-
-        let legacyData = getLegacyData();
-        legacyData.totalPoints += pointsEarned;
-        saveLegacyData(legacyData);
-
-        showLegacyScreen(finalGameState, pointsEarned, legacyData);
-        localStorage.removeItem('immortalJourneySave');
+    // Anti-farming measure for the "End Journey" button.
+    if (reason === 'ended_journey' && finalGameState.age < 18) {
+        addLogMessage("Sua jornada foi muito curta para deixar um legado significativo.", "notification");
+        pointsEarned = 0;
     }
 
+    let legacyData = getLegacyData();
+    legacyData.totalPoints += pointsEarned;
+    saveLegacyData(legacyData);
+
+    // Pass the fresh legacy data to the screen
+    showLegacyScreen(finalGameState, pointsEarned, legacyData);
+    localStorage.removeItem('immortalJourneySave');
+}
+
     // --- UI RENDERING & MANAGEMENT ---
+    // SUBSTITUA a sua função showEvent pela versão abaixo.
+    // (Esta é apenas uma pequena correção para garantir que a UI principal seja escondida ao mostrar a tela de legado)
     function showEvent(event) {
+        // Esconde a tela de combate se estiver ativa
+        elements.combatScreen.classList.add('hidden');
+        // Mostra as ações principais
+        elements.actionsContainer.classList.remove('hidden');
+
         elements.eventContent.innerHTML = `<p>${processText(event.text)}</p>`;
         elements.choicesContainer.innerHTML = '';
         if (event.image) {
@@ -433,45 +454,139 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 500);
     }
 
-    // --- INITIALIZATION ---
-    function startNewGame() {
-        const playerGender = Math.random() < 0.5 ? 'masculino' : 'feminino';
-        const player = generateCharacter('player', playerGender, true);
-        const rivalGender = Math.random() < 0.5 ? 'masculino' : 'feminino';
-        const rival = generateCharacter('rival_1', rivalGender, false);
-        const baseResources = { money: 20, talentPoints: 5, contribution: 0, spirit_stones: 0 };
 
-        const legacyData = getLegacyData();
+// Adicione esta nova função para renderizar a tela de legado.
+// Ela será chamada pela showLegacyScreen
+function renderLegacyBonuses(legacyData) {
+    elements.legacyBonusesContainer.innerHTML = ''; // Limpa o conteúdo anterior
+
+    LEGACY_BONUSES.forEach(bonus => {
+        const bonusDiv = document.createElement('div');
+        bonusDiv.className = 'legacy-bonus';
+
+        const bonusInfo = document.createElement('div');
+        bonusInfo.innerHTML = `<strong>${bonus.name}</strong><p>${bonus.description}</p>`;
+
+        const bonusButton = document.createElement('button');
+        const isPurchased = legacyData.purchased && legacyData.purchased[bonus.id];
+
+        if (isPurchased) {
+            bonusButton.textContent = 'Comprado';
+            bonusButton.disabled = true;
+        } else {
+            bonusButton.textContent = `Comprar (${bonus.cost} Pts)`;
+            if (legacyData.totalPoints < bonus.cost) {
+                bonusButton.disabled = true;
+            }
+            bonusButton.addEventListener('click', () => {
+                if (legacyData.totalPoints >= bonus.cost) {
+                    legacyData.totalPoints -= bonus.cost;
+                    if (!legacyData.purchased) {
+                        legacyData.purchased = {};
+                    }
+                    legacyData.purchased[bonus.id] = true;
+                    saveLegacyData(legacyData);
+                    // Atualiza a UI da loja de legado
+                    elements.legacyPoints.textContent = legacyData.totalPoints;
+                    renderLegacyBonuses(legacyData);
+                }
+            });
+        }
+
+        bonusDiv.appendChild(bonusInfo);
+        bonusDiv.appendChild(bonusButton);
+        elements.legacyBonusesContainer.appendChild(bonusDiv);
+    });
+}
+
+
+// Adicione esta função completa para mostrar a tela de legado.
+function showLegacyScreen(finalGameState, pointsEarned, legacyData) {
+    elements.legacyScreen.classList.remove('hidden');
+    document.getElementById('legacy-points-earned').textContent = pointsEarned;
+    document.getElementById('legacy-points-total').textContent = legacyData.totalPoints;
+
+    // Popula as estatísticas finais
+    const finalStatsList = document.getElementById('final-stats-list');
+    finalStatsList.innerHTML = `
+        <li><strong>Idade Final:</strong> ${finalGameState.age}</li>
+        <li><strong>Reino:</strong> ${allGameData.realms?.[finalGameState.cultivation.realmId]?.name || 'Mortal'} (Nv. ${finalGameState.cultivation.level})</li>
+        <li><strong>Corpo:</strong> ${finalGameState.player.attributes.body}</li>
+        <li><strong>Mente:</strong> ${finalGameState.player.attributes.mind}</li>
+        <li><strong>Dinheiro:</strong> ${finalGameState.resources.money}</li>
+    `;
+
+    // Popula a crônica final
+    const finalChronicleList = document.getElementById('final-chronicle-list');
+    finalChronicleList.innerHTML = '';
+    if (finalGameState.life_log) {
+        finalGameState.life_log.forEach(log => {
+            const li = document.createElement('li');
+            li.innerHTML = `<strong>Ano ${log.age}:</strong> ${log.message}`;
+            finalChronicleList.appendChild(li);
+        });
+    }
+
+    // Renderiza a loja de bônus
+    renderLegacyBonuses(legacyData);
+}
+
+// SUBSTITUA a sua função startNewGame pela versão abaixo.
+function startNewGame() {
+    elements.legacyScreen.classList.add('hidden'); // Garante que a tela de legado seja escondida
+    const playerGender = Math.random() < 0.5 ? 'masculino' : 'feminino';
+    const player = generateCharacter('player', playerGender, true);
+    const rivalGender = Math.random() < 0.5 ? 'masculino' : 'feminino';
+    const rival = generateCharacter('rival_1', rivalGender, false);
+
+    // --- APLICAÇÃO DOS BÔNUS DE LEGADO ---
+    const baseResources = { money: 20, talentPoints: 5, contribution: 0, spirit_stones: 0 };
+    const legacyData = getLegacyData();
+    if (legacyData.purchased) {
         for (const bonusId in legacyData.purchased) {
             if (legacyData.purchased[bonusId]) {
                 const bonus = LEGACY_BONUSES.find(b => b.id === bonusId);
-                if (bonus && bonus.effects.resources) {
-                    for (const res in bonus.effects.resources) {
-                        baseResources[res] += bonus.effects.resources[res];
+                if (bonus) {
+                    // Aplica efeitos diretamente nos objetos base
+                    if (bonus.effects.resources) {
+                        for (const res in bonus.effects.resources) {
+                            baseResources[res] = (baseResources[res] || 0) + bonus.effects.resources[res];
+                        }
+                    }
+                    if (bonus.effects.attributes) {
+                        for (const attr in bonus.effects.attributes) {
+                            player.attributes[attr] = (player.attributes[attr] || 0) + bonus.effects.attributes[attr];
+                        }
+                    }
+                    if (bonus.effects.techniques) {
+                        player.techniques.push(...bonus.effects.techniques);
                     }
                 }
             }
         }
-
-        gameState = {
-            player: player,
-            npcs: { 'rival_1': rival },
-            rivalId: 'rival_1',
-            age: 6,
-            resources: baseResources,
-            cultivation: { realmId: 0, level: 1, qi: 0, maxQi: 10 },
-            sect: { id: null, rank: 0 },
-            triggeredEvents: [],
-            active_mission: null,
-            life_log: [],
-            relationships: { 'rival_1': { score: 0, state: 'neutral' } }
-        };
-
-        addLogMessage("Você nasceu. O mundo aguarda para testemunhar sua lenda.", "milestone");
-        updateUI();
-        saveGameState();
-        checkAndTriggerEvents();
     }
+    // --- FIM DA APLICAÇÃO DOS BÔNUS ---
+
+    gameState = {
+        player: player,
+        npcs: { 'rival_1': rival },
+        rivalId: 'rival_1',
+        age: 6,
+        resources: baseResources,
+        cultivation: { realmId: 0, level: 1, qi: 0, maxQi: 10 },
+        sect: { id: null, rank: 0 },
+        triggeredEvents: [],
+        active_mission: null,
+        life_log: [],
+        relationships: { 'rival_1': { score: 0, state: 'neutral' } }
+    };
+
+    addLogMessage("Você nasceu. O mundo aguarda para testemunhar sua lenda.", "milestone");
+
+    checkAndTriggerEvents(); // Dispara o primeiro evento
+    updateUI();
+    saveGameState();
+}
 
     function initializeGame() {
         const savedGame = localStorage.getItem('immortalJourneySave');
