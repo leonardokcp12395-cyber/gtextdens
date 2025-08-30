@@ -71,34 +71,47 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // --- DATA LOADING ---
-    /**
-     * Asynchronously loads all necessary game data from JSON files.
-     * This is the first function called to bootstrap the game.
-     */
-    async function loadGameData() {
-        try {
-            const responses = await Promise.all([
-                fetch('data/events.json'), fetch('data/items.json'), fetch('data/sects.json'),
-                fetch('data/enemies.json'), fetch('data/talents.json'), fetch('data/strings.json'),
-                fetch('data/random_events.json'), fetch('data/nomes.json'), fetch('data/personalidades.json'),
-                fetch('data/world_events.json'), fetch('data/realms.json'), fetch('data/missions.json'),
-                fetch('data/techniques.json')
-            ]);
-            for (const res of responses) {
-                if (!res.ok) throw new Error(`Failed to load ${res.url}`);
+/**
+ * Asynchronously loads all necessary game data from JSON files.
+ * This is the first function called to bootstrap the game.
+ * (Versão de depuração para identificar falhas de carregamento)
+ */
+async function loadGameData() {
+    const filesToLoad = [
+        'data/events.json', 'data/items.json', 'data/sects.json',
+        'data/enemies.json', 'data/talents.json', 'data/strings.json',
+        'data/random_events.json', 'data/nomes.json', 'data/personalidades.json',
+        'data/world_events.json', 'data/realms.json', 'data/missions.json',
+        'data/techniques.json'
+    ];
+
+    try {
+        const responses = [];
+        for (const file of filesToLoad) {
+            console.log(`Tentando carregar: ${file}`); // Log para o console
+            const res = await fetch(file);
+            if (!res.ok) {
+                // Se um arquivo falhar, lança um erro específico
+                throw new Error(`Não foi possível carregar o arquivo: ${file} (Status: ${res.status})`);
             }
-            const [events, items, sects, enemies, talents, strings, randomEvents, nomes, personalidades, worldEvents, realms, missions, techniques] = await Promise.all(responses.map(res => res.json()));
-
-            // Store all loaded data in a single global object for easy access.
-            allGameData = { events, items, sects, enemies, talents, randomEvents, nomes, personalidades, worldEvents, realms, missions, techniques };
-            allStrings = strings;
-
-            initializeGame();
-        } catch (error) {
-            console.error("Fatal error loading game data:", error);
-            elements.eventContent.innerHTML = "<p>CRITICAL ERROR: Could not load data files.</p>";
+            responses.push(res);
         }
+
+        const jsonData = await Promise.all(responses.map(res => res.json()));
+
+        const [events, items, sects, enemies, talents, strings, randomEvents, nomes, personalidades, worldEvents, realms, missions, techniques] = jsonData;
+
+        // Armazena todos os dados carregados em um único objeto global para fácil acesso.
+        allGameData = { events, items, sects, enemies, talents, randomEvents, nomes, personalidades, worldEvents, realms, missions, techniques };
+        allStrings = strings;
+
+        initializeGame();
+    } catch (error) {
+        console.error("Fatal error loading game data:", error);
+        // Exibe o erro mais específico para o usuário
+        elements.eventContent.innerHTML = `<p style="color: #ff7675;"><b>ERRO CRÍTICO:</b></p><p>${error.message}</p><hr><p><b>Como resolver:</b><br>1. Verifique se o nome do arquivo e da pasta estão EXATAMENTE iguais no seu repositório GitHub.<br>2. O GitHub diferencia maiúsculas de minúsculas (ex: 'Data' é diferente de 'data').<br>3. Certifique-se de que você enviou (commit & push) o arquivo para o GitHub.</p>`;
     }
+}
 
     // --- CORE SYSTEMS ---
 
