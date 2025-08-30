@@ -70,6 +70,64 @@ document.addEventListener('DOMContentLoaded', () => {
         closeTalentsBtn: document.getElementById('close-talents-btn')
     };
 
+// --- CHARACTER CREATION ---
+// ADICIONE ESTA FUNÇÃO AO SEU ARQUIVO game.js
+
+/**
+ * Generates a new character object for the player or an NPC.
+ * @param {string} id - A unique ID for the character (e.g., 'player', 'rival_1').
+ * @param {string} gender - 'masculino' or 'feminino'.
+ * @param {boolean} isPlayer - True if this is the main player character.
+ * @returns {object} A complete character object.
+ */
+function generateCharacter(id, gender, isPlayer) {
+    const firstName = getRandomElement(allGameData.nomes[gender]);
+    const lastName = getRandomElement(allGameData.nomes.apelidos);
+
+    const character = {
+        id: id,
+        name: `${firstName} ${lastName}`,
+        gender: gender,
+        age: 6,
+        lifespan: 80, // Lifespan inicial
+        attributes: {
+            body: 10,
+            mind: 10,
+            luck: 1
+        },
+        personality: getRandomElement(allGameData.personalidades),
+        combat: {
+            maxHp: 100,
+            hp: 100,
+            attack: 10,
+            defense: 5,
+            speed: 10
+        },
+        sectId: null,
+        techniques: [],
+        cultivation: {
+            realmId: 0,
+            level: 1,
+            qi: 0,
+            maxQi: 100
+        }
+    };
+
+    // O jogador começa com uma técnica básica
+    if (isPlayer) {
+        character.techniques.push('basic_sword_form');
+        const tech = allGameData.techniques.find(t => t.id === 'basic_sword_form');
+        if (tech && tech.effects) {
+             // Aplica os efeitos da técnica inicial
+             for (const stat in tech.effects.combat) {
+                character.combat[stat] = (character.combat[stat] || 0) + tech.effects.combat[stat];
+             }
+        }
+    }
+
+    return character;
+}
+
     // --- DATA LOADING ---
 /**
  * Asynchronously loads all necessary game data from JSON files.
