@@ -67,7 +67,10 @@ document.addEventListener('DOMContentLoaded', () => {
         talentsScreen: document.getElementById('talents-screen'),
         talentsScreenPoints: document.getElementById('talents-screen-points'),
         talentsContainer: document.getElementById('talents-container'),
-        closeTalentsBtn: document.getElementById('close-talents-btn')
+        closeTalentsBtn: document.getElementById('close-talents-btn'),
+        worldEventStatus: document.getElementById('world-event-status'),
+        worldEventName: document.getElementById('world-event-name'),
+        worldEventDuration: document.getElementById('world-event-duration'),
     };
 
 // --- CHARACTER CREATION ---
@@ -330,15 +333,18 @@ function showSectActions() {
     });
 }
 
-/**
- * Displays the sect's mission board.
- */
 function showMissionBoard() {
+    const activeWorldEvent = getActiveWorldEvent();
+    let rewardModifier = activeWorldEvent?.effects?.missionDifficultyModifier || 1.0;
+
     elements.eventContent.innerHTML = `<p>O quadro de missões está coberto de pedidos de anciãos e outros discípulos.</p>`;
+    if (rewardModifier > 1.0) {
+        elements.eventContent.innerHTML += `<p style="color: #feca57;">Durante a "${activeWorldEvent.name}", as missões são mais perigosas, mas oferecem melhores recompensas!</p>`;
+    }
     elements.choicesContainer.innerHTML = '';
 
     if (gameState.active_mission) {
-        const mission = allGameData.missions.find(m => m.id === gameState.active_mission);
+        const mission = allGameData.missions.find(m => m.id === gameState.active_mission.id);
         elements.eventContent.innerHTML += `<p><b>Missão Ativa:</b> ${mission.title}<br><small>${mission.description}</small></p><p><em>Complete a sua missão atual antes de aceitar uma nova. A missão será concluída no final do ano.</em></p>`;
     } else {
         const availableMissions = allGameData.missions.filter(m =>
@@ -349,10 +355,16 @@ function showMissionBoard() {
             elements.eventContent.innerHTML += `<p>Não há missões disponíveis para o seu rank no momento.</p>`;
         } else {
             availableMissions.forEach(mission => {
+                // --- CÁLCULO DE RECOMPENSA MODIFICADO ---
+                const finalReward = Math.floor(mission.reward.contribution * rewardModifier);
                 const button = document.createElement('button');
-                button.innerHTML = `<b>${mission.title}</b><br><small>${mission.description} | Recompensa: ${mission.reward.contribution} Contribuição</small>`;
+                button.innerHTML = `<b>${mission.title}</b><br><small>${mission.description} | Recompensa: ${finalReward} Contribuição</small>`;
                 button.addEventListener('click', () => {
-                    gameState.active_mission = mission.id;
+                    // Precisamos de armazenar a recompensa modificada
+                    gameState.active_mission = {
+                        id: mission.id,
+                        reward: { ...mission.reward, contribution: finalReward }
+                    };
                     addLogMessage(`Você aceitou a missão: ${mission.title}.`, 'notification');
                     showEvent({ text: `Você aceitou a missão "${mission.title}" e parte para cumpri-la. Ela será concluída no final do ano.` });
                     saveGameState();
@@ -374,7 +386,13 @@ function showMissionBoard() {
  */
 function showSectStore() {
     const sect = allGameData.sects.find(s => s.id === gameState.sect.id);
+    const activeWorldEvent = getActiveWorldEvent();
+    let priceModifier = activeWorldEvent?.effects?.pillPriceModifier || 1.0;
+
     elements.eventContent.innerHTML = `<p>O discípulo encarregado da loja mostra-lhe as mercadorias disponíveis.</p><p>Você tem ${gameState.resources.contribution} de Contribuição.</p>`;
+    if(priceModifier !== 1.0) {
+        elements.eventContent.innerHTML += `<p style="color: #feca57;">Devido à "${activeWorldEvent.name}", os preços estão alterados!</p>`;
+    }
     elements.choicesContainer.innerHTML = '';
 
     if (!sect.store || sect.store.length === 0) {
@@ -383,16 +401,18 @@ function showSectStore() {
         sect.store.forEach(storeItem => {
             const itemDetails = allGameData.items.find(i => i.id === storeItem.id);
             if (itemDetails && gameState.sect.rank >= storeItem.min_rank) {
+                // --- CÁLCULO DE CUSTO MODIFICADO ---
+                const finalCost = Math.floor(storeItem.cost_contribution * priceModifier);
                 const button = document.createElement('button');
-                button.innerHTML = `<b>${itemDetails.name}</b> - ${storeItem.cost_contribution} Contribuição<br><small>${itemDetails.description}</small>`;
+                button.innerHTML = `<b>${itemDetails.name}</b> - ${finalCost} Contribuição<br><small>${itemDetails.description}</small>`;
 
-                if (gameState.resources.contribution < storeItem.cost_contribution) {
+                if (gameState.resources.contribution < finalCost) { // Usa finalCost
                     button.disabled = true;
                 }
 
                 button.addEventListener('click', () => {
-                    if (gameState.resources.contribution >= storeItem.cost_contribution) {
-                        gameState.resources.contribution -= storeItem.cost_contribution;
+                    if (gameState.resources.contribution >= finalCost) { // Usa finalCost
+                        gameState.resources.contribution -= finalCost; // Usa finalCost
                         applyEffects(itemDetails.effects);
                         addLogMessage(`Você comprou ${itemDetails.name}.`, 'reward');
                         // Atualiza a interface da loja para refletir a nova contribuição
@@ -605,6 +625,17 @@ function saveGameState() {
     localStorage.setItem('immortalJourneySave', JSON.stringify(gameState));
 }
 
+/**
+ * Gets the full data object for the currently active world event, if any.
+ * @returns {object|null} The world event object or null.
+ */
+function getActiveWorldEvent() {
+    if (gameState.world_event && gameState.world_event.id) {
+        return allGameData.worldEvents.find(we => we.id === gameState.world_event.id);
+    }
+    return null;
+}
+
 
     /**
      * Adds a message to the player's life log.
@@ -693,36 +724,40 @@ function saveGameState() {
         }
     }
 
-    /**
-     * Checks if the current game state meets a set of conditions.
-     * @param {object} conditions - An object of conditions to check against the game state.
-     * @returns {boolean} True if all conditions are met, false otherwise.
-     */
-    function areConditionsMet(conditions) {
-        if (!conditions) return true;
-        for (const key in conditions) {
-            const value = conditions[key];
-            switch (key) {
-                case 'age': if (gameState.age !== value) return false; break;
-                case 'min_age': if (gameState.age < value) return false; break;
-                case 'min_cultivation_realm_id': if (gameState.cultivation.realmId < value) return false; break;
-                case 'min_sect_rank': if (!gameState.sect.id || gameState.sect.rank < value) return false; break;
-                case 'required_sect_id': if (!gameState.sect.id || gameState.sect.id !== value) return false; break;
-                case 'rival_relationship_state':
-                    if (!gameState.relationships[gameState.rivalId] || gameState.relationships[gameState.rivalId].state !== value) return false;
-                    break;
-                case 'rival_in_same_sect':
-                    const rival = gameState.npcs[gameState.rivalId];
-                    if ((gameState.player.sectId === rival.sectId && gameState.player.sectId !== null) !== value) return false;
-                    break;
-                case 'player_stronger_than_rival':
-                    if ((getCharacterPowerLevel(gameState.player) > getCharacterPowerLevel(gameState.npcs[gameState.rivalId])) !== value) return false;
-                    break;
-                case 'probability': if (Math.random() > value) return false; break;
-            }
+function areConditionsMet(conditions) {
+    if (!conditions) return true;
+    const activeWorldEvent = getActiveWorldEvent();
+
+    for (const key in conditions) {
+        let value = conditions[key];
+        switch (key) {
+            case 'age': if (gameState.age !== value) return false; break;
+            case 'min_age': if (gameState.age < value) return false; break;
+            case 'min_cultivation_realm_id': if (gameState.cultivation.realmId < value) return false; break;
+            case 'min_sect_rank': if (!gameState.sect.id || gameState.sect.rank < value) return false; break;
+            case 'required_sect_id': if (!gameState.sect.id || gameState.sect.id !== value) return false; break;
+            case 'rival_relationship_state':
+                if (!gameState.relationships[gameState.rivalId] || gameState.relationships[gameState.rivalId].state !== value) return false;
+                break;
+            case 'rival_in_same_sect':
+                const rival = gameState.npcs[gameState.rivalId];
+                if ((gameState.player.sectId === rival.sectId && gameState.player.sectId !== null) !== value) return false;
+                break;
+            case 'player_stronger_than_rival':
+                if ((getCharacterPowerLevel(gameState.player) > getCharacterPowerLevel(gameState.npcs[gameState.rivalId])) !== value) return false;
+                break;
+            case 'probability':
+                let finalProbability = value;
+                // Aplica o modificador de spawn rate a eventos de combate
+                if (activeWorldEvent?.effects?.enemySpawnRate && (conditions.id === 'haunted_forest' || conditions.id === 'rival_ambush')) {
+                    finalProbability *= (1 + activeWorldEvent.effects.enemySpawnRate);
+                }
+                if (Math.random() > finalProbability) return false;
+                break;
         }
-        return true;
     }
+    return true;
+}
 
     // --- GAME LOOP & STATE MANAGEMENT ---
 
@@ -748,20 +783,37 @@ function saveGameState() {
         return false; // No event triggered
     }
 
-/**
- * Advances the game by one year, updating player stats and triggering events.
- */
 function advanceYear() {
-    // --- LÓGICA DE CONCLUSÃO DE MISSÃO ---
-    if (gameState.active_mission) {
-        const mission = allGameData.missions.find(m => m.id === gameState.active_mission);
-        if (mission) {
-            applyEffects(mission.reward);
-            addLogMessage(`Missão concluída: "${mission.title}"! Você ganhou ${mission.reward.contribution} de contribuição.`, 'reward');
+    // --- LÓGICA DE EVENTOS MUNDIAIS ---
+    if (gameState.world_event && gameState.world_event.duration > 0) {
+        gameState.world_event.duration--;
+        if (gameState.world_event.duration === 0) {
+            const endedEvent = getActiveWorldEvent();
+            addLogMessage(`O evento mundial "${endedEvent.name}" chegou ao fim. ${endedEvent.endText}`, 'milestone');
+            gameState.world_event = null;
         }
-        gameState.active_mission = null; // Limpa a missão ativa
+    } else {
+        // Chance de começar um novo evento mundial (ex: aos 20 anos, 25% de chance)
+        if (gameState.age === 20 && Math.random() < 0.25) {
+            const eventToStart = getRandomElement(allGameData.worldEvents);
+            gameState.world_event = {
+                id: eventToStart.id,
+                duration: eventToStart.duration
+            };
+            addLogMessage(`Um evento mundial começou: "${eventToStart.name}"! ${eventToStart.startText}`, 'milestone');
+        }
     }
-    // --- FIM DA LÓGICA DE CONCLUSÃO DE MISSÃO ---
+    // --- FIM DA LÓGICA DE EVENTOS MUNDIAIS ---
+
+    if (gameState.active_mission) {
+        // A recompensa modificada já está guardada em active_mission
+        const mission = allGameData.missions.find(m => m.id === gameState.active_mission.id);
+        if (mission) {
+            applyEffects(gameState.active_mission.reward); // Usa a recompensa guardada
+            addLogMessage(`Missão concluída: "${mission.title}"! Você ganhou ${gameState.active_mission.reward.contribution} de contribuição.`, 'reward');
+        }
+        gameState.active_mission = null;
+    }
 
     gameState.age++;
     addLogMessage(`Você envelheceu para ${gameState.age} anos.`, 'milestone');
@@ -1214,6 +1266,17 @@ function updateUI() {
             elements.lifeLogList.appendChild(li);
         });
     }
+
+    // --- LÓGICA DE ATUALIZAÇÃO DO STATUS DO EVENTO MUNDIAL ---
+    const activeWorldEvent = getActiveWorldEvent();
+    if (activeWorldEvent) {
+        elements.worldEventStatus.classList.remove('hidden');
+        elements.worldEventName.textContent = activeWorldEvent.name;
+        elements.worldEventDuration.textContent = gameState.world_event.duration;
+    } else {
+        elements.worldEventStatus.classList.add('hidden');
+    }
+    // --- FIM DA LÓGICA ---
 }
 
     function flashElement(element, highlightClass) {
@@ -1300,15 +1363,13 @@ function showLegacyScreen(finalGameState, pointsEarned, legacyData) {
     renderLegacyBonuses(legacyData);
 }
 
-// SUBSTITUA a sua função startNewGame pela versão abaixo.
 function startNewGame() {
-    elements.legacyScreen.classList.add('hidden'); // Garante que a tela de legado seja escondida
+    elements.legacyScreen.classList.add('hidden');
     const playerGender = Math.random() < 0.5 ? 'masculino' : 'feminino';
     const player = generateCharacter('player', playerGender, true);
     const rivalGender = Math.random() < 0.5 ? 'masculino' : 'feminino';
     const rival = generateCharacter('rival_1', rivalGender, false);
 
-    // --- APLICAÇÃO DOS BÔNUS DE LEGADO ---
     const baseResources = { money: 20, talentPoints: 5, contribution: 0, spirit_stones: 0 };
     const legacyData = getLegacyData();
     if (legacyData.purchased) {
@@ -1316,7 +1377,6 @@ function startNewGame() {
             if (legacyData.purchased[bonusId]) {
                 const bonus = LEGACY_BONUSES.find(b => b.id === bonusId);
                 if (bonus) {
-                    // Aplica efeitos diretamente nos objetos base
                     if (bonus.effects.resources) {
                         for (const res in bonus.effects.resources) {
                             baseResources[res] = (baseResources[res] || 0) + bonus.effects.resources[res];
@@ -1334,7 +1394,6 @@ function startNewGame() {
             }
         }
     }
-    // --- FIM DA APLICAÇÃO DOS BÔNUS ---
 
     gameState = {
         player: player,
@@ -1342,17 +1401,18 @@ function startNewGame() {
         rivalId: 'rival_1',
         age: 6,
         resources: baseResources,
-        cultivation: { realmId: 0, level: 1, qi: 0, maxQi: 10 },
+        cultivation: { realmId: 0, level: 1, qi: 0, maxQi: 100 }, // Corrigido para maxQi inicial correto
         sect: { id: null, rank: 0 },
         triggeredEvents: [],
         active_mission: null,
         life_log: [],
-        relationships: { 'rival_1': { score: 0, state: 'neutral' } }
+        relationships: { 'rival_1': { score: 0, state: 'neutral' } },
+        world_event: null, // <-- ADICIONADO AQUI
     };
-
+    updateCultivationStats(); // Garante que o maxQi está correto desde o início
     addLogMessage("Você nasceu. O mundo aguarda para testemunhar sua lenda.", "milestone");
 
-    checkAndTriggerEvents(); // Dispara o primeiro evento
+    checkAndTriggerEvents();
     updateUI();
     saveGameState();
 }

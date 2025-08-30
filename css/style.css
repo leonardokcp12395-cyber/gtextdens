@@ -484,3 +484,12 @@ hr {
     font-weight: bold;
     font-style: italic;
 }
+
+#world-event-status {
+    background-color: #3d3d3d;
+    border: 1px solid #feca57;
+    color: #feca57;
+    padding: 10px;
+    margin-bottom: 15px;
+    text-align: center;
+}
