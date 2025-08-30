@@ -167,8 +167,9 @@ function meditate() {
                 addLogMessage(`Você alcançou o Reino: ${newRealm.name}! Sua expectativa de vida aumentou!`, "milestone");
             }
 
-            // Aplica bônus de atributos
+            // Aplica bônus de atributos e recalcula o maxQi
             applyEffects({ attributes: currentRealm.attributeBonusOnBreakthrough });
+            updateCultivationStats(); // <-- PONTO CRÍTICO DA CORREÇÃO!
             gameState.resources.talentPoints++; // Ganha um ponto de talento
 
         } else {
@@ -185,6 +186,18 @@ function meditate() {
     }
     updateUI();
     saveGameState();
+}
+
+/**
+ * Recalculates cultivation stats like maxQi based on the current realm and level.
+ */
+function updateCultivationStats() {
+    const realm = allGameData.realms[gameState.cultivation.realmId];
+    if (!realm) return;
+
+    // A fórmula é: Qi base do reino + (Qi adicional por nível * (nível atual - 1))
+    const newMaxQi = realm.baseMaxQi + ((gameState.cultivation.level - 1) * realm.qiPerLevel);
+    gameState.cultivation.maxQi = newMaxQi;
 }
 
 
@@ -343,6 +356,13 @@ async function loadGameData() {
     function saveLegacyData(legacyData) {
         localStorage.setItem('immortalJourneyLegacy', JSON.stringify(legacyData));
     }
+
+/**
+ * Saves the current game state to localStorage.
+ */
+function saveGameState() {
+    localStorage.setItem('immortalJourneySave', JSON.stringify(gameState));
+}
 
 
     /**
