@@ -298,6 +298,202 @@ function showSpecialMerchantStore() {
     elements.choicesContainer.appendChild(leaveButton);
 }
 
+// --- SECT ACTIONS ---
+
+/**
+ * Displays the main menu for sect-related actions.
+ */
+function showSectActions() {
+    elements.eventContent.innerHTML = `<p>Você está no pátio principal da sua seita. O que deseja fazer?</p>`;
+    elements.choicesContainer.innerHTML = ''; // Limpa as escolhas
+
+    const actions = [
+        { text: 'Quadro de Missões', effect: 'show_mission_board' },
+        { text: 'Loja da Seita', effect: 'show_sect_store' },
+        { text: 'Pavilhão de Técnicas', effect: 'show_technique_pavilion' },
+        { text: 'Tentar Promoção', effect: 'try_promotion' },
+        { text: 'Voltar', effect: null } // Para voltar ao ecrã principal
+    ];
+
+    actions.forEach(action => {
+        const button = document.createElement('button');
+        button.textContent = action.text;
+        button.addEventListener('click', () => {
+            if (action.effect) {
+                handleSpecialEffects(action.effect);
+            } else {
+                // Volta para um estado neutro
+                showEvent({ text: "Você decide meditar por conta própria por enquanto." });
+            }
+        });
+        elements.choicesContainer.appendChild(button);
+    });
+}
+
+/**
+ * Displays the sect's mission board.
+ */
+function showMissionBoard() {
+    elements.eventContent.innerHTML = `<p>O quadro de missões está coberto de pedidos de anciãos e outros discípulos.</p>`;
+    elements.choicesContainer.innerHTML = '';
+
+    if (gameState.active_mission) {
+        const mission = allGameData.missions.find(m => m.id === gameState.active_mission);
+        elements.eventContent.innerHTML += `<p><b>Missão Ativa:</b> ${mission.title}<br><small>${mission.description}</small></p><p><em>Complete a sua missão atual antes de aceitar uma nova. A missão será concluída no final do ano.</em></p>`;
+    } else {
+        const availableMissions = allGameData.missions.filter(m =>
+            m.sect_id === gameState.sect.id && gameState.sect.rank >= m.min_rank
+        );
+
+        if (availableMissions.length === 0) {
+            elements.eventContent.innerHTML += `<p>Não há missões disponíveis para o seu rank no momento.</p>`;
+        } else {
+            availableMissions.forEach(mission => {
+                const button = document.createElement('button');
+                button.innerHTML = `<b>${mission.title}</b><br><small>${mission.description} | Recompensa: ${mission.reward.contribution} Contribuição</small>`;
+                button.addEventListener('click', () => {
+                    gameState.active_mission = mission.id;
+                    addLogMessage(`Você aceitou a missão: ${mission.title}.`, 'notification');
+                    showEvent({ text: `Você aceitou a missão "${mission.title}" e parte para cumpri-la. Ela será concluída no final do ano.` });
+                    saveGameState();
+                });
+                elements.choicesContainer.appendChild(button);
+            });
+        }
+    }
+
+    const backButton = document.createElement('button');
+    backButton.textContent = 'Voltar';
+    backButton.className = 'danger-btn';
+    backButton.addEventListener('click', showSectActions);
+    elements.choicesContainer.appendChild(backButton);
+}
+
+/**
+ * Displays the sect's item store.
+ */
+function showSectStore() {
+    const sect = allGameData.sects.find(s => s.id === gameState.sect.id);
+    elements.eventContent.innerHTML = `<p>O discípulo encarregado da loja mostra-lhe as mercadorias disponíveis.</p><p>Você tem ${gameState.resources.contribution} de Contribuição.</p>`;
+    elements.choicesContainer.innerHTML = '';
+
+    if (!sect.store || sect.store.length === 0) {
+        elements.eventContent.innerHTML += `<p>A loja da seita está vazia no momento.</p>`;
+    } else {
+        sect.store.forEach(storeItem => {
+            const itemDetails = allGameData.items.find(i => i.id === storeItem.id);
+            if (itemDetails && gameState.sect.rank >= storeItem.min_rank) {
+                const button = document.createElement('button');
+                button.innerHTML = `<b>${itemDetails.name}</b> - ${storeItem.cost_contribution} Contribuição<br><small>${itemDetails.description}</small>`;
+
+                if (gameState.resources.contribution < storeItem.cost_contribution) {
+                    button.disabled = true;
+                }
+
+                button.addEventListener('click', () => {
+                    if (gameState.resources.contribution >= storeItem.cost_contribution) {
+                        gameState.resources.contribution -= storeItem.cost_contribution;
+                        applyEffects(itemDetails.effects);
+                        addLogMessage(`Você comprou ${itemDetails.name}.`, 'reward');
+                        // Atualiza a interface da loja para refletir a nova contribuição
+                        showSectStore();
+                    }
+                });
+                elements.choicesContainer.appendChild(button);
+            }
+        });
+    }
+
+    const backButton = document.createElement('button');
+    backButton.textContent = 'Voltar';
+    backButton.className = 'danger-btn';
+    backButton.addEventListener('click', showSectActions);
+    elements.choicesContainer.appendChild(backButton);
+}
+
+/**
+ * Displays the sect's technique pavilion.
+ */
+function showTechniquePavilion() {
+    const sect = allGameData.sects.find(s => s.id === gameState.sect.id);
+    elements.eventContent.innerHTML = `<p>O ancião do pavilhão de técnicas observa-o em silêncio, esperando a sua escolha.</p><p>Você tem ${gameState.resources.contribution} de Contribuição.</p>`;
+    elements.choicesContainer.innerHTML = '';
+
+     sect.techniques.forEach(sectTech => {
+        const techDetails = allGameData.techniques.find(t => t.id === sectTech.id);
+        const isLearned = gameState.player.techniques.includes(sectTech.id);
+
+        if (techDetails && gameState.sect.rank >= sectTech.min_rank) {
+            const button = document.createElement('button');
+            button.innerHTML = `<b>${techDetails.name}</b> - ${sectTech.cost_contribution} Contribuição<br><small>${techDetails.description}</small>`;
+
+            if (isLearned) {
+                button.textContent = `Aprendido: ${techDetails.name}`;
+                button.disabled = true;
+            } else if (gameState.resources.contribution < sectTech.cost_contribution) {
+                button.disabled = true;
+            }
+
+            button.addEventListener('click', () => {
+                if (gameState.resources.contribution >= sectTech.cost_contribution) {
+                    gameState.resources.contribution -= sectTech.cost_contribution;
+                    handleSpecialEffects(`learn_technique_${sectTech.id}`);
+                    showTechniquePavilion(); // Atualiza a interface
+                }
+            });
+            elements.choicesContainer.appendChild(button);
+        }
+    });
+
+    const backButton = document.createElement('button');
+    backButton.textContent = 'Voltar';
+    backButton.className = 'danger-btn';
+    backButton.addEventListener('click', showSectActions);
+    elements.choicesContainer.appendChild(backButton);
+}
+
+/**
+ * Handles the logic for attempting a promotion within the sect.
+ */
+function tryPromotion() {
+    const sect = allGameData.sects.find(s => s.id === gameState.sect.id);
+    const nextRankIndex = gameState.sect.rank + 1;
+
+    if (nextRankIndex >= sect.ranks.length) {
+        showEvent({ text: "Você já alcançou o rank mais alto na sua seita. O seu nome será lembrado para sempre." });
+        return;
+    }
+
+    const nextRank = sect.ranks[nextRankIndex];
+    const reqs = nextRank.requirements;
+    let message = `Requisitos para ${nextRank.name}:<br>`;
+    let canPromote = true;
+
+    // Verifica os requisitos
+    if (reqs.cultivation_realm_id > gameState.cultivation.realmId) {
+        message += ` - Reino de Cultivo: ${allGameData.realms[reqs.cultivation_realm_id].name} (Falhou)<br>`;
+        canPromote = false;
+    }
+    if (reqs.cultivation_level > gameState.cultivation.level) {
+        message += ` - Nível de Cultivo: ${reqs.cultivation_level} (Falhou)<br>`;
+        canPromote = false;
+    }
+    if (reqs.contribution > gameState.resources.contribution) {
+        message += ` - Contribuição: ${reqs.contribution} (Falhou)<br>`;
+        canPromote = false;
+    }
+
+    if (canPromote) {
+        gameState.sect.rank = nextRankIndex;
+        // Opcional: pode-se deduzir a contribuição usada para a promoção
+        // gameState.resources.contribution -= reqs.contribution;
+        addLogMessage(`Você foi promovido para ${nextRank.name} na sua seita!`, 'milestone');
+        showEvent({ text: `Parabéns! Após verificar o seu progresso, os anciãos concederam-lhe o rank de ${nextRank.name}!` });
+    } else {
+        showEvent({ text: "Você ainda não cumpre os requisitos para a promoção.<br>" + message });
+    }
+}
+
 /**
  * Progresses NPCs' age and stats each year.
  */
@@ -556,6 +752,17 @@ function saveGameState() {
  * Advances the game by one year, updating player stats and triggering events.
  */
 function advanceYear() {
+    // --- LÓGICA DE CONCLUSÃO DE MISSÃO ---
+    if (gameState.active_mission) {
+        const mission = allGameData.missions.find(m => m.id === gameState.active_mission);
+        if (mission) {
+            applyEffects(mission.reward);
+            addLogMessage(`Missão concluída: "${mission.title}"! Você ganhou ${mission.reward.contribution} de contribuição.`, 'reward');
+        }
+        gameState.active_mission = null; // Limpa a missão ativa
+    }
+    // --- FIM DA LÓGICA DE CONCLUSÃO DE MISSÃO ---
+
     gameState.age++;
     addLogMessage(`Você envelheceu para ${gameState.age} anos.`, 'milestone');
 
@@ -722,30 +929,45 @@ function renderCombatActions() {
  * @param {string|null} techId - The ID of the technique used, or null for a basic attack.
  */
 function executePlayerTurn(techId) {
+    // --- LÓGICA PARA "SUPER DEFEND" ---
+    if (combatState.player.statusEffects.super_defend) {
+        delete combatState.player.statusEffects.super_defend; // Remove o efeito após o uso
+    }
+    // --- FIM DA LÓGICA ---
+
     let damage = 0;
     let attackLog = '';
     const tech = techId ? allGameData.techniques.find(t => t.id === techId) : null;
 
     if (tech) {
-        // Ataque com Técnica
         combatState.player.qi -= tech.qi_cost;
         damage = Math.max(1, Math.floor((combatState.player.attack * (tech.damage_multiplier || 1)) - combatState.enemy.defense));
-        attackLog = `Você usa <span class="log-tech-name">${tech.name}</span> e causa <span class="damage-enemy">${damage}</span> de dano!`;
+        attackLog = `Você usa <span class="log-tech-name">${tech.name}</span>`;
+
+        if (tech.damage_multiplier > 0) {
+            attackLog += ` e causa <span class="damage-enemy">${damage}</span> de dano!`;
+        }
 
         // Lógica de Efeitos Especiais
-        if (tech.special_effect && tech.special_effect.type === 'stun' && Math.random() < tech.special_effect.chance) {
-            combatState.enemy.statusEffects.stunned = 1; // Atordoa por 1 turno
-            attackLog += ` O inimigo está atordoado!`;
+        if (tech.special_effect) {
+            if (tech.special_effect.type === 'stun' && Math.random() < tech.special_effect.chance) {
+                combatState.enemy.statusEffects.stunned = 1; // Atordoa por 1 turno
+                attackLog += ` O inimigo está atordoado!`;
+            }
+            if (tech.special_effect.type === 'super_defend') {
+                combatState.player.statusEffects.super_defend = tech.special_effect.multiplier;
+                attackLog += ` Você assume uma postura defensiva!`;
+            }
         }
     } else {
-        // Ataque Básico
         damage = Math.max(1, combatState.player.attack - combatState.enemy.defense);
         attackLog = `Você ataca e causa <span class="damage-enemy">${damage}</span> de dano.`;
     }
 
-    combatState.enemy.hp -= damage;
+    if (damage > 0) {
+        combatState.enemy.hp -= damage;
+    }
     addCombatLog(attackLog, 'player');
-
     updateCombatUI();
 
     if (combatState.enemy.hp <= 0) {
@@ -753,19 +975,19 @@ function executePlayerTurn(techId) {
         return;
     }
 
-    // Atraso para o turno do inimigo para dar tempo de ler o log
     setTimeout(executeEnemyTurn, 1000);
 }
 
+
+// Também é necessário atualizar a executeEnemyTurn para que a defesa funcione
 /**
  * Executes the enemy's turn.
  */
 function executeEnemyTurn() {
-    // Verifica se o inimigo está atordoado
     if (combatState.enemy.statusEffects.stunned > 0) {
         addCombatLog(`${combatState.enemy.name} está atordoado e não pode se mover!`, 'system');
         combatState.enemy.statusEffects.stunned--;
-        renderCombatActions(); // Re-renderiza as ações para o próximo turno do jogador
+        renderCombatActions();
         return;
     }
 
@@ -773,21 +995,29 @@ function executeEnemyTurn() {
     let attackLog = '';
     const enemyAttack = combatState.enemy;
 
-    // IA Inimiga Simples: 40% de chance de usar uma técnica, se tiver alguma
     const usableTechniques = enemyAttack.techniques.map(id => allGameData.techniques.find(t => t.id === id)).filter(Boolean);
     const techToUse = usableTechniques.length > 0 && Math.random() < 0.4 ? usableTechniques[0] : null;
 
     if (techToUse) {
-        // Ataque com Técnica Inimiga
-        damage = Math.max(1, Math.floor((enemyAttack.attack * (techToUse.damage_multiplier || 1)) - combatState.player.defense));
-        attackLog = `${enemyAttack.name} usa <span class="log-tech-name">${techToUse.name}</span> e lhe causa <span class="damage">${damage}</span> de dano!`;
+        damage = Math.floor(enemyAttack.attack * (techToUse.damage_multiplier || 1));
+        attackLog = `${enemyAttack.name} usa <span class="log-tech-name">${techToUse.name}</span>`;
     } else {
-        // Ataque Básico Inimigo
-        damage = Math.max(1, enemyAttack.attack - combatState.player.defense);
-        attackLog = `${enemyAttack.name} ataca e lhe causa <span class="damage">${damage}</span> de dano.`;
+        damage = enemyAttack.attack;
+        attackLog = `${enemyAttack.name} ataca`;
     }
 
-    combatState.player.hp -= damage;
+    // --- APLICAÇÃO DA DEFESA DO JOGADOR ---
+    let finalDamage = damage - combatState.player.defense;
+    if (combatState.player.statusEffects.super_defend) {
+        finalDamage = Math.floor(finalDamage * (1 - combatState.player.statusEffects.super_defend));
+        attackLog += `, mas a sua postura defensiva absorve a maior parte do impacto!`;
+    }
+    finalDamage = Math.max(1, finalDamage);
+    // --- FIM DA APLICAÇÃO ---
+
+    attackLog += ` e lhe causa <span class="damage">${finalDamage}</span> de dano.`
+
+    combatState.player.hp -= finalDamage;
     addCombatLog(attackLog, 'enemy');
     updateCombatUI();
 
@@ -795,8 +1025,7 @@ function executeEnemyTurn() {
         endCombat(false);
         return;
     }
-
-    renderCombatActions(); // Habilita os botões para o turno do jogador
+    renderCombatActions();
 }
 
 /**
@@ -933,8 +1162,10 @@ function updateUI() {
         elements.sectRank.textContent = rank.name;
         let benefitValue = sect.benefit_template.base_value + (sect.benefit_template.value_per_rank * gameState.sect.rank);
         elements.sectBenefit.textContent = sect.benefit_template.description.replace('{value}', benefitValue);
+        elements.sectActionsBtn.classList.remove('hidden');
     } else {
         elements.sectInfo.classList.add('hidden');
+        elements.sectActionsBtn.classList.add('hidden');
     }
 
     if (gameState.cultivation.qi >= gameState.cultivation.maxQi) {
