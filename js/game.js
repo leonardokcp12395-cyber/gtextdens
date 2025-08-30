@@ -128,6 +128,161 @@ function generateCharacter(id, gender, isPlayer) {
     return character;
 }
 
+// --- UTILITY & CORE FUNCTIONS ---
+// ADICIONE ESTE BLOCO INTEIRO AO SEU ARQUIVO game.js
+
+/**
+ * Processes text to replace placeholders like [PLAYER_NAME] with game state data.
+ * @param {string} text - The input string.
+ * @returns {string} The processed string.
+ */
+function processText(text) {
+    if (!text) return '';
+    let processedText = text.replace(/\[PLAYER_NAME\]/g, gameState.player.name);
+    if (gameState.rivalId && gameState.npcs[gameState.rivalId]) {
+        processedText = processedText.replace(/\[RIVAL\]/g, gameState.npcs[gameState.rivalId].name);
+    }
+    return processedText;
+}
+
+/**
+ * Handles the meditate/breakthrough button click.
+ */
+function meditate() {
+    // Se o Qi está no máximo, tenta um breakthrough
+    if (gameState.cultivation.qi >= gameState.cultivation.maxQi) {
+        const currentRealm = allGameData.realms[gameState.cultivation.realmId];
+        const successChance = 0.8; // Chance base de sucesso
+
+        if (Math.random() < successChance) {
+            gameState.cultivation.level++;
+            addLogMessage(allStrings.breakthrough_success, "milestone");
+
+            // Verifica se avançou para um novo Reino
+            if (gameState.cultivation.level > currentRealm.levels) {
+                gameState.cultivation.realmId++;
+                gameState.cultivation.level = 1;
+                const newRealm = allGameData.realms[gameState.cultivation.realmId];
+                gameState.player.lifespan += newRealm.lifespan_bonus;
+                addLogMessage(`Você alcançou o Reino: ${newRealm.name}! Sua expectativa de vida aumentou!`, "milestone");
+            }
+
+            // Aplica bônus de atributos
+            applyEffects({ attributes: currentRealm.attributeBonusOnBreakthrough });
+            gameState.resources.talentPoints++; // Ganha um ponto de talento
+
+        } else {
+            gameState.cultivation.qi = Math.floor(gameState.cultivation.qi * 0.8); // Perde 20% do Qi
+            addLogMessage(allStrings.breakthrough_failure, "notification");
+        }
+        gameState.cultivation.qi = 0; // Reseta o Qi após a tentativa
+
+    } else {
+        // Meditação normal
+        const qiGained = 10 + Math.floor(gameState.player.attributes.mind / 5);
+        gameState.cultivation.qi = Math.min(gameState.cultivation.qi + qiGained, gameState.cultivation.maxQi);
+        addLogMessage(`Você meditou e ganhou ${qiGained} Qi.`, 'event');
+    }
+    updateUI();
+    saveGameState();
+}
+
+
+/**
+ * Renders the talents screen with available talents.
+ */
+function showTalents() {
+    elements.talentsContainer.innerHTML = '';
+    elements.talentsScreenPoints.textContent = gameState.resources.talentPoints;
+
+    allGameData.talents.forEach(talent => {
+        const isPurchased = gameState.player.talents && gameState.player.talents.includes(talent.id);
+        const canPurchase = gameState.resources.talentPoints >= talent.cost;
+        const requirementsMet = talent.requirements.every(req => gameState.player.talents.includes(req));
+
+        const talentDiv = document.createElement('div');
+        talentDiv.className = 'talent-node'; // Você pode estilizar isso no CSS
+
+        let reqText = talent.requirements.length > 0
+            ? `<br><small>Requer: ${talent.requirements.map(r => allGameData.talents.find(t=>t.id===r).name).join(', ')}</small>`
+            : '';
+
+        talentDiv.innerHTML = `
+            <h4>${talent.name} (${talent.cost} Pts)</h4>
+            <p>${talent.description}${reqText}</p>
+        `;
+
+        const purchaseButton = document.createElement('button');
+        if (isPurchased) {
+            purchaseButton.textContent = 'Adquirido';
+            purchaseButton.disabled = true;
+        } else {
+            purchaseButton.textContent = 'Adquirir';
+            if (!canPurchase || !requirementsMet) {
+                purchaseButton.disabled = true;
+            }
+        }
+
+        purchaseButton.addEventListener('click', () => {
+            if (gameState.resources.talentPoints >= talent.cost) {
+                gameState.resources.talentPoints -= talent.cost;
+                if (!gameState.player.talents) gameState.player.talents = [];
+                gameState.player.talents.push(talent.id);
+                applyEffects(talent.effects);
+                showTalents(); // Re-renderiza a tela de talentos
+                updateUI();
+                saveGameState();
+            }
+        });
+
+        talentDiv.appendChild(purchaseButton);
+        elements.talentsContainer.appendChild(talentDiv);
+    });
+}
+
+/**
+ * Progresses NPCs' age and stats each year.
+ */
+function progressNpcs() {
+    for (const npcId in gameState.npcs) {
+        const npc = gameState.npcs[npcId];
+        npc.age++;
+        // Lógica de progressão simples: chance de ganhar atributos
+        if (Math.random() < 0.3) npc.attributes.body++;
+        if (Math.random() < 0.3) npc.attributes.mind++;
+        if (Math.random() < 0.2) {
+             npc.cultivation.level++;
+             // Adicionar mais lógica de cultivo para NPCs aqui se desejar
+        }
+    }
+}
+
+/**
+ * Updates the state of relationships based on the score.
+ */
+function updateRelationshipStates() {
+    for (const npcId in gameState.relationships) {
+        const rel = gameState.relationships[npcId];
+        if (rel.score > 50) rel.state = 'Amigo';
+        else if (rel.score < -50) rel.state = 'Inimigo';
+        else rel.state = 'Neutro';
+    }
+}
+
+/**
+ * Calculates a numeric power level for a character.
+ * @param {object} character - The character object.
+ * @returns {number} The calculated power level.
+ */
+function getCharacterPowerLevel(character) {
+    let power = 0;
+    power += character.attributes.body * 2;
+    power += character.attributes.mind * 2;
+    power += character.cultivation.level * 10;
+    power += character.cultivation.realmId * 100;
+    return power;
+}
+
     // --- DATA LOADING ---
 /**
  * Asynchronously loads all necessary game data from JSON files.
