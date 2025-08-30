@@ -254,6 +254,51 @@ function showTalents() {
 }
 
 /**
+ * Displays the special merchant's store interface.
+ */
+function showSpecialMerchantStore() {
+    const specialItems = allGameData.items.filter(item => item.source === 'special_merchant');
+    elements.eventContent.innerHTML = `<p>O mercador exibe seus tesouros. "Preços justos para mercadorias divinas," ele murmura.</p><p>Você tem ${gameState.resources.spirit_stones || 0} Pedras Espirituais.</p>`;
+    elements.choicesContainer.innerHTML = ''; // Limpa as escolhas
+
+    specialItems.forEach(item => {
+        const button = document.createElement('button');
+        button.innerHTML = `${item.name} - <b>${item.cost_spirit_stones} Pedras Espirituais</b><br><small>${item.description}</small>`;
+
+        // Desabilita o botão se o jogador não puder pagar
+        if ((gameState.resources.spirit_stones || 0) < item.cost_spirit_stones) {
+            button.disabled = true;
+        }
+
+        button.addEventListener('click', () => {
+            // Dupla verificação para garantir que o jogador ainda pode pagar
+            if ((gameState.resources.spirit_stones || 0) >= item.cost_spirit_stones) {
+                // Aplica os custos e efeitos
+                gameState.resources.spirit_stones -= item.cost_spirit_stones;
+                applyEffects(item.effects);
+                addLogMessage(`Você comprou ${item.name}!`, 'reward');
+
+                // Esconde a loja e retorna para um estado neutro
+                elements.eventContent.innerHTML = `<p>Você guarda seu novo tesouro. O mercador sorri, satisfeito com a troca.</p>`;
+                elements.choicesContainer.innerHTML = '';
+                updateUI();
+                saveGameState();
+            }
+        });
+        elements.choicesContainer.appendChild(button);
+    });
+
+    // Adiciona um botão para sair da loja sem comprar nada
+    const leaveButton = document.createElement('button');
+    leaveButton.textContent = 'Sair da loja';
+    leaveButton.className = 'danger-btn';
+    leaveButton.addEventListener('click', () => {
+        showEvent({ text: "Você decide guardar suas Pedras Espirituais por enquanto. O mercador dá de ombros, indiferente." });
+    });
+    elements.choicesContainer.appendChild(leaveButton);
+}
+
+/**
  * Progresses NPCs' age and stats each year.
  */
 function progressNpcs() {
@@ -507,48 +552,67 @@ function saveGameState() {
         return false; // No event triggered
     }
 
-    /**
-     * Advances the game by one year, updating player stats and triggering events.
-     */
-    function advanceYear() {
-        gameState.age++;
-        addLogMessage(`Você envelheceu para ${gameState.age} anos.`, 'milestone');
+/**
+ * Advances the game by one year, updating player stats and triggering events.
+ */
+function advanceYear() {
+    gameState.age++;
+    addLogMessage(`Você envelheceu para ${gameState.age} anos.`, 'milestone');
 
-        // Passive stat gains
-        gameState.player.attributes.body++;
-        gameState.player.attributes.mind++;
+    // --- LÓGICA DE BENEFÍCIOS DE SEITA APRIMORADA ---
+    if (gameState.sect.id) {
+        const sect = allGameData.sects.find(s => s.id === gameState.sect.id);
+        if (sect) {
+            const template = sect.benefit_template;
+            const rank = gameState.sect.rank;
+            let benefitValue = template.base_value + (template.value_per_rank * rank);
 
-        // NPC progression
-        progressNpcs();
-        updateRelationshipStates();
-
-        // Sect benefits
-        if (gameState.sect.id) {
-            const sect = allGameData.sects.find(s => s.id === gameState.sect.id);
-            if (sect && sect.benefit_template.type === 'passive_qi_gain') {
-                let benefitValue = sect.benefit_template.base_value + (sect.benefit_template.value_per_rank * gameState.sect.rank);
-                gameState.cultivation.qi = Math.min(gameState.cultivation.qi + benefitValue, gameState.cultivation.maxQi);
-                addLogMessage(`Sua seita lhe concedeu ${benefitValue} de Qi.`, 'reward');
+            switch (template.type) {
+                case 'passive_qi_gain':
+                    gameState.cultivation.qi = Math.min(gameState.cultivation.qi + benefitValue, gameState.cultivation.maxQi);
+                    addLogMessage(`Sua seita lhe concedeu ${benefitValue} de Qi.`, 'reward');
+                    break;
+                case 'body_cultivation_boost':
+                    if (gameState.age % 5 === 0) { // A cada 5 anos
+                        gameState.player.attributes.body += benefitValue;
+                        addLogMessage(`Graças aos métodos de sua seita, seu Corpo aumentou em ${benefitValue}.`, 'reward');
+                    }
+                    break;
+                case 'passive_speed_gain':
+                     if (gameState.age % 5 === 0) { // A cada 5 anos
+                        gameState.player.combat.speed += benefitValue;
+                        addLogMessage(`O treinamento da sua seita aprimorou sua Velocidade em ${benefitValue}.`, 'reward');
+                    }
+                    break;
+                case 'passive_mind_gain':
+                    if (gameState.age % 10 === 0) { // A cada 10 anos
+                        gameState.player.attributes.mind += benefitValue;
+                        addLogMessage(`O conhecimento de sua seita expandiu sua Mente em ${benefitValue}.`, 'reward');
+                    }
+                    break;
             }
         }
-
-        // Check for death by old age
-        if (gameState.age >= gameState.player.lifespan) {
-            endGame("old_age");
-            return;
-        }
-
-        // Trigger a new event for the year
-        const eventTriggered = checkAndTriggerEvents();
-        if (!eventTriggered) {
-            elements.eventContent.innerHTML = "<p>Um ano tranquilo se passa.</p>";
-            elements.choicesContainer.innerHTML = '';
-            elements.eventImage.style.display = 'none';
-        }
-
-        updateUI();
-        saveGameState();
     }
+    // --- FIM DA LÓGICA DE BENEFÍCIOS DE SEITA ---
+
+    // Progressão de NPCs
+    progressNpcs();
+    updateRelationshipStates();
+
+    // Checa morte por velhice
+    if (gameState.age >= gameState.player.lifespan) {
+        endGame("old_age");
+        return;
+    }
+
+    const eventTriggered = checkAndTriggerEvents();
+    if (!eventTriggered) {
+        showEvent({ text: "Um ano tranquilo se passa. Você continua seu treinamento em paz." });
+    }
+
+    updateUI();
+    saveGameState();
+}
 
 function endGame(reason) {
     addLogMessage("Sua jornada chegou ao fim.", "milestone");
@@ -825,84 +889,101 @@ function addCombatLog(message, type) {
         }
     }
 
-    function updateUI() {
-        if (!gameState || !gameState.player) return;
-        const oldBody = parseInt(elements.body.textContent);
-        const oldMind = parseInt(elements.mind.textContent);
-        if (gameState.player.attributes.body > oldBody) flashElement(elements.body, 'highlight-green');
-        if (gameState.player.attributes.body < oldBody) flashElement(elements.body, 'highlight-red');
-        if (gameState.player.attributes.mind > oldMind) flashElement(elements.mind, 'highlight-green');
-        if (gameState.player.attributes.mind < oldMind) flashElement(elements.mind, 'highlight-red');
+function updateUI() {
+    if (!gameState || !gameState.player) return;
+    const oldBody = parseInt(elements.body.textContent);
+    const oldMind = parseInt(elements.mind.textContent);
+    if (gameState.player.attributes.body > oldBody) flashElement(elements.body, 'highlight-green');
+    if (gameState.player.attributes.body < oldBody) flashElement(elements.body, 'highlight-red');
+    if (gameState.player.attributes.mind > oldMind) flashElement(elements.mind, 'highlight-green');
+    if (gameState.player.attributes.mind < oldMind) flashElement(elements.mind, 'highlight-red');
 
-        const oldMoney = parseInt(elements.money.textContent || '0');
-        const oldContribution = parseInt(elements.contribution.textContent || '0');
-        const oldSpiritStones = parseInt(elements.spiritStones.textContent || '0');
-        if (gameState.resources.money > oldMoney) flashElement(elements.money, 'highlight-green');
-        if (gameState.resources.money < oldMoney) flashElement(elements.money, 'highlight-red');
-        if (gameState.resources.contribution > oldContribution) flashElement(elements.contribution, 'highlight-green');
-        if (gameState.resources.contribution < oldContribution) flashElement(elements.contribution, 'highlight-red');
-        if ((gameState.resources.spirit_stones || 0) > oldSpiritStones) flashElement(elements.spiritStones, 'highlight-green');
-        if ((gameState.resources.spirit_stones || 0) < oldSpiritStones) flashElement(elements.spiritStones, 'highlight-red');
+    const oldMoney = parseInt(elements.money.textContent || '0');
+    const oldContribution = parseInt(elements.contribution.textContent || '0');
+    const oldSpiritStones = parseInt(elements.spiritStones.textContent || '0');
+    if (gameState.resources.money > oldMoney) flashElement(elements.money, 'highlight-green');
+    if (gameState.resources.money < oldMoney) flashElement(elements.money, 'highlight-red');
+    if (gameState.resources.contribution > oldContribution) flashElement(elements.contribution, 'highlight-green');
+    if (gameState.resources.contribution < oldContribution) flashElement(elements.contribution, 'highlight-red');
+    if ((gameState.resources.spirit_stones || 0) > oldSpiritStones) flashElement(elements.spiritStones, 'highlight-green');
+    if ((gameState.resources.spirit_stones || 0) < oldSpiritStones) flashElement(elements.spiritStones, 'highlight-red');
 
-        elements.playerName.textContent = gameState.player.name;
-        elements.age.textContent = gameState.age;
-        elements.lifespan.textContent = gameState.player.lifespan;
-        elements.body.textContent = gameState.player.attributes.body;
-        elements.mind.textContent = gameState.player.attributes.mind;
+    elements.playerName.textContent = gameState.player.name;
+    elements.age.textContent = gameState.age;
+    elements.lifespan.textContent = gameState.player.lifespan;
+    elements.body.textContent = gameState.player.attributes.body;
+    elements.mind.textContent = gameState.player.attributes.mind;
 
-        const realm = allGameData.realms?.[gameState.cultivation.realmId] || { name: 'Mortal' };
-        elements.realm.textContent = realm.name;
-        elements.level.textContent = gameState.cultivation.level;
-        elements.qi.textContent = gameState.cultivation.qi;
-        elements.maxQi.textContent = gameState.cultivation.maxQi;
+    const realm = allGameData.realms?.[gameState.cultivation.realmId] || { name: 'Mortal' };
+    elements.realm.textContent = realm.name;
+    elements.level.textContent = gameState.cultivation.level;
+    elements.qi.textContent = gameState.cultivation.qi;
+    elements.maxQi.textContent = gameState.cultivation.maxQi;
 
-        elements.money.textContent = gameState.resources.money;
-        elements.talentPoints.textContent = gameState.resources.talentPoints;
-        elements.contribution.textContent = gameState.resources.contribution;
-        elements.spiritStones.textContent = gameState.resources.spirit_stones || 0;
+    elements.money.textContent = gameState.resources.money;
+    elements.talentPoints.textContent = gameState.resources.talentPoints;
+    elements.contribution.textContent = gameState.resources.contribution;
+    elements.spiritStones.textContent = gameState.resources.spirit_stones || 0;
 
-        if (gameState.sect.id) {
-            elements.sectInfo.classList.remove('hidden');
-            const sect = allGameData.sects.find(s => s.id === gameState.sect.id);
-            const rank = sect.ranks[gameState.sect.rank];
-            elements.sectName.textContent = sect.name;
-            elements.sectRank.textContent = rank.name;
-            let benefitValue = sect.benefit_template.base_value + (sect.benefit_template.value_per_rank * gameState.sect.rank);
-            elements.sectBenefit.textContent = sect.benefit_template.description.replace('{value}', benefitValue);
-        } else {
-            elements.sectInfo.classList.add('hidden');
-        }
-
-        if (gameState.cultivation.qi >= gameState.cultivation.maxQi) {
-            elements.meditateBtn.textContent = "Tentar Breakthrough!";
-            elements.meditateBtn.classList.add('breakthrough-ready');
-        } else {
-            elements.meditateBtn.textContent = "Meditar";
-            elements.meditateBtn.classList.remove('breakthrough-ready');
-        }
-
-        elements.relationshipsList.innerHTML = '';
-        for (const npcId in gameState.npcs) {
-            const npc = gameState.npcs[npcId];
-            const relationship = gameState.relationships[npcId];
-            const li = document.createElement('li');
-            const rivalTag = npcId === gameState.rivalId ? ' <span class="rival-tag">[RIVAL]</span>' : '';
-            const npcRealm = allGameData.realms?.[npc.cultivation.realmId] || { name: 'Mortal' };
-            li.innerHTML = `<strong>${npc.name}${rivalTag}</strong><br><span class="npc-details">Idade: ${npc.age} | ${npcRealm.name} Nv. ${npc.cultivation.level} | Relação: ${relationship.score} (${relationship.state})</span>`;
-            elements.relationshipsList.appendChild(li);
-        }
-
-        elements.lifeLogList.innerHTML = '';
-        if (gameState.life_log) {
-            const recentLogs = gameState.life_log.slice(-15).reverse();
-            recentLogs.forEach(log => {
-                const li = document.createElement('li');
-                li.innerHTML = `<strong>Ano ${log.age}:</strong> ${log.message}`;
-                li.classList.add(`log-type-${log.type}`);
-                elements.lifeLogList.appendChild(li);
-            });
-        }
+    if (gameState.sect.id) {
+        elements.sectInfo.classList.remove('hidden');
+        const sect = allGameData.sects.find(s => s.id === gameState.sect.id);
+        const rank = sect.ranks[gameState.sect.rank];
+        elements.sectName.textContent = sect.name;
+        elements.sectRank.textContent = rank.name;
+        let benefitValue = sect.benefit_template.base_value + (sect.benefit_template.value_per_rank * gameState.sect.rank);
+        elements.sectBenefit.textContent = sect.benefit_template.description.replace('{value}', benefitValue);
+    } else {
+        elements.sectInfo.classList.add('hidden');
     }
+
+    if (gameState.cultivation.qi >= gameState.cultivation.maxQi) {
+        elements.meditateBtn.textContent = "Tentar Breakthrough!";
+        elements.meditateBtn.classList.add('breakthrough-ready');
+    } else {
+        elements.meditateBtn.textContent = "Meditar";
+        elements.meditateBtn.classList.remove('breakthrough-ready');
+    }
+
+    elements.relationshipsList.innerHTML = '';
+    for (const npcId in gameState.npcs) {
+        const npc = gameState.npcs[npcId];
+        const relationship = gameState.relationships[npcId];
+        const li = document.createElement('li');
+        const rivalTag = npcId === gameState.rivalId ? ' <span class="rival-tag">[RIVAL]</span>' : '';
+        const npcRealm = allGameData.realms?.[npc.cultivation.realmId] || { name: 'Mortal' };
+        li.innerHTML = `<strong>${npc.name}${rivalTag}</strong><br><span class="npc-details">Idade: ${npc.age} | ${npcRealm.name} Nv. ${npc.cultivation.level} | Relação: ${relationship.score} (${relationship.state})</span>`;
+        elements.relationshipsList.appendChild(li);
+    }
+
+    // --- INÍCIO DA NOVA LÓGICA DE TÉCNICAS ---
+    elements.techniquesList.innerHTML = '';
+    if (gameState.player.techniques && gameState.player.techniques.length > 0) {
+        gameState.player.techniques.forEach(techId => {
+            const tech = allGameData.techniques.find(t => t.id === techId);
+            if (tech) {
+                const li = document.createElement('li');
+                li.innerHTML = `<strong data-tooltip="${tech.description}">${tech.name}</strong>`;
+                elements.techniquesList.appendChild(li);
+            }
+        });
+    } else {
+        elements.techniquesList.innerHTML = '<li>Nenhuma técnica aprendida.</li>';
+    }
+    // --- FIM DA NOVA LÓGICA DE TÉCNICAS ---
+
+
+    elements.lifeLogList.innerHTML = '';
+    if (gameState.life_log) {
+        const recentLogs = gameState.life_log.slice(-15).reverse();
+        recentLogs.forEach(log => {
+            const li = document.createElement('li');
+            li.innerHTML = `<strong>Ano ${log.age}:</strong> ${log.message}`;
+            li.classList.add(`log-type-${log.type}`);
+            elements.lifeLogList.appendChild(li);
+        });
+    }
+}
 
     function flashElement(element, highlightClass) {
         element.classList.add(highlightClass);
