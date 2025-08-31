@@ -78,6 +78,11 @@ document.addEventListener('DOMContentLoaded', () => {
         worldEventStatus: document.getElementById('world-event-status'),
         worldEventName: document.getElementById('world-event-name'),
         worldEventDuration: document.getElementById('world-event-duration'),
+        manageTechniquesBtn: document.getElementById('manage-techniques-btn'),
+        techniquesScreen: document.getElementById('techniques-screen'),
+        closeTechniquesBtn: document.getElementById('close-techniques-btn'),
+        learnedTechniquesList: document.getElementById('learned-techniques-list'),
+        equippedTechniquesList: document.getElementById('equipped-techniques-list'),
     };
 
 // --- CHARACTER CREATION ---
@@ -1256,9 +1261,13 @@ function updateUI() {
             elements.techniquesList.innerHTML = '<li>Nenhuma técnica aprendida.</li>';
         }
 
+        // Botão de Gerir Técnicas visível apenas para cultivadores
+        elements.manageTechniquesBtn.classList.remove('hidden');
+
     } else {
         if (cultivatorPanels) cultivatorPanels.classList.add('hidden');
         elements.talentsBtn.classList.add('hidden');
+        elements.manageTechniquesBtn.classList.add('hidden');
         elements.cultivationPanel.style.display = 'none';
         elements.cultivateBtn.style.display = 'none';
     }
@@ -1374,6 +1383,59 @@ function renderLegacyBonuses(legacyData) {
     });
 }
 
+/**
+ * Renders and displays the technique management screen.
+ */
+function showTechniqueManagement() {
+    elements.techniquesScreen.classList.remove('hidden');
+    const learned = gameState.player.techniques;
+    const equipped = gameState.player.combat.equipped_techniques;
+
+    // Coluna da Esquerda: Técnicas Aprendidas
+    elements.learnedTechniquesList.innerHTML = '';
+    const unequippedTechniques = learned.filter(techId => !equipped.includes(techId));
+
+    unequippedTechniques.forEach(techId => {
+        const tech = allGameData.techniques.find(t => t.id === techId);
+        if (tech.type !== 'active_combat') return; // Mostra apenas técnicas ativas
+
+        const li = document.createElement('li');
+        li.textContent = tech.name;
+        li.dataset.techId = techId;
+        li.addEventListener('click', () => {
+            const emptySlotIndex = equipped.findIndex(slot => slot === null);
+            if (emptySlotIndex !== -1) {
+                gameState.player.combat.equipped_techniques[emptySlotIndex] = techId;
+                showTechniqueManagement(); // Re-renderiza o ecrã
+                saveGameState();
+            } else {
+                addLogMessage("Não há espaços livres para equipar mais técnicas.", "notification");
+            }
+        });
+        elements.learnedTechniquesList.appendChild(li);
+    });
+
+    // Coluna da Direita: Técnicas Equipadas
+    elements.equippedTechniquesList.innerHTML = '';
+    equipped.forEach((techId, index) => {
+        const li = document.createElement('li');
+        if (techId) {
+            const tech = allGameData.techniques.find(t => t.id === techId);
+            li.textContent = tech.name;
+            li.dataset.techId = techId;
+            li.classList.add('filled');
+            li.addEventListener('click', () => {
+                gameState.player.combat.equipped_techniques[index] = null;
+                showTechniqueManagement(); // Re-renderiza o ecrã
+                saveGameState();
+            });
+        } else {
+            li.textContent = '[ Espaço Vazio ]';
+            li.classList.add('empty');
+        }
+        elements.equippedTechniquesList.appendChild(li);
+    });
+}
 
 // Adicione esta função completa para mostrar a tela de legado.
 function showLegacyScreen(finalGameState, pointsEarned, legacyData) {
@@ -1395,7 +1457,7 @@ function showLegacyScreen(finalGameState, pointsEarned, legacyData) {
     const finalChronicleList = document.getElementById('final-chronicle-list');
     finalChronicleList.innerHTML = '';
     if (finalGameState.life_log) {
-        finalGameState.life_log.forEach(log => {.
+        finalGameState.life_log.forEach(log => {
             const li = document.createElement('li');
             li.innerHTML = `<strong>Ano ${log.age}:</strong> ${log.message}`;
             finalChronicleList.appendChild(li);
@@ -1415,7 +1477,7 @@ function startNewGame() {
     const socialClasses = ['aldeão', 'servo', 'órfão'];
 
     // Adiciona as técnicas equipadas ao iniciar
-    player.combat.equipped_techniques = ['basic_sword_form'];
+    player.combat.equipped_techniques = [null, null, null, null]; // 4 espaços para técnicas
 
     gameState = {
         player: player,
@@ -1473,12 +1535,21 @@ function startNewGame() {
             }
         });
 
+        elements.manageTechniquesBtn.addEventListener('click', showTechniqueManagement);
+        elements.closeTechniquesBtn.addEventListener('click', () => {
+            elements.techniquesScreen.classList.add('hidden');
+        });
+
         // Resume cultivation loop if loading a game with a cultivator
         if (gameState.isCultivator) {
             startCultivationLoop();
         }
 
         updateUI();
+
+        // Expose for testing
+        window.gameState = gameState;
+        window.updateUI = updateUI;
     }
 
     // --- START THE GAME ---
