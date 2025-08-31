@@ -17,11 +17,11 @@ def run_verification():
         page.reload()
 
         # Wait for the game to be fully initialized by checking for the map buttons
-        expect(page.get_by_role("button", name="Sua Seita")).to_be_visible(timeout=15000)
+        expect(page.get_by_role("button", name="Cidade Próxima")).to_be_visible(timeout=15000)
 
         # --- 1. Initial State Check ---
         expect(page.locator("#char-actions")).to_have_text("2")
-        expect(page.get_by_role("button", name="Sua Seita")).to_be_visible()
+        expect(page.get_by_role("button", name="Sua Seita")).to_be_hidden() # Player doesn't start in a sect
         expect(page.get_by_role("button", name="Cidade Próxima")).to_be_visible()
         expect(page.get_by_role("button", name="Montanhas Selvagens")).to_be_visible()
 
@@ -29,7 +29,7 @@ def run_verification():
         page.get_by_role("button", name="Cidade Próxima").click()
 
         # Assert that an event happened and actions decreased
-        expect(page.locator("#event-content p")).not_to_be_empty()
+        expect(page.locator("#event-content p")).to_have_count(1, timeout=5000)
         expect(page.locator("#char-actions")).to_have_text("1")
 
         # The choice button might not exist if the event has no choices
@@ -44,6 +44,10 @@ def run_verification():
 
         # Assert that actions are now 0
         expect(page.locator("#char-actions")).to_have_text("0")
+
+        # If it does, click it to continue
+        if page.locator("#choices-container button").count() > 0:
+            page.locator("#choices-container button").first.click()
 
         # --- 4. End of Turn Check ---
         # Assert that the map is gone and the "End Turn" button is visible
@@ -61,7 +65,7 @@ def run_verification():
         expect(page.locator("#char-actions")).to_have_text("2")
 
         # Assert that the map is back
-        expect(page.get_by_role("button", name="Sua Seita")).to_be_visible()
+        expect(page.get_by_role("button", name="Cidade Próxima")).to_be_visible()
 
         print("Exploration loop verification successful!")
         page.screenshot(path="jules-scratch/verification/exploration_loop_verified.png")

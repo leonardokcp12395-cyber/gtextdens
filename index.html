@@ -14,6 +14,7 @@
         <div id="character-panel" class="panel">
             <h2><span id="player-name"></span></h2>
             <p><strong>Idade:</strong> <span id="char-age">0</span> / <span id="char-lifespan">80</span></p>
+            <p><strong>Ações:</strong> <span id="char-actions">2</span></p>
             <hr>
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <h3>Atributos</h3>
@@ -47,11 +48,13 @@
                 <p>Você nasceu. O caminho é longo e incerto.</p>
             </div>
             <div id="choices-container"></div>
-            <div id="actions-container">
-                <button id="sect-actions-btn" class="hidden">Ações da Seita</button>
-                <button id="meditate-btn">Meditar</button>
-                <button id="next-year-btn">Avançar Ano</button>
-                <button id="end-journey-btn" class="danger-btn">Terminar Jornada</button>
+            <div id="map-container">
+                <button id="explore-sect-btn" class="hidden">Sua Seita</button>
+                <button id="explore-city-btn">Cidade Próxima</button>
+                <button id="explore-wilds-btn">Montanhas Selvagens</button>
+            </div>
+            <div id="turn-container">
+                 <button id="end-turn-btn" class="hidden">Descansar (Próximo Ano)</button>
             </div>
 
             <div id="combat-screen" class="hidden">

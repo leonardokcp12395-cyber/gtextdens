@@ -25,10 +25,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const elements = {
         eventContent: document.getElementById('event-content'),
         choicesContainer: document.getElementById('choices-container'),
-        actionsContainer: document.getElementById('actions-container'),
         combatScreen: document.getElementById('combat-screen'),
         playerName: document.getElementById('player-name'),
         age: document.getElementById('char-age'),
+        actions: document.getElementById('char-actions'),
         body: document.getElementById('attr-body'),
         mind: document.getElementById('attr-mind'),
         realm: document.getElementById('cult-realm'),
@@ -39,11 +39,12 @@ document.addEventListener('DOMContentLoaded', () => {
         talentPoints: document.getElementById('talent-points'),
         contribution: document.getElementById('res-contribution'),
         spiritStones: document.getElementById('res-spirit-stones'),
-        meditateBtn: document.getElementById('meditate-btn'),
-        nextYearBtn: document.getElementById('next-year-btn'),
-        endJourneyBtn: document.getElementById('end-journey-btn'),
         talentsBtn: document.getElementById('talents-btn'),
-        sectActionsBtn: document.getElementById('sect-actions-btn'),
+        mapContainer: document.getElementById('map-container'),
+        exploreSectBtn: document.getElementById('explore-sect-btn'),
+        exploreCityBtn: document.getElementById('explore-city-btn'),
+        exploreWildsBtn: document.getElementById('explore-wilds-btn'),
+        endTurnBtn: document.getElementById('end-turn-btn'),
         combatPlayerHp: document.getElementById('combat-player-hp'),
         combatEnemyName: document.getElementById('combat-enemy-name'),
         combatEnemyHp: document.getElementById('combat-enemy-hp'),
@@ -783,7 +784,32 @@ function areConditionsMet(conditions) {
         return false; // No event triggered
     }
 
-function advanceYear() {
+function startYear() {
+    gameState.actionPoints = 2;
+    updateUI();
+}
+
+function exploreLocation(locationId) {
+    if (gameState.actionPoints <= 0) return;
+    gameState.actionPoints--;
+    updateUI(); // Update UI immediately after action point is spent
+
+    let event;
+    if (locationId === 'sect') {
+        // For now, visiting the sect just shows the sect actions menu.
+        showSectActions();
+        return; // Return early as showSectActions handles its own UI.
+    } else if (locationId === 'city') {
+        event = allGameData.events.find(e => e.id === 'city_generic_event') || {text: "A cidade está movimentada como sempre."};
+    } else if (locationId === 'wilds') {
+        event = allGameData.events.find(e => e.id === 'haunted_forest') || {text: "As montanhas estão silenciosas hoje."};
+    }
+
+    showEvent(event || { text: "Você explora a área, mas nada de interessante acontece." });
+    saveGameState();
+}
+
+function endYear() {
     // --- LÓGICA DE EVENTOS MUNDIAIS ---
     if (gameState.world_event && gameState.world_event.duration > 0) {
         gameState.world_event.duration--;
@@ -864,12 +890,7 @@ function advanceYear() {
         return;
     }
 
-    const eventTriggered = checkAndTriggerEvents();
-    if (!eventTriggered) {
-        showEvent({ text: "Um ano tranquilo se passa. Você continua seu treinamento em paz." });
-    }
-
-    updateUI();
+    startYear(); // Começa o próximo ano
     saveGameState();
 }
 
@@ -1139,8 +1160,9 @@ function addCombatLog(message, type) {
     function showEvent(event) {
         // Esconde a tela de combate se estiver ativa
         elements.combatScreen.classList.add('hidden');
-        // Mostra as ações principais
-        elements.actionsContainer.classList.remove('hidden');
+        // Esconde o mapa e o botão de fim de turno
+        elements.mapContainer.classList.add('hidden');
+        elements.endTurnBtn.classList.add('hidden');
 
         elements.eventContent.innerHTML = `<p>${processText(event.text)}</p>`;
         elements.choicesContainer.innerHTML = '';
@@ -1150,7 +1172,7 @@ function addCombatLog(message, type) {
         } else {
             elements.eventImage.style.display = 'none';
         }
-        if (event.choices) {
+        if (event.choices && event.choices.length > 0) {
             event.choices.forEach(choice => {
                 const button = document.createElement('button');
                 button.textContent = processText(choice.text);
@@ -1161,51 +1183,49 @@ function addCombatLog(message, type) {
                         addLogMessage(resultText, 'event');
                     }
                     applyEffects(choice.effects);
-                    while (elements.choicesContainer.firstChild) elements.choicesContainer.removeChild(elements.choicesContainer.firstChild);
+                    elements.choicesContainer.innerHTML = ''; // Clear choices
                     updateUI();
                     saveGameState();
                 }, { once: true });
                 elements.choicesContainer.appendChild(button);
             });
+        } else {
+            // If no choices, show a continue button to return to the map
+            const continueButton = document.createElement('button');
+            continueButton.textContent = 'Continuar...';
+            continueButton.addEventListener('click', () => {
+                 elements.choicesContainer.innerHTML = '';
+                 updateUI();
+            });
+            elements.choicesContainer.appendChild(continueButton);
         }
     }
 
 function updateUI() {
     if (!gameState || !gameState.player) return;
-    const oldBody = parseInt(elements.body.textContent);
-    const oldMind = parseInt(elements.mind.textContent);
-    if (gameState.player.attributes.body > oldBody) flashElement(elements.body, 'highlight-green');
-    if (gameState.player.attributes.body < oldBody) flashElement(elements.body, 'highlight-red');
-    if (gameState.player.attributes.mind > oldMind) flashElement(elements.mind, 'highlight-green');
-    if (gameState.player.attributes.mind < oldMind) flashElement(elements.mind, 'highlight-red');
 
-    const oldMoney = parseInt(elements.money.textContent || '0');
-    const oldContribution = parseInt(elements.contribution.textContent || '0');
-    const oldSpiritStones = parseInt(elements.spiritStones.textContent || '0');
-    if (gameState.resources.money > oldMoney) flashElement(elements.money, 'highlight-green');
-    if (gameState.resources.money < oldMoney) flashElement(elements.money, 'highlight-red');
-    if (gameState.resources.contribution > oldContribution) flashElement(elements.contribution, 'highlight-green');
-    if (gameState.resources.contribution < oldContribution) flashElement(elements.contribution, 'highlight-red');
-    if ((gameState.resources.spirit_stones || 0) > oldSpiritStones) flashElement(elements.spiritStones, 'highlight-green');
-    if ((gameState.resources.spirit_stones || 0) < oldSpiritStones) flashElement(elements.spiritStones, 'highlight-red');
-
+    // Update character stats
     elements.playerName.textContent = gameState.player.name;
     elements.age.textContent = gameState.age;
+    elements.actions.textContent = gameState.actionPoints;
     elements.lifespan.textContent = gameState.player.lifespan;
     elements.body.textContent = gameState.player.attributes.body;
     elements.mind.textContent = gameState.player.attributes.mind;
 
+    // Update cultivation stats
     const realm = allGameData.realms?.[gameState.cultivation.realmId] || { name: 'Mortal' };
     elements.realm.textContent = realm.name;
     elements.level.textContent = gameState.cultivation.level;
     elements.qi.textContent = gameState.cultivation.qi;
     elements.maxQi.textContent = gameState.cultivation.maxQi;
 
+    // Update resources
     elements.money.textContent = gameState.resources.money;
     elements.talentPoints.textContent = gameState.resources.talentPoints;
     elements.contribution.textContent = gameState.resources.contribution;
     elements.spiritStones.textContent = gameState.resources.spirit_stones || 0;
 
+    // Update sect info and exploration buttons
     if (gameState.sect.id) {
         elements.sectInfo.classList.remove('hidden');
         const sect = allGameData.sects.find(s => s.id === gameState.sect.id);
@@ -1214,20 +1234,13 @@ function updateUI() {
         elements.sectRank.textContent = rank.name;
         let benefitValue = sect.benefit_template.base_value + (sect.benefit_template.value_per_rank * gameState.sect.rank);
         elements.sectBenefit.textContent = sect.benefit_template.description.replace('{value}', benefitValue);
-        elements.sectActionsBtn.classList.remove('hidden');
+        elements.exploreSectBtn.classList.remove('hidden');
     } else {
         elements.sectInfo.classList.add('hidden');
-        elements.sectActionsBtn.classList.add('hidden');
+        elements.exploreSectBtn.classList.add('hidden');
     }
 
-    if (gameState.cultivation.qi >= gameState.cultivation.maxQi) {
-        elements.meditateBtn.textContent = "Tentar Breakthrough!";
-        elements.meditateBtn.classList.add('breakthrough-ready');
-    } else {
-        elements.meditateBtn.textContent = "Meditar";
-        elements.meditateBtn.classList.remove('breakthrough-ready');
-    }
-
+    // Update relationships
     elements.relationshipsList.innerHTML = '';
     for (const npcId in gameState.npcs) {
         const npc = gameState.npcs[npcId];
@@ -1239,7 +1252,7 @@ function updateUI() {
         elements.relationshipsList.appendChild(li);
     }
 
-    // --- INÍCIO DA NOVA LÓGICA DE TÉCNICAS ---
+    // Update techniques list
     elements.techniquesList.innerHTML = '';
     if (gameState.player.techniques && gameState.player.techniques.length > 0) {
         gameState.player.techniques.forEach(techId => {
@@ -1253,9 +1266,8 @@ function updateUI() {
     } else {
         elements.techniquesList.innerHTML = '<li>Nenhuma técnica aprendida.</li>';
     }
-    // --- FIM DA NOVA LÓGICA DE TÉCNICAS ---
 
-
+    // Update life log
     elements.lifeLogList.innerHTML = '';
     if (gameState.life_log) {
         const recentLogs = gameState.life_log.slice(-15).reverse();
@@ -1267,7 +1279,7 @@ function updateUI() {
         });
     }
 
-    // --- LÓGICA DE ATUALIZAÇÃO DO STATUS DO EVENTO MUNDIAL ---
+    // Update world event status
     const activeWorldEvent = getActiveWorldEvent();
     if (activeWorldEvent) {
         elements.worldEventStatus.classList.remove('hidden');
@@ -1276,7 +1288,15 @@ function updateUI() {
     } else {
         elements.worldEventStatus.classList.add('hidden');
     }
-    // --- FIM DA LÓGICA ---
+
+    // Show/hide map vs end turn button
+    if (gameState.actionPoints > 0) {
+        elements.mapContainer.classList.remove('hidden');
+        elements.endTurnBtn.classList.add('hidden');
+    } else {
+        elements.mapContainer.classList.add('hidden');
+        elements.endTurnBtn.classList.remove('hidden');
+    }
 }
 
     function flashElement(element, highlightClass) {
@@ -1401,19 +1421,20 @@ function startNewGame() {
         rivalId: 'rival_1',
         age: 6,
         resources: baseResources,
-        cultivation: { realmId: 0, level: 1, qi: 0, maxQi: 100 }, // Corrigido para maxQi inicial correto
+        cultivation: { realmId: 0, level: 1, qi: 0, maxQi: 100 },
         sect: { id: null, rank: 0 },
         triggeredEvents: [],
         active_mission: null,
         life_log: [],
         relationships: { 'rival_1': { score: 0, state: 'neutral' } },
-        world_event: null, // <-- ADICIONADO AQUI
+        world_event: null,
+        actionPoints: 0,
     };
-    updateCultivationStats(); // Garante que o maxQi está correto desde o início
+    updateCultivationStats();
     addLogMessage("Você nasceu. O mundo aguarda para testemunhar sua lenda.", "milestone");
 
+    startYear(); // Inicia o primeiro ano
     checkAndTriggerEvents();
-    updateUI();
     saveGameState();
 }
 
@@ -1427,14 +1448,17 @@ function startNewGame() {
         }
 
         // Attach event listeners for main UI buttons
-        elements.nextYearBtn.addEventListener('click', advanceYear);
-        elements.meditateBtn.addEventListener('click', meditate);
+        elements.exploreSectBtn.addEventListener('click', () => exploreLocation('sect'));
+        elements.exploreCityBtn.addEventListener('click', () => exploreLocation('city'));
+        elements.exploreWildsBtn.addEventListener('click', () => exploreLocation('wilds'));
+        elements.endTurnBtn.addEventListener('click', endYear);
+
         elements.talentsBtn.addEventListener('click', () => {
             showTalents();
             elements.talentsScreen.classList.remove('hidden');
         });
         elements.closeTalentsBtn.addEventListener('click', () => elements.talentsScreen.classList.add('hidden'));
-        elements.sectActionsBtn.addEventListener('click', () => handleSpecialEffects('show_sect_actions'));
+
         elements.startNewJourneyBtn.addEventListener('click', () => {
              elements.legacyScreen.classList.add('hidden');
              startNewGame();
@@ -1443,11 +1467,6 @@ function startNewGame() {
             if (confirm("TEM CERTEZA? Todo o seu progresso, incluindo Pontos de Legado e bônus comprados, será permanentemente apagado.")) {
                 localStorage.clear();
                 window.location.reload();
-            }
-        });
-        elements.endJourneyBtn.addEventListener('click', () => {
-            if (confirm("Tem certeza de que deseja terminar sua jornada atual? Todo o progresso desta vida será convertido em Pontos de Legado.")) {
-                endGame('ended_journey');
             }
         });
 
