@@ -20,6 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let allStrings = {};     // All UI strings, dialogue results, etc. Loaded once at the start.
     let combatState = {};    // Temporary state for the current combat encounter.
     let gameLoopInterval = null;
+    let combatLoopInterval = null; // Para controlar o ciclo de combate
 
     // --- UI ELEMENT CACHE ---
     // Caching all DOM element lookups for performance and easier access.
@@ -1001,21 +1002,16 @@ function endGame(reason) {
     localStorage.removeItem('immortalJourneySave');
 }
 
-// --- COMBAT SYSTEM ---
-// SUBSTITUA TODAS AS SUAS FUNÇÕES DE COMBATE POR ESTE BLOCO ATUALIZADO
+// --- NEW AUTOMATIC COMBAT SYSTEM ---
 
 /**
- * Starts a combat encounter.
- * @param {object} enemyData - The enemy object from allGameData.enemies.
- * @param {object} [options={}] - Optional parameters for the combat.
- * @param {string} options.onWinEffect - A special effect key to trigger on victory.
- * @param {object} options.reward - A reward object to grant on victory.
+ * Inicia um encontro de combate automático.
  */
 function startCombat(enemyData, options = {}) {
     elements.eventContent.innerHTML = '';
     elements.choicesContainer.innerHTML = '';
-    elements.actionsContainer.classList.add('hidden'); // Esconde ações normais
-    elements.combatScreen.classList.remove('hidden');   // Mostra a tela de combate
+    elements.actionsContainer.classList.add('hidden');
+    elements.combatScreen.classList.remove('hidden');
     elements.eventImage.style.display = 'none';
 
     combatState = {
@@ -1023,24 +1019,89 @@ function startCombat(enemyData, options = {}) {
             ...gameState.player.combat,
             hp: gameState.player.combat.maxHp,
             qi: gameState.cultivation.qi,
-            statusEffects: {} // Para futuros efeitos como veneno, etc.
+            techniques: gameState.player.combat.equipped_techniques,
+            cooldowns: {}, // Regista os cooldowns atuais
+            statusEffects: {}
         },
         enemy: {
             ...enemyData.combat,
             name: enemyData.name,
             techniques: enemyData.techniques || [],
+            cooldowns: {},
             statusEffects: {}
         },
-        onWin: options
+        onWin: options,
+        turn: 0
     };
 
     elements.combatLog.innerHTML = `<p class="log-type-notification">Você encontrou ${combatState.enemy.name}!</p>`;
     updateCombatUI();
-    renderCombatActions(); // Gera os botões de ação do jogador
+
+    // Inicia o ciclo de combate automático
+    combatLoopInterval = setInterval(runCombatTurn, 2000); // Um turno a cada 2 segundos
 }
 
 /**
- * Updates all combat-related UI elements with the current combatState.
+ * Executa um único turno de combate para ambos, jogador e inimigo.
+ */
+function runCombatTurn() {
+    combatState.turn++;
+    addCombatLog(`--- Turno ${combatState.turn} ---`, 'system');
+
+    // Turno do Jogador
+    executeCharacterTurn(combatState.player, combatState.enemy, 'player');
+    if (combatState.enemy.hp <= 0) {
+        endCombat(true);
+        return;
+    }
+
+    // Turno do Inimigo
+    executeCharacterTurn(combatState.enemy, combatState.player, 'enemy');
+    if (combatState.player.hp <= 0) {
+        endCombat(false);
+        return;
+    }
+
+    updateCombatUI();
+}
+
+/**
+ * Lógica para um único personagem (jogador ou inimigo) realizar o seu turno.
+ */
+function executeCharacterTurn(attacker, defender, attackerType) {
+    // Reduz todos os cooldowns em 1
+    for (const techId in attacker.cooldowns) {
+        attacker.cooldowns[techId] = Math.max(0, attacker.cooldowns[techId] - 1);
+    }
+
+    // Encontra a melhor técnica disponível
+    const availableTechniques = attacker.techniques
+        .map(id => allGameData.techniques.find(t => t.id === id))
+        .filter(tech => tech && tech.type === 'active_combat' && (!attacker.cooldowns[tech.id] || attacker.cooldowns[tech.id] === 0) && attacker.qi >= tech.qi_cost)
+        .sort((a, b) => b.priority - a.priority);
+
+    let chosenTech = availableTechniques.length > 0 ? availableTechniques[0] : allGameData.techniques.find(t => t.id === 'basic_sword_form');
+
+    // Executa o ataque
+    if (chosenTech) {
+        attacker.qi -= chosenTech.qi_cost || 0;
+        attacker.cooldowns[chosenTech.id] = chosenTech.cooldown || 1;
+
+        let damage = Math.max(1, Math.floor((attacker.attack * (chosenTech.damage_multiplier || 1)) - defender.defense));
+        defender.hp -= damage;
+
+        const attackerName = attackerType === 'player' ? 'Você' : attacker.name;
+        const damageClass = attackerType === 'player' ? 'damage-enemy' : 'damage';
+        addCombatLog(`${attackerName} usa ${chosenTech.name} e causa <span class="${damageClass}">${damage}</span> de dano!`, attackerType);
+    } else {
+        // Fallback case if basic_sword_form is somehow not found
+        addCombatLog(`${attackerType === 'player' ? 'Você' : attacker.name} hesita, sem saber o que fazer.`, 'system');
+    }
+}
+
+
+/**
+ * Atualiza todos os elementos da UI relacionados com o combate.
  */
 function updateCombatUI() {
     elements.combatPlayerHp.textContent = `${combatState.player.hp} / ${gameState.player.combat.maxHp} (Qi: ${combatState.player.qi})`;
@@ -1049,190 +1110,48 @@ function updateCombatUI() {
 }
 
 /**
- * Dynamically creates the action buttons for the player's turn.
- */
-function renderCombatActions() {
-    elements.combatActions.innerHTML = ''; // Limpa ações antigas
-
-    // Botão de Ataque Básico
-    const basicAttackBtn = document.createElement('button');
-    basicAttackBtn.textContent = 'Ataque Básico';
-    basicAttackBtn.className = 'combat-action-btn';
-    basicAttackBtn.addEventListener('click', () => executePlayerTurn(null));
-    elements.combatActions.appendChild(basicAttackBtn);
-
-    // Botões de Técnicas
-    gameState.player.techniques.forEach(techId => {
-        const tech = allGameData.techniques.find(t => t.id === techId);
-        if (tech && tech.type === 'active_combat') {
-            const techBtn = document.createElement('button');
-            techBtn.textContent = `${tech.name} (${tech.qi_cost} Qi)`;
-            techBtn.className = 'combat-action-btn tech';
-            if (combatState.player.qi < tech.qi_cost) {
-                techBtn.disabled = true;
-            }
-            techBtn.addEventListener('click', () => executePlayerTurn(techId));
-            elements.combatActions.appendChild(techBtn);
-        }
-    });
-}
-
-/**
- * Executes the player's chosen action and transitions to the enemy's turn.
- * @param {string|null} techId - The ID of the technique used, or null for a basic attack.
- */
-function executePlayerTurn(techId) {
-    // --- LÓGICA PARA "SUPER DEFEND" ---
-    if (combatState.player.statusEffects.super_defend) {
-        delete combatState.player.statusEffects.super_defend; // Remove o efeito após o uso
-    }
-    // --- FIM DA LÓGICA ---
-
-    let damage = 0;
-    let attackLog = '';
-    const tech = techId ? allGameData.techniques.find(t => t.id === techId) : null;
-
-    if (tech) {
-        combatState.player.qi -= tech.qi_cost;
-        damage = Math.max(1, Math.floor((combatState.player.attack * (tech.damage_multiplier || 1)) - combatState.enemy.defense));
-        attackLog = `Você usa <span class="log-tech-name">${tech.name}</span>`;
-
-        if (tech.damage_multiplier > 0) {
-            attackLog += ` e causa <span class="damage-enemy">${damage}</span> de dano!`;
-        }
-
-        // Lógica de Efeitos Especiais
-        if (tech.special_effect) {
-            if (tech.special_effect.type === 'stun' && Math.random() < tech.special_effect.chance) {
-                combatState.enemy.statusEffects.stunned = 1; // Atordoa por 1 turno
-                attackLog += ` O inimigo está atordoado!`;
-            }
-            if (tech.special_effect.type === 'super_defend') {
-                combatState.player.statusEffects.super_defend = tech.special_effect.multiplier;
-                attackLog += ` Você assume uma postura defensiva!`;
-            }
-        }
-    } else {
-        damage = Math.max(1, combatState.player.attack - combatState.enemy.defense);
-        attackLog = `Você ataca e causa <span class="damage-enemy">${damage}</span> de dano.`;
-    }
-
-    if (damage > 0) {
-        combatState.enemy.hp -= damage;
-    }
-    addCombatLog(attackLog, 'player');
-    updateCombatUI();
-
-    if (combatState.enemy.hp <= 0) {
-        endCombat(true);
-        return;
-    }
-
-    setTimeout(executeEnemyTurn, 1000);
-}
-
-
-// Também é necessário atualizar a executeEnemyTurn para que a defesa funcione
-/**
- * Executes the enemy's turn.
- */
-function executeEnemyTurn() {
-    if (combatState.enemy.statusEffects.stunned > 0) {
-        addCombatLog(`${combatState.enemy.name} está atordoado e não pode se mover!`, 'system');
-        combatState.enemy.statusEffects.stunned--;
-        renderCombatActions();
-        return;
-    }
-
-    let damage = 0;
-    let attackLog = '';
-    const enemyAttack = combatState.enemy;
-
-    const usableTechniques = enemyAttack.techniques.map(id => allGameData.techniques.find(t => t.id === id)).filter(Boolean);
-    const techToUse = usableTechniques.length > 0 && Math.random() < 0.4 ? usableTechniques[0] : null;
-
-    if (techToUse) {
-        damage = Math.floor(enemyAttack.attack * (techToUse.damage_multiplier || 1));
-        attackLog = `${enemyAttack.name} usa <span class="log-tech-name">${techToUse.name}</span>`;
-    } else {
-        damage = enemyAttack.attack;
-        attackLog = `${enemyAttack.name} ataca`;
-    }
-
-    // --- APLICAÇÃO DA DEFESA DO JOGADOR ---
-    let finalDamage = damage - combatState.player.defense;
-    if (combatState.player.statusEffects.super_defend) {
-        finalDamage = Math.floor(finalDamage * (1 - combatState.player.statusEffects.super_defend));
-        attackLog += `, mas a sua postura defensiva absorve a maior parte do impacto!`;
-    }
-    finalDamage = Math.max(1, finalDamage);
-    // --- FIM DA APLICAÇÃO ---
-
-    attackLog += ` e lhe causa <span class="damage">${finalDamage}</span> de dano.`
-
-    combatState.player.hp -= finalDamage;
-    addCombatLog(attackLog, 'enemy');
-    updateCombatUI();
-
-    if (combatState.player.hp <= 0) {
-        endCombat(false);
-        return;
-    }
-    renderCombatActions();
-}
-
-/**
- * Ends the combat and displays the result.
- * @param {boolean} playerWon - True if the player won, false otherwise.
+ * Termina o combate e apresenta o resultado.
  */
 function endCombat(playerWon) {
-    elements.combatActions.innerHTML = ''; // Limpa os botões de ação
+    clearInterval(combatLoopInterval); // PARA O COMBATE AUTOMÁTICO
+    combatLoopInterval = null;
 
     if (playerWon) {
         addCombatLog(`Você derrotou ${combatState.enemy.name}!`, 'reward');
-        if (combatState.onWin.reward) {
-            applyEffects(combatState.onWin.reward);
-            addCombatLog('Você recebeu uma recompensa!', 'reward');
-        }
-        if (combatState.onWin.onWinEffect) {
-            handleSpecialEffects(combatState.onWin.onWinEffect);
-        }
-        // Recupera o Qi gasto no combate e atualiza o estado global
+        if (combatState.onWin.reward) applyEffects(combatState.onWin.reward);
+        if (combatState.onWin.onWinEffect) handleSpecialEffects(combatState.onWin.onWinEffect);
         gameState.cultivation.qi = combatState.player.qi;
-
     } else {
-        addCombatLog('Você foi derrotado...', 'death');
-        endGame('combat'); // Acaba o jogo se o jogador for derrotado
+        addLogMessage('Você foi derrotado...', 'death');
+        endGame('combat');
         return;
     }
 
-    // Botão para fechar a tela de combate
     const closeButton = document.createElement('button');
     closeButton.textContent = 'Continuar Jornada';
     closeButton.addEventListener('click', () => {
         elements.combatScreen.classList.add('hidden');
-        elements.actionsContainer.classList.remove('hidden');
+        elements.actionsContainer.classList.remove('hidden'); // Mostra as ações normais
         updateUI();
         saveGameState();
         // Dispara um evento vazio para o jogador ter algo para fazer após o combate
         showEvent({ text: "Após a batalha, você recupera o fôlego e avalia o que fazer a seguir." });
     });
+    elements.combatActions.innerHTML = '';
     elements.combatActions.appendChild(closeButton);
 }
 
 /**
- * Adds a message to the combat log.
- * @param {string} message - The message to log.
- * @param {string} type - 'player', 'enemy', 'system', 'reward', 'death'.
+ * Adiciona uma mensagem ao log de combate.
  */
 function addCombatLog(message, type) {
     const p = document.createElement('p');
     p.innerHTML = message;
     p.className = `log-type-${type}`;
     elements.combatLog.appendChild(p);
-    // Auto-scroll para a mensagem mais recente
     elements.combatLog.scrollTop = elements.combatLog.scrollHeight;
 }
+
 
     // --- UI RENDERING & MANAGEMENT ---
     // SUBSTITUA a sua função showEvent pela versão abaixo.
@@ -1476,7 +1395,7 @@ function showLegacyScreen(finalGameState, pointsEarned, legacyData) {
     const finalChronicleList = document.getElementById('final-chronicle-list');
     finalChronicleList.innerHTML = '';
     if (finalGameState.life_log) {
-        finalGameState.life_log.forEach(log => {
+        finalGameState.life_log.forEach(log => {.
             const li = document.createElement('li');
             li.innerHTML = `<strong>Ano ${log.age}:</strong> ${log.message}`;
             finalChronicleList.appendChild(li);
@@ -1494,6 +1413,9 @@ function startNewGame() {
     const rivalGender = Math.random() < 0.5 ? 'masculino' : 'feminino';
     const rival = generateCharacter('rival_1', rivalGender, false);
     const socialClasses = ['aldeão', 'servo', 'órfão'];
+
+    // Adiciona as técnicas equipadas ao iniciar
+    player.combat.equipped_techniques = ['basic_sword_form'];
 
     gameState = {
         player: player,
