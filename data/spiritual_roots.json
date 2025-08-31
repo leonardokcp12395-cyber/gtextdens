@@ -1,0 +1,10 @@
+{
+  "types": ["Fogo", "Água", "Terra", "Vento", "Raio"],
+  "grades": [
+    { "id": "mortal", "name": "Mortal", "efficiency_mult": 0.5, "weight": 40 },
+    { "id": "comum", "name": "Comum", "efficiency_mult": 1.0, "weight": 30 },
+    { "id": "rara", "name": "Rara", "efficiency_mult": 2.0, "weight": 15 },
+    { "id": "espiritual", "name": "Espiritual", "efficiency_mult": 3.5, "weight": 10 },
+    { "id": "celestial", "name": "Celestial", "efficiency_mult": 6.0, "weight": 5 }
+  ]
+}

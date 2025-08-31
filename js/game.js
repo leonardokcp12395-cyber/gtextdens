@@ -19,6 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let allGameData = {};    // All static data from JSON files (events, items, etc.). Loaded once at the start.
     let allStrings = {};     // All UI strings, dialogue results, etc. Loaded once at the start.
     let combatState = {};    // Temporary state for the current combat encounter.
+    let gameLoopInterval = null;
 
     // --- UI ELEMENT CACHE ---
     // Caching all DOM element lookups for performance and easier access.
@@ -33,6 +34,9 @@ document.addEventListener('DOMContentLoaded', () => {
         mind: document.getElementById('attr-mind'),
         cultivationPanel: document.getElementById('cultivation-panel'),
         realm: document.getElementById('cult-realm'),
+        cultRootName: document.getElementById('cult-root-name'),
+        cultRootGrade: document.getElementById('cult-root-grade'),
+        cultivateBtn: document.getElementById('cultivate-btn'),
         level: document.getElementById('cult-level'),
         qi: document.getElementById('cult-qi'),
         maxQi: document.getElementById('cult-max-qi'),
@@ -203,6 +207,39 @@ function updateCultivationStats() {
     // A fórmula é: Qi base do reino + (Qi adicional por nível * (nível atual - 1))
     const newMaxQi = realm.baseMaxQi + ((gameState.cultivation.level - 1) * realm.qiPerLevel);
     gameState.cultivation.maxQi = newMaxQi;
+}
+
+/**
+ * Inicia o ciclo de jogo principal que lida com o cultivo passivo.
+ */
+function startCultivationLoop() {
+    if (gameLoopInterval) clearInterval(gameLoopInterval); // Limpa qualquer ciclo antigo
+
+    gameLoopInterval = setInterval(() => {
+        if (gameState.isCultivator && gameState.cultivation.isCultivating) {
+            const root = gameState.player.spiritualRoot;
+            const realm = allGameData.realms[gameState.cultivation.realmId];
+
+            // Qi ganho por segundo = (Eficiência da Raiz * Bónus do Reino (se houver))
+            const qiPerSecond = (root.efficiency || 1.0) * (realm.qiBonus || 1.0);
+
+            gameState.cultivation.qi = Math.min(gameState.cultivation.qi + qiPerSecond, gameState.cultivation.maxQi);
+
+            // Atualiza a UI de forma menos frequente para melhor desempenho
+            if (Math.random() < 0.2) { // Atualiza ~1 vez por 5 segundos
+                 updateUI();
+            }
+        }
+    }, 1000); // Executa a cada segundo
+}
+
+/**
+ * Alterna o estado de cultivo (pausa/retoma).
+ */
+function toggleCultivation() {
+    if (!gameState.isCultivator) return;
+    gameState.cultivation.isCultivating = !gameState.cultivation.isCultivating;
+    updateUI();
 }
 
 
@@ -571,7 +608,7 @@ async function loadGameData() {
         'data/enemies.json', 'data/talents.json', 'data/strings.json',
         'data/random_events.json', 'data/nomes.json', 'data/personalidades.json',
         'data/world_events.json', 'data/realms.json', 'data/missions.json',
-        'data/techniques.json', 'data/mortal_jobs.json'
+        'data/techniques.json', 'data/mortal_jobs.json', 'data/spiritual_roots.json'
     ];
 
     try {
@@ -588,10 +625,10 @@ async function loadGameData() {
 
         const jsonData = await Promise.all(responses.map(res => res.json()));
 
-        const [events, items, sects, enemies, talents, strings, randomEvents, nomes, personalidades, worldEvents, realms, missions, techniques, mortalJobs] = jsonData;
+        const [events, items, sects, enemies, talents, strings, randomEvents, nomes, personalidades, worldEvents, realms, missions, techniques, mortalJobs, spiritualRoots] = jsonData;
 
         // Armazena todos os dados carregados em um único objeto global para fácil acesso.
-        allGameData = { events, items, sects, enemies, talents, randomEvents, nomes, personalidades, worldEvents, realms, missions, techniques, mortalJobs };
+        allGameData = { events, items, sects, enemies, talents, randomEvents, nomes, personalidades, worldEvents, realms, missions, techniques, mortalJobs, spiritualRoots };
         allStrings = strings;
 
         initializeGame();
@@ -699,11 +736,30 @@ function getActiveWorldEvent() {
         switch (effectKey) {
             case 'become_cultivator':
                 gameState.isCultivator = true;
-                addLogMessage("Os céus sorriram para si! Você sentiu o Qi pela primeira vez e pisou no caminho do cultivo!", "milestone");
-                // Inicializa o cultivo
-                gameState.cultivation = { realmId: 0, level: 1, qi: 0, maxQi: 100 };
+
+                // --- LÓGICA DE ATRIBUIÇÃO DA RAIZ ESPIRITUAL ---
+                const rootTypes = allGameData.spiritualRoots.types;
+                const rootGrades = allGameData.spiritualRoots.grades;
+
+                // Escolhe um grau com base no peso (raridade)
+                const totalWeight = rootGrades.reduce((sum, grade) => sum + grade.weight, 0);
+                let random = Math.random() * totalWeight;
+                const chosenGrade = rootGrades.find(grade => (random -= grade.weight) < 0);
+
+                gameState.player.spiritualRoot = {
+                    type: getRandomElement(rootTypes),
+                    grade: chosenGrade.id,
+                    efficiency: chosenGrade.efficiency_mult
+                };
+                // --- FIM DA LÓGICA ---
+
+                addLogMessage(`Os céus sorriram para si! Você despertou uma Raiz Espiritual de ${gameState.player.spiritualRoot.type} de Grau ${chosenGrade.name}!`, "milestone");
+
+                gameState.cultivation = { realmId: 0, level: 1, qi: 0, maxQi: 100, isCultivating: true }; // Começa a cultivar automaticamente
                 updateCultivationStats();
-                showEvent({text: "O mundo parece diferente agora. Um novo caminho cheio de perigos e glória estende-se à sua frente."});
+                startCultivationLoop(); // Inicia o ciclo de cultivo passivo
+
+                showEvent({text: "Você sente o Qi do mundo a fluir para si. Um novo caminho cheio de perigos e glória estende-se à sua frente."});
                 break;
             case 'show_sect_actions': showSectActions(); break;
             case 'show_technique_pavilion': showTechniquePavilion(); break;
@@ -1233,14 +1289,23 @@ function updateUI() {
     if (gameState.isCultivator) {
         cultivatorPanels.classList.remove('hidden');
         elements.talentsBtn.classList.remove('hidden');
-        elements.cultivationPanel.style.display = 'block'; // Usar style.display
+        elements.cultivationPanel.style.display = 'block';
 
         // Update cultivation stats only if cultivator
         const realm = allGameData.realms?.[gameState.cultivation.realmId] || { name: 'Mortal' };
         elements.realm.textContent = realm.name;
         elements.level.textContent = gameState.cultivation.level;
-        elements.qi.textContent = gameState.cultivation.qi;
+        elements.qi.textContent = Math.floor(gameState.cultivation.qi);
         elements.maxQi.textContent = gameState.cultivation.maxQi;
+
+        // Update spiritual root info
+        const root = gameState.player.spiritualRoot;
+        const gradeInfo = allGameData.spiritualRoots.grades.find(g => g.id === root.grade);
+        elements.cultRootName.textContent = root.type;
+        elements.cultRootGrade.textContent = gradeInfo.name;
+
+        elements.cultivateBtn.textContent = gameState.cultivation.isCultivating ? 'Parar Cultivo' : 'Retomar Cultivo';
+        elements.cultivateBtn.style.display = 'block';
 
         // Update sect info and exploration buttons
         if (gameState.sect.id) {
@@ -1275,7 +1340,8 @@ function updateUI() {
     } else {
         if (cultivatorPanels) cultivatorPanels.classList.add('hidden');
         elements.talentsBtn.classList.add('hidden');
-        elements.cultivationPanel.style.display = 'none'; // Usar style.display
+        elements.cultivationPanel.style.display = 'none';
+        elements.cultivateBtn.style.display = 'none';
     }
 
     // Update character stats
@@ -1299,8 +1365,9 @@ function updateUI() {
         const relationship = gameState.relationships[npcId];
         const li = document.createElement('li');
         const rivalTag = npcId === gameState.rivalId ? ' <span class="rival-tag">[RIVAL]</span>' : '';
-        const npcRealm = allGameData.realms?.[npc.cultivation.realmId] || { name: 'Mortal' };
-        li.innerHTML = `<strong>${npc.name}${rivalTag}</strong><br><span class="npc-details">Idade: ${npc.age} | ${npcRealm.name} Nv. ${npc.cultivation.level} | Relação: ${relationship.score} (${relationship.state})</span>`;
+        const npcRealm = npc.cultivation ? allGameData.realms?.[npc.cultivation.realmId] || { name: 'Mortal' } : { name: 'Mortal' };
+        const npcLevel = npc.cultivation ? npc.cultivation.level : 1;
+        li.innerHTML = `<strong>${npc.name}${rivalTag}</strong><br><span class="npc-details">Idade: ${npc.age} | ${npcRealm.name} Nv. ${npcLevel} | Relação: ${relationship.score} (${relationship.state})</span>`;
         elements.relationshipsList.appendChild(li);
     }
 
@@ -1471,6 +1538,7 @@ function startNewGame() {
             elements.talentsScreen.classList.remove('hidden');
         });
         elements.closeTalentsBtn.addEventListener('click', () => elements.talentsScreen.classList.add('hidden'));
+        elements.cultivateBtn.addEventListener('click', toggleCultivation);
 
         elements.startNewJourneyBtn.addEventListener('click', () => {
              elements.legacyScreen.classList.add('hidden');
@@ -1482,6 +1550,11 @@ function startNewGame() {
                 window.location.reload();
             }
         });
+
+        // Resume cultivation loop if loading a game with a cultivator
+        if (gameState.isCultivator) {
+            startCultivationLoop();
+        }
 
         updateUI();
     }
