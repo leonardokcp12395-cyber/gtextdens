@@ -31,6 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
         actions: document.getElementById('char-actions'),
         body: document.getElementById('attr-body'),
         mind: document.getElementById('attr-mind'),
+        cultivationPanel: document.getElementById('cultivation-panel'),
         realm: document.getElementById('cult-realm'),
         level: document.getElementById('cult-level'),
         qi: document.getElementById('cult-qi'),
@@ -570,7 +571,7 @@ async function loadGameData() {
         'data/enemies.json', 'data/talents.json', 'data/strings.json',
         'data/random_events.json', 'data/nomes.json', 'data/personalidades.json',
         'data/world_events.json', 'data/realms.json', 'data/missions.json',
-        'data/techniques.json'
+        'data/techniques.json', 'data/mortal_jobs.json'
     ];
 
     try {
@@ -587,10 +588,10 @@ async function loadGameData() {
 
         const jsonData = await Promise.all(responses.map(res => res.json()));
 
-        const [events, items, sects, enemies, talents, strings, randomEvents, nomes, personalidades, worldEvents, realms, missions, techniques] = jsonData;
+        const [events, items, sects, enemies, talents, strings, randomEvents, nomes, personalidades, worldEvents, realms, missions, techniques, mortalJobs] = jsonData;
 
         // Armazena todos os dados carregados em um único objeto global para fácil acesso.
-        allGameData = { events, items, sects, enemies, talents, randomEvents, nomes, personalidades, worldEvents, realms, missions, techniques };
+        allGameData = { events, items, sects, enemies, talents, randomEvents, nomes, personalidades, worldEvents, realms, missions, techniques, mortalJobs };
         allStrings = strings;
 
         initializeGame();
@@ -696,6 +697,14 @@ function getActiveWorldEvent() {
             return;
         }
         switch (effectKey) {
+            case 'become_cultivator':
+                gameState.isCultivator = true;
+                addLogMessage("Os céus sorriram para si! Você sentiu o Qi pela primeira vez e pisou no caminho do cultivo!", "milestone");
+                // Inicializa o cultivo
+                gameState.cultivation = { realmId: 0, level: 1, qi: 0, maxQi: 100 };
+                updateCultivationStats();
+                showEvent({text: "O mundo parece diferente agora. Um novo caminho cheio de perigos e glória estende-se à sua frente."});
+                break;
             case 'show_sect_actions': showSectActions(); break;
             case 'show_technique_pavilion': showTechniquePavilion(); break;
             case 'try_promotion': tryPromotion(); break;
@@ -792,20 +801,35 @@ function startYear() {
 function exploreLocation(locationId) {
     if (gameState.actionPoints <= 0) return;
     gameState.actionPoints--;
-    updateUI(); // Update UI immediately after action point is spent
 
-    let event;
-    if (locationId === 'sect') {
-        // For now, visiting the sect just shows the sect actions menu.
-        showSectActions();
-        return; // Return early as showSectActions handles its own UI.
-    } else if (locationId === 'city') {
-        event = allGameData.events.find(e => e.id === 'city_generic_event') || {text: "A cidade está movimentada como sempre."};
-    } else if (locationId === 'wilds') {
-        event = allGameData.events.find(e => e.id === 'haunted_forest') || {text: "As montanhas estão silenciosas hoje."};
+    let eventPool = [];
+    if (gameState.isCultivator) {
+        // Lógica de eventos para cultivadores (a que já tínhamos)
+        eventPool = allGameData.events.filter(event =>
+            (event.location === locationId || !event.location) &&
+            areConditionsMet(event.conditions)
+        );
+    } else {
+        // Lógica de eventos para mortais (trabalhos e oportunidades)
+        eventPool = allGameData.mortalJobs.filter(event =>
+            event.location === locationId && areConditionsMet(event.conditions)
+        );
     }
 
-    showEvent(event || { text: "Você explora a área, mas nada de interessante acontece." });
+    const possibleEvents = eventPool.filter(e => !gameState.triggeredEvents.includes(e.id) || e.type === 'repeatable');
+
+    let eventToTrigger;
+    if (possibleEvents.length > 0) {
+        eventToTrigger = getRandomElement(possibleEvents);
+        if (eventToTrigger.type === 'once') {
+            gameState.triggeredEvents.push(eventToTrigger.id);
+        }
+    } else {
+         eventToTrigger = { text: `Você passa algum tempo em "${locationId}", mas nada de extraordinário acontece.` };
+    }
+
+    showEvent(eventToTrigger);
+    updateUI();
     saveGameState();
 }
 
@@ -1204,6 +1228,56 @@ function addCombatLog(message, type) {
 function updateUI() {
     if (!gameState || !gameState.player) return;
 
+    // --- LÓGICA DE VISIBILIDADE DOS PAINÉIS ---
+    const cultivatorPanels = document.getElementById('cultivator-only-panels');
+    if (gameState.isCultivator) {
+        cultivatorPanels.classList.remove('hidden');
+        elements.talentsBtn.classList.remove('hidden');
+        elements.cultivationPanel.style.display = 'block'; // Usar style.display
+
+        // Update cultivation stats only if cultivator
+        const realm = allGameData.realms?.[gameState.cultivation.realmId] || { name: 'Mortal' };
+        elements.realm.textContent = realm.name;
+        elements.level.textContent = gameState.cultivation.level;
+        elements.qi.textContent = gameState.cultivation.qi;
+        elements.maxQi.textContent = gameState.cultivation.maxQi;
+
+        // Update sect info and exploration buttons
+        if (gameState.sect.id) {
+            elements.sectInfo.classList.remove('hidden');
+            const sect = allGameData.sects.find(s => s.id === gameState.sect.id);
+            const rank = sect.ranks[gameState.sect.rank];
+            elements.sectName.textContent = sect.name;
+            elements.sectRank.textContent = rank.name;
+            let benefitValue = sect.benefit_template.base_value + (sect.benefit_template.value_per_rank * gameState.sect.rank);
+            elements.sectBenefit.textContent = sect.benefit_template.description.replace('{value}', benefitValue);
+            elements.exploreSectBtn.classList.remove('hidden');
+        } else {
+            elements.sectInfo.classList.add('hidden');
+            elements.exploreSectBtn.classList.add('hidden');
+        }
+
+        // Update techniques list
+        elements.techniquesList.innerHTML = '';
+        if (gameState.player.techniques && gameState.player.techniques.length > 0) {
+            gameState.player.techniques.forEach(techId => {
+                const tech = allGameData.techniques.find(t => t.id === techId);
+                if (tech) {
+                    const li = document.createElement('li');
+                    li.innerHTML = `<strong data-tooltip="${tech.description}">${tech.name}</strong>`;
+                    elements.techniquesList.appendChild(li);
+                }
+            });
+        } else {
+            elements.techniquesList.innerHTML = '<li>Nenhuma técnica aprendida.</li>';
+        }
+
+    } else {
+        if (cultivatorPanels) cultivatorPanels.classList.add('hidden');
+        elements.talentsBtn.classList.add('hidden');
+        elements.cultivationPanel.style.display = 'none'; // Usar style.display
+    }
+
     // Update character stats
     elements.playerName.textContent = gameState.player.name;
     elements.age.textContent = gameState.age;
@@ -1212,33 +1286,11 @@ function updateUI() {
     elements.body.textContent = gameState.player.attributes.body;
     elements.mind.textContent = gameState.player.attributes.mind;
 
-    // Update cultivation stats
-    const realm = allGameData.realms?.[gameState.cultivation.realmId] || { name: 'Mortal' };
-    elements.realm.textContent = realm.name;
-    elements.level.textContent = gameState.cultivation.level;
-    elements.qi.textContent = gameState.cultivation.qi;
-    elements.maxQi.textContent = gameState.cultivation.maxQi;
-
     // Update resources
     elements.money.textContent = gameState.resources.money;
     elements.talentPoints.textContent = gameState.resources.talentPoints;
     elements.contribution.textContent = gameState.resources.contribution;
     elements.spiritStones.textContent = gameState.resources.spirit_stones || 0;
-
-    // Update sect info and exploration buttons
-    if (gameState.sect.id) {
-        elements.sectInfo.classList.remove('hidden');
-        const sect = allGameData.sects.find(s => s.id === gameState.sect.id);
-        const rank = sect.ranks[gameState.sect.rank];
-        elements.sectName.textContent = sect.name;
-        elements.sectRank.textContent = rank.name;
-        let benefitValue = sect.benefit_template.base_value + (sect.benefit_template.value_per_rank * gameState.sect.rank);
-        elements.sectBenefit.textContent = sect.benefit_template.description.replace('{value}', benefitValue);
-        elements.exploreSectBtn.classList.remove('hidden');
-    } else {
-        elements.sectInfo.classList.add('hidden');
-        elements.exploreSectBtn.classList.add('hidden');
-    }
 
     // Update relationships
     elements.relationshipsList.innerHTML = '';
@@ -1250,21 +1302,6 @@ function updateUI() {
         const npcRealm = allGameData.realms?.[npc.cultivation.realmId] || { name: 'Mortal' };
         li.innerHTML = `<strong>${npc.name}${rivalTag}</strong><br><span class="npc-details">Idade: ${npc.age} | ${npcRealm.name} Nv. ${npc.cultivation.level} | Relação: ${relationship.score} (${relationship.state})</span>`;
         elements.relationshipsList.appendChild(li);
-    }
-
-    // Update techniques list
-    elements.techniquesList.innerHTML = '';
-    if (gameState.player.techniques && gameState.player.techniques.length > 0) {
-        gameState.player.techniques.forEach(techId => {
-            const tech = allGameData.techniques.find(t => t.id === techId);
-            if (tech) {
-                const li = document.createElement('li');
-                li.innerHTML = `<strong data-tooltip="${tech.description}">${tech.name}</strong>`;
-                elements.techniquesList.appendChild(li);
-            }
-        });
-    } else {
-        elements.techniquesList.innerHTML = '<li>Nenhuma técnica aprendida.</li>';
     }
 
     // Update life log
@@ -1389,39 +1426,17 @@ function startNewGame() {
     const player = generateCharacter('player', playerGender, true);
     const rivalGender = Math.random() < 0.5 ? 'masculino' : 'feminino';
     const rival = generateCharacter('rival_1', rivalGender, false);
-
-    const baseResources = { money: 20, talentPoints: 5, contribution: 0, spirit_stones: 0 };
-    const legacyData = getLegacyData();
-    if (legacyData.purchased) {
-        for (const bonusId in legacyData.purchased) {
-            if (legacyData.purchased[bonusId]) {
-                const bonus = LEGACY_BONUSES.find(b => b.id === bonusId);
-                if (bonus) {
-                    if (bonus.effects.resources) {
-                        for (const res in bonus.effects.resources) {
-                            baseResources[res] = (baseResources[res] || 0) + bonus.effects.resources[res];
-                        }
-                    }
-                    if (bonus.effects.attributes) {
-                        for (const attr in bonus.effects.attributes) {
-                            player.attributes[attr] = (player.attributes[attr] || 0) + bonus.effects.attributes[attr];
-                        }
-                    }
-                    if (bonus.effects.techniques) {
-                        player.techniques.push(...bonus.effects.techniques);
-                    }
-                }
-            }
-        }
-    }
+    const socialClasses = ['aldeão', 'servo', 'órfão'];
 
     gameState = {
         player: player,
+        isCultivator: false, // <-- NOVO ESTADO
+        socialClass: getRandomElement(socialClasses), // <-- NOVO ESTADO
         npcs: { 'rival_1': rival },
         rivalId: 'rival_1',
         age: 6,
-        resources: baseResources,
-        cultivation: { realmId: 0, level: 1, qi: 0, maxQi: 100 },
+        resources: { money: 10, talentPoints: 0, contribution: 0, spirit_stones: 0 },
+        cultivation: null,
         sect: { id: null, rank: 0 },
         triggeredEvents: [],
         active_mission: null,
@@ -1430,11 +1445,9 @@ function startNewGame() {
         world_event: null,
         actionPoints: 0,
     };
-    updateCultivationStats();
-    addLogMessage("Você nasceu. O mundo aguarda para testemunhar sua lenda.", "milestone");
 
-    startYear(); // Inicia o primeiro ano
-    checkAndTriggerEvents();
+    addLogMessage(`Você nasceu como um(a) ${gameState.socialClass}. A sua vida será uma luta pela sobrevivência.`, "milestone");
+    startYear();
     saveGameState();
 }
 

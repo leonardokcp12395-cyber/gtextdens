@@ -1,0 +1,47 @@
+[
+  {
+    "id": "mortal_opportunity_test",
+    "location": "city",
+    "type": "once",
+    "conditions": { "min_age": 14, "probability": 0.05 },
+    "text": "Um discípulo de uma seita de cultivadores chegou à cidade! Eles estão a realizar um teste raro para recrutar novos talentos. Esta pode ser a sua única oportunidade de transcender a sua vida mortal.",
+    "choices": [
+      {
+        "text": "Participar no teste!",
+        "effects": { "special": "become_cultivator" },
+        "resultKey": "opportunity_test_success"
+      },
+      {
+        "text": "É demasiado arriscado. Recusar.",
+        "effects": {},
+        "resultKey": "opportunity_test_declined"
+      }
+    ]
+  },
+  {
+    "id": "mortal_job_fields",
+    "location": "wilderness",
+    "type": "repeatable",
+    "text": "Você passa o dia a trabalhar nos campos sob o sol escaldante. É um trabalho duro, mas necessário para sobreviver.",
+    "choices": [
+      {
+        "text": "Continuar a trabalhar.",
+        "effects": { "resources": { "money": 2 } },
+        "resultKey": "job_fields_complete"
+      }
+    ]
+  },
+  {
+    "id": "mortal_job_tavern",
+    "location": "city",
+    "type": "repeatable",
+    "text": "Você trabalha na taverna local, a limpar mesas e a servir os clientes. Ouve muitos rumores, mas o pagamento é modesto.",
+    "choices": [
+      {
+        "text": "Continuar a trabalhar.",
+        "effects": { "resources": { "money": 3 } },
+        "resultKey": "job_tavern_complete"
+      }
+    ]
+  }
+]

@@ -18,7 +18,7 @@
             <hr>
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <h3>Atributos</h3>
-                <button id="talents-btn" style="width: auto; padding: 5px 10px; margin-top: 0;" data-tooltip="Ganha ao avançar de nível. Usado para comprar melhorias permanentes.">Talentos (<span id="talent-points">0</span>)</button>
+                <button id="talents-btn" class="hidden" style="width: auto; padding: 5px 10px; margin-top: 0;" data-tooltip="Ganha ao avançar de nível. Usado para comprar melhorias permanentes.">Talentos (<span id="talent-points">0</span>)</button>
             </div>
             <p><strong>Corpo:</strong> <span id="attr-body">10</span></p>
             <p><strong>Mente:</strong> <span id="attr-mind">10</span></p>
@@ -31,11 +31,17 @@
             </div>
         </div>
 
-        <div id="cultivation-panel" class="panel">
-            <h2>Cultivo</h2>
-            <p><strong>Reino:</strong> <span id="cult-realm">Mortal</span></p>
-            <p><strong>Nível:</strong> <span id="cult-level">1</span></p>
-            <p><strong>Qi:</strong> <span id="cult-qi">0</span> / <span id="cult-max-qi">100</span></p>
+        <div id="cultivator-only-panels">
+            <div id="cultivation-panel" class="panel">
+                <h2>Cultivo</h2>
+                <p><strong>Reino:</strong> <span id="cult-realm">Mortal</span></p>
+                <p><strong>Nível:</strong> <span id="cult-level">1</span></p>
+                <p><strong>Qi:</strong> <span id="cult-qi">0</span> / <span id="cult-max-qi">100</span></p>
+            </div>
+            <div id="techniques-panel" class="panel">
+                <h2>Técnicas</h2>
+                <ul id="techniques-list"></ul>
+            </div>
         </div>
 
         <div id="event-panel" class="panel">
@@ -88,10 +94,6 @@
             <div id="relationships-panel" class="panel">
                 <h2>Relações</h2>
                 <ul id="relationships-list"></ul>
-            </div>
-            <div id="techniques-panel" class="panel">
-                <h2>Técnicas</h2>
-                <ul id="techniques-list"></ul>
             </div>
         </div>
     </div>
