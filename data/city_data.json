@@ -1,0 +1,33 @@
+{
+  "locations": [
+    {
+      "id": "shop",
+      "name": "Loja Geral",
+      "description": "Uma loja poeirenta que vende um pouco de tudo, desde comida a ferramentas básicas."
+    },
+    {
+      "id": "tavern",
+      "name": "Taverna do Javali Bêbado",
+      "description": "O centro social da cidade. Um lugar para beber, ouvir rumores e arranjar problemas."
+    },
+    {
+      "id": "work",
+      "name": "Procurar Trabalho",
+      "description": "Um lugar onde pode encontrar trabalhos temporários para ganhar algumas moedas."
+    }
+  ],
+  "shop_items": [
+    {
+      "id": "small_qi_pill",
+      "cost_money": 150,
+      "stock": 3
+    },
+    {
+      "id": "food_ration",
+      "name": "Ração de Comida",
+      "description": "Comida simples para se manter. Aumenta ligeiramente o Corpo.",
+      "cost_money": 10,
+      "effects": { "attributes": { "body": 1 } }
+    }
+  ]
+}

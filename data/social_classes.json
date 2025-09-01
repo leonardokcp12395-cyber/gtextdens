@@ -1,0 +1,23 @@
+[
+  {
+    "id": "orfao",
+    "name": "Órfão",
+    "description": "Você cresceu nas ruas, aprendendo a sobreviver. Começa com menos dinheiro, mas com mais astúcia.",
+    "start_money": 5,
+    "effects": { "attributes": { "mind": 1 } }
+  },
+  {
+    "id": "aldeao",
+    "name": "Aldeão",
+    "description": "Você vem de uma família de agricultores. Está habituado ao trabalho duro.",
+    "start_money": 15,
+    "effects": { "attributes": { "body": 1 } }
+  },
+  {
+    "id": "servo",
+    "name": "Servo",
+    "description": "Você serviu numa casa nobre. É educado, mas começa com pouco para si.",
+    "start_money": 10,
+    "effects": {}
+  }
+]

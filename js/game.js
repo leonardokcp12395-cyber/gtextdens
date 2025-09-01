@@ -606,41 +606,47 @@ function getCharacterPowerLevel(character) {
 /**
  * Asynchronously loads all necessary game data from JSON files.
  * This is the first function called to bootstrap the game.
- * (Versão de depuração para identificar falhas de carregamento)
  */
 async function loadGameData() {
     const filesToLoad = [
-        'data/events.json', 'data/items.json', 'data/sects.json',
-        'data/enemies.json', 'data/talents.json', 'data/strings.json',
-        'data/random_events.json', 'data/nomes.json', 'data/personalidades.json',
-        'data/world_events.json', 'data/realms.json', 'data/missions.json',
-        'data/techniques.json', 'data/mortal_jobs.json', 'data/spiritual_roots.json'
+        'data/events.json',
+        'data/items.json',
+        'data/sects.json',
+        'data/enemies.json',
+        'data/talents.json',
+        'data/strings.json',
+        'data/random_events.json',
+        'data/nomes.json',
+        'data/personalidades.json',
+        'data/world_events.json',
+        'data/realms.json',
+        'data/missions.json',
+        'data/techniques.json',
+        'data/mortal_jobs.json',
+        'data/spiritual_roots.json',
+        'data/city_data.json',
+        'data/social_classes.json'
     ];
 
     try {
-        const responses = [];
-        for (const file of filesToLoad) {
-            console.log(`Tentando carregar: ${file}`); // Log para o console
-            const res = await fetch(file);
+        const responses = await Promise.all(filesToLoad.map(file => fetch(file)));
+
+        for (const res of responses) {
             if (!res.ok) {
-                // Se um arquivo falhar, lança um erro específico
-                throw new Error(`Não foi possível carregar o arquivo: ${file} (Status: ${res.status})`);
+                throw new Error(`Failed to load a data file: ${res.url} (Status: ${res.status})`);
             }
-            responses.push(res);
         }
 
         const jsonData = await Promise.all(responses.map(res => res.json()));
 
-        const [events, items, sects, enemies, talents, strings, randomEvents, nomes, personalidades, worldEvents, realms, missions, techniques, mortalJobs, spiritualRoots] = jsonData;
+        const [events, items, sects, enemies, talents, strings, randomEvents, nomes, personalidades, worldEvents, realms, missions, techniques, mortalJobs, spiritualRoots, cityData, socialClasses] = jsonData;
 
-        // Armazena todos os dados carregados em um único objeto global para fácil acesso.
-        allGameData = { events, items, sects, enemies, talents, randomEvents, nomes, personalidades, worldEvents, realms, missions, techniques, mortalJobs, spiritualRoots };
+        allGameData = { events, items, sects, enemies, talents, randomEvents, nomes, personalidades, worldEvents, realms, missions, techniques, mortalJobs, spiritualRoots, cityData, socialClasses };
         allStrings = strings;
 
         initializeGame();
     } catch (error) {
         console.error("Fatal error loading game data:", error);
-        // Exibe o erro mais específico para o usuário
         elements.eventContent.innerHTML = `<p style="color: #ff7675;"><b>ERRO CRÍTICO:</b></p><p>${error.message}</p><hr><p><b>Como resolver:</b><br>1. Verifique se o nome do arquivo e da pasta estão EXATAMENTE iguais no seu repositório GitHub.<br>2. O GitHub diferencia maiúsculas de minúsculas (ex: 'Data' é diferente de 'data').<br>3. Certifique-se de que você enviou (commit & push) o arquivo para o GitHub.</p>`;
     }
 }
@@ -861,38 +867,42 @@ function startYear() {
 }
 
 function exploreLocation(locationId) {
-    if (gameState.actionPoints <= 0) return;
-    gameState.actionPoints--;
-
-    let eventPool = [];
-    if (gameState.isCultivator) {
-        // Lógica de eventos para cultivadores (a que já tínhamos)
-        eventPool = allGameData.events.filter(event =>
-            (event.location === locationId || !event.location) &&
-            areConditionsMet(event.conditions)
-        );
+    if (locationId === 'city') {
+        showCityMenu(); // <-- NOVA LÓGICA
     } else {
-        // Lógica de eventos para mortais (trabalhos e oportunidades)
-        eventPool = allGameData.mortalJobs.filter(event =>
-            event.location === locationId && areConditionsMet(event.conditions)
-        );
-    }
+        if (gameState.actionPoints <= 0) return;
+        gameState.actionPoints--;
 
-    const possibleEvents = eventPool.filter(e => !gameState.triggeredEvents.includes(e.id) || e.type === 'repeatable');
-
-    let eventToTrigger;
-    if (possibleEvents.length > 0) {
-        eventToTrigger = getRandomElement(possibleEvents);
-        if (eventToTrigger.type === 'once') {
-            gameState.triggeredEvents.push(eventToTrigger.id);
+        let eventPool = [];
+        if (gameState.isCultivator) {
+            // Lógica de eventos para cultivadores (a que já tínhamos)
+            eventPool = allGameData.events.filter(event =>
+                (event.location === locationId || !event.location) &&
+                areConditionsMet(event.conditions)
+            );
+        } else {
+            // Lógica de eventos para mortais (trabalhos e oportunidades)
+            eventPool = allGameData.mortalJobs.filter(event =>
+                event.location === locationId && areConditionsMet(event.conditions)
+            );
         }
-    } else {
-         eventToTrigger = { text: `Você passa algum tempo em "${locationId}", mas nada de extraordinário acontece.` };
-    }
 
-    showEvent(eventToTrigger);
-    updateUI();
-    saveGameState();
+        const possibleEvents = eventPool.filter(e => !gameState.triggeredEvents.includes(e.id) || e.type === 'repeatable');
+
+        let eventToTrigger;
+        if (possibleEvents.length > 0) {
+            eventToTrigger = getRandomElement(possibleEvents);
+            if (eventToTrigger.type === 'once') {
+                gameState.triggeredEvents.push(eventToTrigger.id);
+            }
+        } else {
+             eventToTrigger = { text: `Você passa algum tempo em "${locationId}", mas nada de extraordinário acontece.` };
+        }
+
+        showEvent(eventToTrigger);
+        updateUI();
+        saveGameState();
+    }
 }
 
 function endYear() {
@@ -1205,6 +1215,79 @@ function addCombatLog(message, type) {
         }
     }
 
+// --- CITY ACTIONS ---
+
+/**
+ * Displays the main menu for the city.
+ */
+function showCityMenu() {
+    elements.mapContainer.classList.add('hidden'); // Esconde o mapa
+    elements.eventContent.innerHTML = `<p>Você está nas ruas movimentadas da cidade. O que deseja fazer?</p>`;
+    elements.choicesContainer.innerHTML = '';
+
+    allGameData.cityData.locations.forEach(location => {
+        const button = document.createElement('button');
+        button.innerHTML = `<b>${location.name}</b><br><small>${location.description}</small>`;
+        button.addEventListener('click', () => {
+            if (gameState.actionPoints > 0) {
+                gameState.actionPoints--; // Gasta uma ação para visitar um local na cidade
+                if (location.id === 'shop') {
+                    showCityShop();
+                } else {
+                    // (Lógica para Taverna e Trabalho virá depois)
+                    showEvent({ text: `Você passa algum tempo em "${location.name}", mas ainda não há nada para fazer aqui.` });
+                    updateUI();
+                }
+            }
+        });
+        elements.choicesContainer.appendChild(button);
+    });
+
+    const leaveButton = document.createElement('button');
+    leaveButton.textContent = 'Sair da Cidade';
+    leaveButton.className = 'danger-btn';
+    leaveButton.addEventListener('click', () => {
+        showEvent({text: 'Você deixa a cidade para trás e regressa ao mapa.'});
+        updateUI();
+    });
+    elements.choicesContainer.appendChild(leaveButton);
+}
+
+/**
+ * Displays the city's general store.
+ */
+function showCityShop() {
+    elements.eventContent.innerHTML = `<p>O lojista cumprimenta-o. "Dê uma olhada," ele diz.</p><p>Você tem ${gameState.resources.money} moedas.</p>`;
+    elements.choicesContainer.innerHTML = '';
+
+    allGameData.cityData.shop_items.forEach(shopItem => {
+        const itemDetails = allGameData.items.find(i => i.id === shopItem.id) || shopItem;
+
+        const button = document.createElement('button');
+        button.innerHTML = `<b>${itemDetails.name}</b> - ${shopItem.cost_money} Moedas<br><small>${itemDetails.description}</small>`;
+
+        if (gameState.resources.money < shopItem.cost_money) {
+            button.disabled = true;
+        }
+
+        button.addEventListener('click', () => {
+            if (gameState.resources.money >= shopItem.cost_money) {
+                gameState.resources.money -= shopItem.cost_money;
+                applyEffects(itemDetails.effects);
+                addLogMessage(`Você comprou ${itemDetails.name}.`, 'reward');
+                showCityShop(); // Atualiza a interface da loja
+            }
+        });
+        elements.choicesContainer.appendChild(button);
+    });
+
+    const backButton = document.createElement('button');
+    backButton.textContent = 'Voltar para a Cidade';
+    backButton.className = 'danger-btn';
+    backButton.addEventListener('click', showCityMenu);
+    elements.choicesContainer.appendChild(backButton);
+}
+
 function updateUI() {
     if (!gameState || !gameState.player) return;
 
@@ -1213,6 +1296,7 @@ function updateUI() {
     if (gameState.isCultivator) {
         cultivatorPanels.classList.remove('hidden');
         elements.talentsBtn.classList.remove('hidden');
+        elements.manageTechniquesBtn.classList.remove('hidden');
         elements.cultivationPanel.style.display = 'block';
 
         // Update cultivation stats only if cultivator
@@ -1260,9 +1344,6 @@ function updateUI() {
         } else {
             elements.techniquesList.innerHTML = '<li>Nenhuma técnica aprendida.</li>';
         }
-
-        // Botão de Gerir Técnicas visível apenas para cultivadores
-        elements.manageTechniquesBtn.classList.remove('hidden');
 
     } else {
         if (cultivatorPanels) cultivatorPanels.classList.add('hidden');
@@ -1474,19 +1555,26 @@ function startNewGame() {
     const player = generateCharacter('player', playerGender, true);
     const rivalGender = Math.random() < 0.5 ? 'masculino' : 'feminino';
     const rival = generateCharacter('rival_1', rivalGender, false);
-    const socialClasses = ['aldeão', 'servo', 'órfão'];
 
-    // Adiciona as técnicas equipadas ao iniciar
-    player.combat.equipped_techniques = [null, null, null, null]; // 4 espaços para técnicas
+    const chosenClass = getRandomElement(allGameData.socialClasses);
+    player.attributes.body += chosenClass.effects?.attributes?.body || 0;
+    player.attributes.mind += chosenClass.effects?.attributes?.mind || 0;
+
+    player.combat.equipped_techniques = [null, null, null, null];
 
     gameState = {
         player: player,
-        isCultivator: false, // <-- NOVO ESTADO
-        socialClass: getRandomElement(socialClasses), // <-- NOVO ESTADO
+        isCultivator: false,
+        socialClass: chosenClass.id,
         npcs: { 'rival_1': rival },
         rivalId: 'rival_1',
         age: 6,
-        resources: { money: 10, talentPoints: 0, contribution: 0, spirit_stones: 0 },
+        resources: {
+            money: chosenClass.start_money,
+            talentPoints: 0,
+            contribution: 0,
+            spirit_stones: 0
+        },
         cultivation: null,
         sect: { id: null, rank: 0 },
         triggeredEvents: [],
@@ -1497,7 +1585,7 @@ function startNewGame() {
         actionPoints: 0,
     };
 
-    addLogMessage(`Você nasceu como um(a) ${gameState.socialClass}. A sua vida será uma luta pela sobrevivência.`, "milestone");
+    addLogMessage(`Você nasceu como um(a) ${chosenClass.name}. ${chosenClass.description}`, "milestone");
     startYear();
     saveGameState();
 }
@@ -1546,10 +1634,6 @@ function startNewGame() {
         }
 
         updateUI();
-
-        // Expose for testing
-        window.gameState = gameState;
-        window.updateUI = updateUI;
     }
 
     // --- START THE GAME ---
