@@ -560,6 +560,46 @@ function tryPromotion() {
 }
 
 /**
+ * Processes the turn for each NPC, allowing them to make decisions based on their personality.
+ */
+function processNpcTurns() {
+    for (const npcId in gameState.npcs) {
+        const npc = gameState.npcs[npcId];
+        const relationship = gameState.relationships[npcId];
+        const playerPower = getCharacterPowerLevel(gameState.player);
+        const npcPower = getCharacterPowerLevel(npc);
+
+        // A pequena chance de um NPC agir por ano
+        if (Math.random() > 0.15) {
+            continue;
+        }
+
+        switch (npc.personality) {
+            case 'Arrogante':
+                if (npcPower < playerPower && relationship.state !== 'Inimigo') {
+                    addLogMessage(`Arrogante, ${npc.name} zomba do seu progresso, sentindo-se ameaçado. A vossa relação piora.`, 'notification');
+                    relationship.score -= 5;
+                }
+                break;
+            case 'Leal':
+                if (relationship.state === 'Amigo' && Math.random() < 0.25) {
+                     addLogMessage(`Leal, ${npc.name} oferece-lhe uma Pílula de Qi para o ajudar no seu cultivo.`, 'reward');
+                     applyEffects({ "items": ["small_qi_pill"] });
+                }
+                break;
+             case 'Ambicioso':
+                // Foca-se em si mesmo, mas pode desafiá-lo se estiver a ficar para trás.
+                npc.cultivation.level++;
+                if (npcPower < playerPower && relationship.state !== 'Amigo' && Math.random() < 0.3) {
+                     addLogMessage(`Ambicioso, ${npc.name} vê-o como um obstáculo e desafia-o para um duelo!`, 'notification');
+                     // Futuramente: iniciar um combate aqui.
+                }
+                break;
+        }
+    }
+}
+
+/**
  * Progresses NPCs' age and stats each year.
  */
 function progressNpcs() {
@@ -735,6 +775,8 @@ function getActiveWorldEvent() {
      */
     function handleSpecialEffects(effectKey) {
         addLogMessage(`Efeito especial ativado: ${effectKey}`, 'notification');
+
+        // Lógica para aprender técnicas
         if (effectKey.startsWith('learn_technique_')) {
             const techId = effectKey.replace('learn_technique_', '');
             if (!gameState.player.techniques.includes(techId)) {
@@ -745,6 +787,27 @@ function getActiveWorldEvent() {
             }
             return;
         }
+
+        // Lógica para entrar numa seita
+        if (effectKey.startsWith('join_sect_')) {
+            const sectId = effectKey.replace('join_sect_', '');
+            const sect = allGameData.sects.find(s => s.id === sectId);
+            if (sect && gameState.sect.id !== sectId) {
+                gameState.sect.id = sectId;
+                gameState.sect.rank = 0; // Começa no rank mais baixo
+                gameState.player.sectId = sectId;
+                addLogMessage(`Você juntou-se à Seita ${sect.name}!`, 'milestone');
+
+                // O Discípulo Sênior também pertence a uma seita, vamos colocá-lo na mesma por conveniência
+                const senior = gameState.npcs['senior_disciple_1'];
+                if (senior) {
+                    senior.sectId = sectId;
+                    addLogMessage(`${senior.name} também é um membro desta seita. Ele olha para si com desdém.`, 'notification');
+                }
+            }
+            return;
+        }
+
         switch (effectKey) {
             case 'become_cultivator':
                 gameState.isCultivator = true;
@@ -978,6 +1041,7 @@ function endYear() {
 
     // Progressão de NPCs
     progressNpcs();
+    processNpcTurns();
     updateRelationshipStates();
 
     // Checa morte por velhice
@@ -1553,8 +1617,22 @@ function startNewGame() {
     elements.legacyScreen.classList.add('hidden');
     const playerGender = Math.random() < 0.5 ? 'masculino' : 'feminino';
     const player = generateCharacter('player', playerGender, true);
+
+    // Cria o Rival
     const rivalGender = Math.random() < 0.5 ? 'masculino' : 'feminino';
     const rival = generateCharacter('rival_1', rivalGender, false);
+
+    // Cria o Discípulo Sênior
+    const seniorGender = Math.random() < 0.5 ? 'masculino' : 'feminino';
+    const seniorDisciple = generateCharacter('senior_disciple_1', seniorGender, false);
+
+    // Torna o discípulo sênior mais forte e mais velho
+    seniorDisciple.age = 16;
+    seniorDisciple.cultivation = { realmId: 1, level: 3, qi: 50, maxQi: 250 };
+    seniorDisciple.personality = 'Arrogante';
+    seniorDisciple.attributes = { body: 25, mind: 25, luck: 2 };
+    seniorDisciple.combat.attack = 20;
+    seniorDisciple.combat.defense = 15;
 
     const chosenClass = getRandomElement(allGameData.socialClasses);
     player.attributes.body += chosenClass.effects?.attributes?.body || 0;
@@ -1566,7 +1644,10 @@ function startNewGame() {
         player: player,
         isCultivator: false,
         socialClass: chosenClass.id,
-        npcs: { 'rival_1': rival },
+        npcs: {
+            'rival_1': rival,
+            'senior_disciple_1': seniorDisciple
+        },
         rivalId: 'rival_1',
         age: 6,
         resources: {
@@ -1580,12 +1661,18 @@ function startNewGame() {
         triggeredEvents: [],
         active_mission: null,
         life_log: [],
-        relationships: { 'rival_1': { score: 0, state: 'neutral' } },
+        relationships: {
+            'rival_1': { score: 0, state: 'Neutro' },
+            'senior_disciple_1': { score: -20, state: 'Neutro' } // Começa com uma relação ligeiramente negativa
+        },
         world_event: null,
         actionPoints: 0,
     };
 
     addLogMessage(`Você nasceu como um(a) ${chosenClass.name}. ${chosenClass.description}`, "milestone");
+    // Adiciona uma nota sobre encontrar o discípulo sênior mais tarde
+    addLogMessage("Em sua juventude, você ouve histórias sobre um discípulo talentoso, mas arrogante, nas seitas próximas.", "notification");
+
     startYear();
     saveGameState();
 }
