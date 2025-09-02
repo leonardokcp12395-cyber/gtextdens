@@ -1,0 +1,22 @@
+[
+  {
+    "id": "rumor_bandits",
+    "text": "Você ouve um mercador a queixar-se de que a estrada para a cidade vizinha está infestada de bandidos. Ele menciona uma recompensa para quem limpar o caminho."
+  },
+  {
+    "id": "rumor_rare_herb",
+    "text": "Dois alquimistas discutem em voz baixa sobre uma 'Erva do Espírito da Lua' que foi vista a crescer no pico da Montanha Selvagem. Dizem que vale uma fortuna."
+  },
+  {
+    "id": "rumor_sect_test",
+    "text": "Um grupo de jovens discute animadamente sobre um teste de recrutamento que a Seita da Espada Celestial irá realizar em breve. É uma oportunidade rara para os mortais."
+  },
+  {
+    "id": "rumor_hidden_cave",
+    "text": "Um velho bêbado murmura sobre uma caverna escondida atrás de uma cascata nas florestas, onde um cultivador renegado escondeu o seu tesouro."
+  },
+  {
+    "id": "rumor_noble_scandal",
+    "text": "Duas servas cochicham sobre um escândalo envolvendo uma das famílias nobres da cidade. Parece que o filho mais novo tem um segredo embaraçoso."
+  }
+]

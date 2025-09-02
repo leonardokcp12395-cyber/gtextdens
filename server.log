@@ -1,18 +1,29 @@
-Traceback (most recent call last):
-  File "<frozen runpy>", line 198, in _run_module_as_main
-  File "<frozen runpy>", line 88, in _run_code
-  File "/home/jules/.pyenv/versions/3.12.11/lib/python3.12/http/server.py", line 1314, in <module>
-    test(
-  File "/home/jules/.pyenv/versions/3.12.11/lib/python3.12/http/server.py", line 1261, in test
-    with ServerClass(addr, HandlerClass) as httpd:
-         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/jules/.pyenv/versions/3.12.11/lib/python3.12/socketserver.py", line 457, in __init__
-    self.server_bind()
-  File "/home/jules/.pyenv/versions/3.12.11/lib/python3.12/http/server.py", line 1308, in server_bind
-    return super().server_bind()
-           ^^^^^^^^^^^^^^^^^^^^^
-  File "/home/jules/.pyenv/versions/3.12.11/lib/python3.12/http/server.py", line 136, in server_bind
-    socketserver.TCPServer.server_bind(self)
-  File "/home/jules/.pyenv/versions/3.12.11/lib/python3.12/socketserver.py", line 478, in server_bind
-    self.socket.bind(self.server_address)
-OSError: [Errno 98] Address already in use
+127.0.0.1 - - [01/Sep/2025 14:55:13] "GET /index.html HTTP/1.1" 200 -
+127.0.0.1 - - [01/Sep/2025 14:55:13] "GET /css/style.css HTTP/1.1" 200 -
+127.0.0.1 - - [01/Sep/2025 14:55:13] "GET /js/game.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Sep/2025 14:55:13] "GET /data/strings.json HTTP/1.1" 200 -
+127.0.0.1 - - [01/Sep/2025 14:55:13] "GET /data/items.json HTTP/1.1" 200 -
+127.0.0.1 - - [01/Sep/2025 14:55:13] "GET /data/talents.json HTTP/1.1" 200 -
+127.0.0.1 - - [01/Sep/2025 14:55:13] "GET /data/enemies.json HTTP/1.1" 200 -
+127.0.0.1 - - [01/Sep/2025 14:55:13] "GET /data/events.json HTTP/1.1" 200 -
+127.0.0.1 - - [01/Sep/2025 14:55:13] "GET /data/sects.json HTTP/1.1" 200 -
+127.0.0.1 - - [01/Sep/2025 14:55:13] "GET /data/realms.json HTTP/1.1" 200 -
+127.0.0.1 - - [01/Sep/2025 14:55:13] "GET /data/personalidades.json HTTP/1.1" 200 -
+127.0.0.1 - - [01/Sep/2025 14:55:13] "GET /data/nomes.json HTTP/1.1" 200 -
+127.0.0.1 - - [01/Sep/2025 14:55:13] "GET /data/random_events.json HTTP/1.1" 200 -
+127.0.0.1 - - [01/Sep/2025 14:55:13] "GET /data/missions.json HTTP/1.1" 200 -
+127.0.0.1 - - [01/Sep/2025 14:55:13] "GET /data/world_events.json HTTP/1.1" 200 -
+127.0.0.1 - - [01/Sep/2025 14:55:13] "GET /data/city_data.json HTTP/1.1" 200 -
+127.0.0.1 - - [01/Sep/2025 14:55:13] "GET /data/techniques.json HTTP/1.1" 200 -
+127.0.0.1 - - [01/Sep/2025 14:55:13] "GET /data/social_classes.json HTTP/1.1" 200 -
+127.0.0.1 - - [01/Sep/2025 14:55:13] "GET /data/spiritual_roots.json HTTP/1.1" 200 -
+127.0.0.1 - - [01/Sep/2025 14:55:13] "GET /data/mortal_jobs.json HTTP/1.1" 200 -
+127.0.0.1 - - [01/Sep/2025 14:55:13] "GET /data/work_options.json HTTP/1.1" 200 -
+127.0.0.1 - - [01/Sep/2025 14:55:13] "GET /data/tavern_rumors.json HTTP/1.1" 200 -
+127.0.0.1 - - [01/Sep/2025 14:55:13] "GET /index.html HTTP/1.1" 304 -
+127.0.0.1 - - [01/Sep/2025 14:55:13] "GET /css/style.css HTTP/1.1" 304 -
+127.0.0.1 - - [01/Sep/2025 14:55:13] "GET /js/game.js HTTP/1.1" 304 -
+127.0.0.1 - - [01/Sep/2025 14:55:13] "GET /data/spiritual_roots.json HTTP/1.1" 304 -
+127.0.0.1 - - [01/Sep/2025 14:55:13] "GET /data/mortal_jobs.json HTTP/1.1" 304 -
+127.0.0.1 - - [01/Sep/2025 14:55:13] "GET /data/techniques.json HTTP/1.1" 304 -
+127.0.0.1 - - [01/Sep/2025 14:55:13] "GET /data/city_data.json HTTP/1.1" 304 -

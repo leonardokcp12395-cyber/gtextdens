@@ -19,25 +19,19 @@ document.addEventListener('DOMContentLoaded', () => {
     let allGameData = {};    // All static data from JSON files (events, items, etc.). Loaded once at the start.
     let allStrings = {};     // All UI strings, dialogue results, etc. Loaded once at the start.
     let combatState = {};    // Temporary state for the current combat encounter.
-    let gameLoopInterval = null;
-    let combatLoopInterval = null; // Para controlar o ciclo de combate
 
     // --- UI ELEMENT CACHE ---
     // Caching all DOM element lookups for performance and easier access.
     const elements = {
         eventContent: document.getElementById('event-content'),
         choicesContainer: document.getElementById('choices-container'),
+        actionsContainer: document.getElementById('actions-container'),
         combatScreen: document.getElementById('combat-screen'),
         playerName: document.getElementById('player-name'),
         age: document.getElementById('char-age'),
-        actions: document.getElementById('char-actions'),
         body: document.getElementById('attr-body'),
         mind: document.getElementById('attr-mind'),
-        cultivationPanel: document.getElementById('cultivation-panel'),
         realm: document.getElementById('cult-realm'),
-        cultRootName: document.getElementById('cult-root-name'),
-        cultRootGrade: document.getElementById('cult-root-grade'),
-        cultivateBtn: document.getElementById('cultivate-btn'),
         level: document.getElementById('cult-level'),
         qi: document.getElementById('cult-qi'),
         maxQi: document.getElementById('cult-max-qi'),
@@ -45,12 +39,11 @@ document.addEventListener('DOMContentLoaded', () => {
         talentPoints: document.getElementById('talent-points'),
         contribution: document.getElementById('res-contribution'),
         spiritStones: document.getElementById('res-spirit-stones'),
+        meditateBtn: document.getElementById('meditate-btn'),
+        nextYearBtn: document.getElementById('next-year-btn'),
+        endJourneyBtn: document.getElementById('end-journey-btn'),
         talentsBtn: document.getElementById('talents-btn'),
-        mapContainer: document.getElementById('map-container'),
-        exploreSectBtn: document.getElementById('explore-sect-btn'),
-        exploreCityBtn: document.getElementById('explore-city-btn'),
-        exploreWildsBtn: document.getElementById('explore-wilds-btn'),
-        endTurnBtn: document.getElementById('end-turn-btn'),
+        sectActionsBtn: document.getElementById('sect-actions-btn'),
         combatPlayerHp: document.getElementById('combat-player-hp'),
         combatEnemyName: document.getElementById('combat-enemy-name'),
         combatEnemyHp: document.getElementById('combat-enemy-hp'),
@@ -74,659 +67,40 @@ document.addEventListener('DOMContentLoaded', () => {
         talentsScreen: document.getElementById('talents-screen'),
         talentsScreenPoints: document.getElementById('talents-screen-points'),
         talentsContainer: document.getElementById('talents-container'),
-        closeTalentsBtn: document.getElementById('close-talents-btn'),
-        worldEventStatus: document.getElementById('world-event-status'),
-        worldEventName: document.getElementById('world-event-name'),
-        worldEventDuration: document.getElementById('world-event-duration'),
-        manageTechniquesBtn: document.getElementById('manage-techniques-btn'),
-        techniquesScreen: document.getElementById('techniques-screen'),
-        closeTechniquesBtn: document.getElementById('close-techniques-btn'),
-        learnedTechniquesList: document.getElementById('learned-techniques-list'),
-        equippedTechniquesList: document.getElementById('equipped-techniques-list'),
+        closeTalentsBtn: document.getElementById('close-talents-btn')
     };
-
-// --- CHARACTER CREATION ---
-// ADICIONE ESTA FUNÇÃO AO SEU ARQUIVO game.js
-
-/**
- * Generates a new character object for the player or an NPC.
- * @param {string} id - A unique ID for the character (e.g., 'player', 'rival_1').
- * @param {string} gender - 'masculino' or 'feminino'.
- * @param {boolean} isPlayer - True if this is the main player character.
- * @returns {object} A complete character object.
- */
-function generateCharacter(id, gender, isPlayer) {
-    const firstName = getRandomElement(allGameData.nomes[gender]);
-    const lastName = getRandomElement(allGameData.nomes.apelidos);
-
-    const character = {
-        id: id,
-        name: `${firstName} ${lastName}`,
-        gender: gender,
-        age: 6,
-        lifespan: 80, // Lifespan inicial
-        attributes: {
-            body: 10,
-            mind: 10,
-            luck: 1
-        },
-        personality: getRandomElement(allGameData.personalidades),
-        combat: {
-            maxHp: 100,
-            hp: 100,
-            attack: 10,
-            defense: 5,
-            speed: 10
-        },
-        sectId: null,
-        techniques: [],
-        cultivation: {
-            realmId: 0,
-            level: 1,
-            qi: 0,
-            maxQi: 100
-        }
-    };
-
-    // O jogador começa com uma técnica básica
-    if (isPlayer) {
-        character.techniques.push('basic_sword_form');
-        const tech = allGameData.techniques.find(t => t.id === 'basic_sword_form');
-        if (tech && tech.effects) {
-             // Aplica os efeitos da técnica inicial
-             for (const stat in tech.effects.combat) {
-                character.combat[stat] = (character.combat[stat] || 0) + tech.effects.combat[stat];
-             }
-        }
-    }
-
-    return character;
-}
-
-// --- UTILITY & CORE FUNCTIONS ---
-// ADICIONE ESTE BLOCO INTEIRO AO SEU ARQUIVO game.js
-
-/**
- * Processes text to replace placeholders like [PLAYER_NAME] with game state data.
- * @param {string} text - The input string.
- * @returns {string} The processed string.
- */
-function processText(text) {
-    if (!text) return '';
-    let processedText = text.replace(/\[PLAYER_NAME\]/g, gameState.player.name);
-    if (gameState.rivalId && gameState.npcs[gameState.rivalId]) {
-        processedText = processedText.replace(/\[RIVAL\]/g, gameState.npcs[gameState.rivalId].name);
-    }
-    return processedText;
-}
-
-/**
- * Handles the meditate/breakthrough button click.
- */
-function meditate() {
-    // Se o Qi está no máximo, tenta um breakthrough
-    if (gameState.cultivation.qi >= gameState.cultivation.maxQi) {
-        const currentRealm = allGameData.realms[gameState.cultivation.realmId];
-        const successChance = 0.8; // Chance base de sucesso
-
-        if (Math.random() < successChance) {
-            gameState.cultivation.level++;
-            addLogMessage(allStrings.breakthrough_success, "milestone");
-
-            // Verifica se avançou para um novo Reino
-            if (gameState.cultivation.level > currentRealm.levels) {
-                gameState.cultivation.realmId++;
-                gameState.cultivation.level = 1;
-                const newRealm = allGameData.realms[gameState.cultivation.realmId];
-                gameState.player.lifespan += newRealm.lifespan_bonus;
-                addLogMessage(`Você alcançou o Reino: ${newRealm.name}! Sua expectativa de vida aumentou!`, "milestone");
-            }
-
-            // Aplica bônus de atributos e recalcula o maxQi
-            applyEffects({ attributes: currentRealm.attributeBonusOnBreakthrough });
-            updateCultivationStats(); // <-- PONTO CRÍTICO DA CORREÇÃO!
-            gameState.resources.talentPoints++; // Ganha um ponto de talento
-
-        } else {
-            gameState.cultivation.qi = Math.floor(gameState.cultivation.qi * 0.8); // Perde 20% do Qi
-            addLogMessage(allStrings.breakthrough_failure, "notification");
-        }
-        gameState.cultivation.qi = 0; // Reseta o Qi após a tentativa
-
-    } else {
-        // Meditação normal
-        const qiGained = 10 + Math.floor(gameState.player.attributes.mind / 5);
-        gameState.cultivation.qi = Math.min(gameState.cultivation.qi + qiGained, gameState.cultivation.maxQi);
-        addLogMessage(`Você meditou e ganhou ${qiGained} Qi.`, 'event');
-    }
-    updateUI();
-    saveGameState();
-}
-
-/**
- * Recalculates cultivation stats like maxQi based on the current realm and level.
- */
-function updateCultivationStats() {
-    const realm = allGameData.realms[gameState.cultivation.realmId];
-    if (!realm) return;
-
-    // A fórmula é: Qi base do reino + (Qi adicional por nível * (nível atual - 1))
-    const newMaxQi = realm.baseMaxQi + ((gameState.cultivation.level - 1) * realm.qiPerLevel);
-    gameState.cultivation.maxQi = newMaxQi;
-}
-
-/**
- * Inicia o ciclo de jogo principal que lida com o cultivo passivo.
- */
-function startCultivationLoop() {
-    if (gameLoopInterval) clearInterval(gameLoopInterval); // Limpa qualquer ciclo antigo
-
-    gameLoopInterval = setInterval(() => {
-        if (gameState.isCultivator && gameState.cultivation.isCultivating) {
-            const root = gameState.player.spiritualRoot;
-            const realm = allGameData.realms[gameState.cultivation.realmId];
-
-            // Qi ganho por segundo = (Eficiência da Raiz * Bónus do Reino (se houver))
-            const qiPerSecond = (root.efficiency || 1.0) * (realm.qiBonus || 1.0);
-
-            gameState.cultivation.qi = Math.min(gameState.cultivation.qi + qiPerSecond, gameState.cultivation.maxQi);
-
-            // Atualiza a UI de forma menos frequente para melhor desempenho
-            if (Math.random() < 0.2) { // Atualiza ~1 vez por 5 segundos
-                 updateUI();
-            }
-        }
-    }, 1000); // Executa a cada segundo
-}
-
-/**
- * Alterna o estado de cultivo (pausa/retoma).
- */
-function toggleCultivation() {
-    if (!gameState.isCultivator) return;
-    gameState.cultivation.isCultivating = !gameState.cultivation.isCultivating;
-    updateUI();
-}
-
-
-/**
- * Renders the talents screen with available talents.
- */
-function showTalents() {
-    elements.talentsContainer.innerHTML = '';
-    elements.talentsScreenPoints.textContent = gameState.resources.talentPoints;
-
-    allGameData.talents.forEach(talent => {
-        const isPurchased = gameState.player.talents && gameState.player.talents.includes(talent.id);
-        const canPurchase = gameState.resources.talentPoints >= talent.cost;
-        const requirementsMet = talent.requirements.every(req => gameState.player.talents.includes(req));
-
-        const talentDiv = document.createElement('div');
-        talentDiv.className = 'talent-node'; // Você pode estilizar isso no CSS
-
-        let reqText = talent.requirements.length > 0
-            ? `<br><small>Requer: ${talent.requirements.map(r => allGameData.talents.find(t=>t.id===r).name).join(', ')}</small>`
-            : '';
-
-        talentDiv.innerHTML = `
-            <h4>${talent.name} (${talent.cost} Pts)</h4>
-            <p>${talent.description}${reqText}</p>
-        `;
-
-        const purchaseButton = document.createElement('button');
-        if (isPurchased) {
-            purchaseButton.textContent = 'Adquirido';
-            purchaseButton.disabled = true;
-        } else {
-            purchaseButton.textContent = 'Adquirir';
-            if (!canPurchase || !requirementsMet) {
-                purchaseButton.disabled = true;
-            }
-        }
-
-        purchaseButton.addEventListener('click', () => {
-            if (gameState.resources.talentPoints >= talent.cost) {
-                gameState.resources.talentPoints -= talent.cost;
-                if (!gameState.player.talents) gameState.player.talents = [];
-                gameState.player.talents.push(talent.id);
-                applyEffects(talent.effects);
-                showTalents(); // Re-renderiza a tela de talentos
-                updateUI();
-                saveGameState();
-            }
-        });
-
-        talentDiv.appendChild(purchaseButton);
-        elements.talentsContainer.appendChild(talentDiv);
-    });
-}
-
-/**
- * Displays the special merchant's store interface.
- */
-function showSpecialMerchantStore() {
-    const specialItems = allGameData.items.filter(item => item.source === 'special_merchant');
-    elements.eventContent.innerHTML = `<p>O mercador exibe seus tesouros. "Preços justos para mercadorias divinas," ele murmura.</p><p>Você tem ${gameState.resources.spirit_stones || 0} Pedras Espirituais.</p>`;
-    elements.choicesContainer.innerHTML = ''; // Limpa as escolhas
-
-    specialItems.forEach(item => {
-        const button = document.createElement('button');
-        button.innerHTML = `${item.name} - <b>${item.cost_spirit_stones} Pedras Espirituais</b><br><small>${item.description}</small>`;
-
-        // Desabilita o botão se o jogador não puder pagar
-        if ((gameState.resources.spirit_stones || 0) < item.cost_spirit_stones) {
-            button.disabled = true;
-        }
-
-        button.addEventListener('click', () => {
-            // Dupla verificação para garantir que o jogador ainda pode pagar
-            if ((gameState.resources.spirit_stones || 0) >= item.cost_spirit_stones) {
-                // Aplica os custos e efeitos
-                gameState.resources.spirit_stones -= item.cost_spirit_stones;
-                applyEffects(item.effects);
-                addLogMessage(`Você comprou ${item.name}!`, 'reward');
-
-                // Esconde a loja e retorna para um estado neutro
-                elements.eventContent.innerHTML = `<p>Você guarda seu novo tesouro. O mercador sorri, satisfeito com a troca.</p>`;
-                elements.choicesContainer.innerHTML = '';
-                updateUI();
-                saveGameState();
-            }
-        });
-        elements.choicesContainer.appendChild(button);
-    });
-
-    // Adiciona um botão para sair da loja sem comprar nada
-    const leaveButton = document.createElement('button');
-    leaveButton.textContent = 'Sair da loja';
-    leaveButton.className = 'danger-btn';
-    leaveButton.addEventListener('click', () => {
-        showEvent({ text: "Você decide guardar suas Pedras Espirituais por enquanto. O mercador dá de ombros, indiferente." });
-    });
-    elements.choicesContainer.appendChild(leaveButton);
-}
-
-// --- SECT ACTIONS ---
-
-/**
- * Displays the main menu for sect-related actions.
- */
-function showSectActions() {
-    elements.eventContent.innerHTML = `<p>Você está no pátio principal da sua seita. O que deseja fazer?</p>`;
-    elements.choicesContainer.innerHTML = ''; // Limpa as escolhas
-
-    const actions = [
-        { text: 'Quadro de Missões', effect: 'show_mission_board' },
-        { text: 'Loja da Seita', effect: 'show_sect_store' },
-        { text: 'Pavilhão de Técnicas', effect: 'show_technique_pavilion' },
-        { text: 'Tentar Promoção', effect: 'try_promotion' },
-        { text: 'Voltar', effect: null } // Para voltar ao ecrã principal
-    ];
-
-    actions.forEach(action => {
-        const button = document.createElement('button');
-        button.textContent = action.text;
-        button.addEventListener('click', () => {
-            if (action.effect) {
-                handleSpecialEffects(action.effect);
-            } else {
-                // Volta para um estado neutro
-                showEvent({ text: "Você decide meditar por conta própria por enquanto." });
-            }
-        });
-        elements.choicesContainer.appendChild(button);
-    });
-}
-
-function showMissionBoard() {
-    const activeWorldEvent = getActiveWorldEvent();
-    let rewardModifier = activeWorldEvent?.effects?.missionDifficultyModifier || 1.0;
-
-    elements.eventContent.innerHTML = `<p>O quadro de missões está coberto de pedidos de anciãos e outros discípulos.</p>`;
-    if (rewardModifier > 1.0) {
-        elements.eventContent.innerHTML += `<p style="color: #feca57;">Durante a "${activeWorldEvent.name}", as missões são mais perigosas, mas oferecem melhores recompensas!</p>`;
-    }
-    elements.choicesContainer.innerHTML = '';
-
-    if (gameState.active_mission) {
-        const mission = allGameData.missions.find(m => m.id === gameState.active_mission.id);
-        elements.eventContent.innerHTML += `<p><b>Missão Ativa:</b> ${mission.title}<br><small>${mission.description}</small></p><p><em>Complete a sua missão atual antes de aceitar uma nova. A missão será concluída no final do ano.</em></p>`;
-    } else {
-        const availableMissions = allGameData.missions.filter(m =>
-            m.sect_id === gameState.sect.id && gameState.sect.rank >= m.min_rank
-        );
-
-        if (availableMissions.length === 0) {
-            elements.eventContent.innerHTML += `<p>Não há missões disponíveis para o seu rank no momento.</p>`;
-        } else {
-            availableMissions.forEach(mission => {
-                // --- CÁLCULO DE RECOMPENSA MODIFICADO ---
-                const finalReward = Math.floor(mission.reward.contribution * rewardModifier);
-                const button = document.createElement('button');
-                button.innerHTML = `<b>${mission.title}</b><br><small>${mission.description} | Recompensa: ${finalReward} Contribuição</small>`;
-                button.addEventListener('click', () => {
-                    // Precisamos de armazenar a recompensa modificada
-                    gameState.active_mission = {
-                        id: mission.id,
-                        reward: { ...mission.reward, contribution: finalReward }
-                    };
-                    addLogMessage(`Você aceitou a missão: ${mission.title}.`, 'notification');
-                    showEvent({ text: `Você aceitou a missão "${mission.title}" e parte para cumpri-la. Ela será concluída no final do ano.` });
-                    saveGameState();
-                });
-                elements.choicesContainer.appendChild(button);
-            });
-        }
-    }
-
-    const backButton = document.createElement('button');
-    backButton.textContent = 'Voltar';
-    backButton.className = 'danger-btn';
-    backButton.addEventListener('click', showSectActions);
-    elements.choicesContainer.appendChild(backButton);
-}
-
-/**
- * Displays the sect's item store.
- */
-function showSectStore() {
-    const sect = allGameData.sects.find(s => s.id === gameState.sect.id);
-    const activeWorldEvent = getActiveWorldEvent();
-    let priceModifier = activeWorldEvent?.effects?.pillPriceModifier || 1.0;
-
-    elements.eventContent.innerHTML = `<p>O discípulo encarregado da loja mostra-lhe as mercadorias disponíveis.</p><p>Você tem ${gameState.resources.contribution} de Contribuição.</p>`;
-    if(priceModifier !== 1.0) {
-        elements.eventContent.innerHTML += `<p style="color: #feca57;">Devido à "${activeWorldEvent.name}", os preços estão alterados!</p>`;
-    }
-    elements.choicesContainer.innerHTML = '';
-
-    if (!sect.store || sect.store.length === 0) {
-        elements.eventContent.innerHTML += `<p>A loja da seita está vazia no momento.</p>`;
-    } else {
-        sect.store.forEach(storeItem => {
-            const itemDetails = allGameData.items.find(i => i.id === storeItem.id);
-            if (itemDetails && gameState.sect.rank >= storeItem.min_rank) {
-                // --- CÁLCULO DE CUSTO MODIFICADO ---
-                const finalCost = Math.floor(storeItem.cost_contribution * priceModifier);
-                const button = document.createElement('button');
-                button.innerHTML = `<b>${itemDetails.name}</b> - ${finalCost} Contribuição<br><small>${itemDetails.description}</small>`;
-
-                if (gameState.resources.contribution < finalCost) { // Usa finalCost
-                    button.disabled = true;
-                }
-
-                button.addEventListener('click', () => {
-                    if (gameState.resources.contribution >= finalCost) { // Usa finalCost
-                        gameState.resources.contribution -= finalCost; // Usa finalCost
-                        applyEffects(itemDetails.effects);
-                        addLogMessage(`Você comprou ${itemDetails.name}.`, 'reward');
-                        // Atualiza a interface da loja para refletir a nova contribuição
-                        showSectStore();
-                    }
-                });
-                elements.choicesContainer.appendChild(button);
-            }
-        });
-    }
-
-    const backButton = document.createElement('button');
-    backButton.textContent = 'Voltar';
-    backButton.className = 'danger-btn';
-    backButton.addEventListener('click', showSectActions);
-    elements.choicesContainer.appendChild(backButton);
-}
-
-/**
- * Displays the sect's technique pavilion.
- */
-function showTechniquePavilion() {
-    const sect = allGameData.sects.find(s => s.id === gameState.sect.id);
-    elements.eventContent.innerHTML = `<p>O ancião do pavilhão de técnicas observa-o em silêncio, esperando a sua escolha.</p><p>Você tem ${gameState.resources.contribution} de Contribuição.</p>`;
-    elements.choicesContainer.innerHTML = '';
-
-     sect.techniques.forEach(sectTech => {
-        const techDetails = allGameData.techniques.find(t => t.id === sectTech.id);
-        const isLearned = gameState.player.techniques.includes(sectTech.id);
-
-        if (techDetails && gameState.sect.rank >= sectTech.min_rank) {
-            const button = document.createElement('button');
-            button.innerHTML = `<b>${techDetails.name}</b> - ${sectTech.cost_contribution} Contribuição<br><small>${techDetails.description}</small>`;
-
-            if (isLearned) {
-                button.textContent = `Aprendido: ${techDetails.name}`;
-                button.disabled = true;
-            } else if (gameState.resources.contribution < sectTech.cost_contribution) {
-                button.disabled = true;
-            }
-
-            button.addEventListener('click', () => {
-                if (gameState.resources.contribution >= sectTech.cost_contribution) {
-                    gameState.resources.contribution -= sectTech.cost_contribution;
-                    handleSpecialEffects(`learn_technique_${sectTech.id}`);
-                    showTechniquePavilion(); // Atualiza a interface
-                }
-            });
-            elements.choicesContainer.appendChild(button);
-        }
-    });
-
-    const backButton = document.createElement('button');
-    backButton.textContent = 'Voltar';
-    backButton.className = 'danger-btn';
-    backButton.addEventListener('click', showSectActions);
-    elements.choicesContainer.appendChild(backButton);
-}
-
-/**
- * Handles the logic for attempting a promotion within the sect.
- */
-function tryPromotion() {
-    const sect = allGameData.sects.find(s => s.id === gameState.sect.id);
-    const nextRankIndex = gameState.sect.rank + 1;
-
-    if (nextRankIndex >= sect.ranks.length) {
-        showEvent({ text: "Você já alcançou o rank mais alto na sua seita. O seu nome será lembrado para sempre." });
-        return;
-    }
-
-    const nextRank = sect.ranks[nextRankIndex];
-    const reqs = nextRank.requirements;
-    let message = `Requisitos para ${nextRank.name}:<br>`;
-    let canPromote = true;
-
-    // Verifica os requisitos
-    if (reqs.cultivation_realm_id > gameState.cultivation.realmId) {
-        message += ` - Reino de Cultivo: ${allGameData.realms[reqs.cultivation_realm_id].name} (Falhou)<br>`;
-        canPromote = false;
-    }
-    if (reqs.cultivation_level > gameState.cultivation.level) {
-        message += ` - Nível de Cultivo: ${reqs.cultivation_level} (Falhou)<br>`;
-        canPromote = false;
-    }
-    if (reqs.contribution > gameState.resources.contribution) {
-        message += ` - Contribuição: ${reqs.contribution} (Falhou)<br>`;
-        canPromote = false;
-    }
-
-    if (canPromote) {
-        gameState.sect.rank = nextRankIndex;
-        // Opcional: pode-se deduzir a contribuição usada para a promoção
-        // gameState.resources.contribution -= reqs.contribution;
-        addLogMessage(`Você foi promovido para ${nextRank.name} na sua seita!`, 'milestone');
-        showEvent({ text: `Parabéns! Após verificar o seu progresso, os anciãos concederam-lhe o rank de ${nextRank.name}!` });
-    } else {
-        showEvent({ text: "Você ainda não cumpre os requisitos para a promoção.<br>" + message });
-    }
-}
-
-/**
- * Processes the turn for each NPC, allowing them to make decisions based on their personality.
- */
-function processNpcTurns() {
-    for (const npcId in gameState.npcs) {
-        const npc = gameState.npcs[npcId];
-        const relationship = gameState.relationships[npcId];
-        const playerPower = getCharacterPowerLevel(gameState.player);
-        const npcPower = getCharacterPowerLevel(npc);
-
-        // A pequena chance de um NPC agir por ano
-        if (Math.random() > 0.15) {
-            continue;
-        }
-
-        switch (npc.personality) {
-            case 'Arrogante':
-                if (npcPower < playerPower && relationship.state !== 'Inimigo') {
-                    addLogMessage(`Arrogante, ${npc.name} zomba do seu progresso, sentindo-se ameaçado. A vossa relação piora.`, 'notification');
-                    relationship.score -= 5;
-                }
-                break;
-            case 'Leal':
-                if (relationship.state === 'Amigo' && Math.random() < 0.25) {
-                     addLogMessage(`Leal, ${npc.name} oferece-lhe uma Pílula de Qi para o ajudar no seu cultivo.`, 'reward');
-                     applyEffects({ "items": ["small_qi_pill"] });
-                }
-                break;
-             case 'Ambicioso':
-                // Foca-se em si mesmo, mas pode desafiá-lo se estiver a ficar para trás.
-                npc.cultivation.level++;
-                if (npcPower < playerPower && relationship.state !== 'Amigo' && Math.random() < 0.3) {
-                     addLogMessage(`Ambicioso, ${npc.name} vê-o como um obstáculo e desafia-o para um duelo!`, 'notification');
-                     // Futuramente: iniciar um combate aqui.
-                }
-                break;
-        }
-    }
-}
-
-/**
- * Progresses NPCs' age and stats each year.
- */
-function progressNpcs() {
-    for (const npcId in gameState.npcs) {
-        const npc = gameState.npcs[npcId];
-        npc.age++;
-        // Lógica de progressão simples: chance de ganhar atributos
-        if (Math.random() < 0.3) npc.attributes.body++;
-        if (Math.random() < 0.3) npc.attributes.mind++;
-        if (Math.random() < 0.2) {
-             npc.cultivation.level++;
-             // Adicionar mais lógica de cultivo para NPCs aqui se desejar
-        }
-    }
-}
-
-/**
- * Updates the state of relationships based on the score.
- */
-function updateRelationshipStates() {
-    for (const npcId in gameState.relationships) {
-        const rel = gameState.relationships[npcId];
-        if (rel.score > 50) rel.state = 'Amigo';
-        else if (rel.score < -50) rel.state = 'Inimigo';
-        else rel.state = 'Neutro';
-    }
-}
-
-/**
- * Calculates a numeric power level for a character.
- * @param {object} character - The character object.
- * @returns {number} The calculated power level.
- */
-function getCharacterPowerLevel(character) {
-    let power = 0;
-    power += character.attributes.body * 2;
-    power += character.attributes.mind * 2;
-    power += character.cultivation.level * 10;
-    power += character.cultivation.realmId * 100;
-    return power;
-}
 
     // --- DATA LOADING ---
-/**
- * Asynchronously loads all necessary game data from JSON files.
- * This is the first function called to bootstrap the game.
- */
-async function loadGameData() {
-    const filesToLoad = [
-        'data/events.json',
-        'data/items.json',
-        'data/sects.json',
-        'data/enemies.json',
-        'data/talents.json',
-        'data/strings.json',
-        'data/random_events.json',
-        'data/nomes.json',
-        'data/personalidades.json',
-        'data/world_events.json',
-        'data/realms.json',
-        'data/missions.json',
-        'data/techniques.json',
-        'data/mortal_jobs.json',
-        'data/spiritual_roots.json',
-        'data/city_data.json',
-        'data/social_classes.json'
-    ];
-
-    try {
-        const responses = await Promise.all(filesToLoad.map(file => fetch(file)));
-
-        for (const res of responses) {
-            if (!res.ok) {
-                throw new Error(`Failed to load a data file: ${res.url} (Status: ${res.status})`);
+    /**
+     * Asynchronously loads all necessary game data from JSON files.
+     * This is the first function called to bootstrap the game.
+     */
+    async function loadGameData() {
+        try {
+            const responses = await Promise.all([
+                fetch('data/events.json'), fetch('data/items.json'), fetch('data/sects.json'),
+                fetch('data/enemies.json'), fetch('data/talents.json'), fetch('data/strings.json'),
+                fetch('data/random_events.json'), fetch('data/nomes.json'), fetch('data/personalidades.json'),
+                fetch('data/world_events.json'), fetch('data/realms.json'), fetch('data/missions.json'),
+                fetch('data/techniques.json')
+            ]);
+            for (const res of responses) {
+                if (!res.ok) throw new Error(`Failed to load ${res.url}`);
             }
+            const [events, items, sects, enemies, talents, strings, randomEvents, nomes, personalidades, worldEvents, realms, missions, techniques] = await Promise.all(responses.map(res => res.json()));
+
+            // Store all loaded data in a single global object for easy access.
+            allGameData = { events, items, sects, enemies, talents, randomEvents, nomes, personalidades, worldEvents, realms, missions, techniques };
+            allStrings = strings;
+
+            initializeGame();
+        } catch (error) {
+            console.error("Fatal error loading game data:", error);
+            elements.eventContent.innerHTML = "<p>CRITICAL ERROR: Could not load data files.</p>";
         }
-
-        const jsonData = await Promise.all(responses.map(res => res.json()));
-
-        const [events, items, sects, enemies, talents, strings, randomEvents, nomes, personalidades, worldEvents, realms, missions, techniques, mortalJobs, spiritualRoots, cityData, socialClasses] = jsonData;
-
-        allGameData = { events, items, sects, enemies, talents, randomEvents, nomes, personalidades, worldEvents, realms, missions, techniques, mortalJobs, spiritualRoots, cityData, socialClasses };
-        allStrings = strings;
-
-        initializeGame();
-    } catch (error) {
-        console.error("Fatal error loading game data:", error);
-        elements.eventContent.innerHTML = `<p style="color: #ff7675;"><b>ERRO CRÍTICO:</b></p><p>${error.message}</p><hr><p><b>Como resolver:</b><br>1. Verifique se o nome do arquivo e da pasta estão EXATAMENTE iguais no seu repositório GitHub.<br>2. O GitHub diferencia maiúsculas de minúsculas (ex: 'Data' é diferente de 'data').<br>3. Certifique-se de que você enviou (commit & push) o arquivo para o GitHub.</p>`;
     }
-}
 
     // --- CORE SYSTEMS ---
-
-    /**
-     * Retrieves the legacy data object from localStorage.
-     * @returns {object} The legacy data, including totalPoints and purchased bonuses.
-     */
-    function getLegacyData() {
-        return JSON.parse(localStorage.getItem('immortalJourneyLegacy')) || { totalPoints: 0, purchased: {} };
-    }
-
-    /**
-     * Saves the legacy data object to localStorage.
-     * @param {object} legacyData - The legacy data to save.
-     */
-    function saveLegacyData(legacyData) {
-        localStorage.setItem('immortalJourneyLegacy', JSON.stringify(legacyData));
-    }
-
-/**
- * Saves the current game state to localStorage.
- */
-function saveGameState() {
-    localStorage.setItem('immortalJourneySave', JSON.stringify(gameState));
-}
-
-/**
- * Gets the full data object for the currently active world event, if any.
- * @returns {object|null} The world event object or null.
- */
-function getActiveWorldEvent() {
-    if (gameState.world_event && gameState.world_event.id) {
-        return allGameData.worldEvents.find(we => we.id === gameState.world_event.id);
-    }
-    return null;
-}
-
 
     /**
      * Adds a message to the player's life log.
@@ -775,8 +149,6 @@ function getActiveWorldEvent() {
      */
     function handleSpecialEffects(effectKey) {
         addLogMessage(`Efeito especial ativado: ${effectKey}`, 'notification');
-
-        // Lógica para aprender técnicas
         if (effectKey.startsWith('learn_technique_')) {
             const techId = effectKey.replace('learn_technique_', '');
             if (!gameState.player.techniques.includes(techId)) {
@@ -787,55 +159,7 @@ function getActiveWorldEvent() {
             }
             return;
         }
-
-        // Lógica para entrar numa seita
-        if (effectKey.startsWith('join_sect_')) {
-            const sectId = effectKey.replace('join_sect_', '');
-            const sect = allGameData.sects.find(s => s.id === sectId);
-            if (sect && gameState.sect.id !== sectId) {
-                gameState.sect.id = sectId;
-                gameState.sect.rank = 0; // Começa no rank mais baixo
-                gameState.player.sectId = sectId;
-                addLogMessage(`Você juntou-se à Seita ${sect.name}!`, 'milestone');
-
-                // O Discípulo Sênior também pertence a uma seita, vamos colocá-lo na mesma por conveniência
-                const senior = gameState.npcs['senior_disciple_1'];
-                if (senior) {
-                    senior.sectId = sectId;
-                    addLogMessage(`${senior.name} também é um membro desta seita. Ele olha para si com desdém.`, 'notification');
-                }
-            }
-            return;
-        }
-
         switch (effectKey) {
-            case 'become_cultivator':
-                gameState.isCultivator = true;
-
-                // --- LÓGICA DE ATRIBUIÇÃO DA RAIZ ESPIRITUAL ---
-                const rootTypes = allGameData.spiritualRoots.types;
-                const rootGrades = allGameData.spiritualRoots.grades;
-
-                // Escolhe um grau com base no peso (raridade)
-                const totalWeight = rootGrades.reduce((sum, grade) => sum + grade.weight, 0);
-                let random = Math.random() * totalWeight;
-                const chosenGrade = rootGrades.find(grade => (random -= grade.weight) < 0);
-
-                gameState.player.spiritualRoot = {
-                    type: getRandomElement(rootTypes),
-                    grade: chosenGrade.id,
-                    efficiency: chosenGrade.efficiency_mult
-                };
-                // --- FIM DA LÓGICA ---
-
-                addLogMessage(`Os céus sorriram para si! Você despertou uma Raiz Espiritual de ${gameState.player.spiritualRoot.type} de Grau ${chosenGrade.name}!`, "milestone");
-
-                gameState.cultivation = { realmId: 0, level: 1, qi: 0, maxQi: 100, isCultivating: true }; // Começa a cultivar automaticamente
-                updateCultivationStats();
-                startCultivationLoop(); // Inicia o ciclo de cultivo passivo
-
-                showEvent({text: "Você sente o Qi do mundo a fluir para si. Um novo caminho cheio de perigos e glória estende-se à sua frente."});
-                break;
             case 'show_sect_actions': showSectActions(); break;
             case 'show_technique_pavilion': showTechniquePavilion(); break;
             case 'try_promotion': tryPromotion(); break;
@@ -865,40 +189,36 @@ function getActiveWorldEvent() {
         }
     }
 
-function areConditionsMet(conditions) {
-    if (!conditions) return true;
-    const activeWorldEvent = getActiveWorldEvent();
-
-    for (const key in conditions) {
-        let value = conditions[key];
-        switch (key) {
-            case 'age': if (gameState.age !== value) return false; break;
-            case 'min_age': if (gameState.age < value) return false; break;
-            case 'min_cultivation_realm_id': if (gameState.cultivation.realmId < value) return false; break;
-            case 'min_sect_rank': if (!gameState.sect.id || gameState.sect.rank < value) return false; break;
-            case 'required_sect_id': if (!gameState.sect.id || gameState.sect.id !== value) return false; break;
-            case 'rival_relationship_state':
-                if (!gameState.relationships[gameState.rivalId] || gameState.relationships[gameState.rivalId].state !== value) return false;
-                break;
-            case 'rival_in_same_sect':
-                const rival = gameState.npcs[gameState.rivalId];
-                if ((gameState.player.sectId === rival.sectId && gameState.player.sectId !== null) !== value) return false;
-                break;
-            case 'player_stronger_than_rival':
-                if ((getCharacterPowerLevel(gameState.player) > getCharacterPowerLevel(gameState.npcs[gameState.rivalId])) !== value) return false;
-                break;
-            case 'probability':
-                let finalProbability = value;
-                // Aplica o modificador de spawn rate a eventos de combate
-                if (activeWorldEvent?.effects?.enemySpawnRate && (conditions.id === 'haunted_forest' || conditions.id === 'rival_ambush')) {
-                    finalProbability *= (1 + activeWorldEvent.effects.enemySpawnRate);
-                }
-                if (Math.random() > finalProbability) return false;
-                break;
+    /**
+     * Checks if the current game state meets a set of conditions.
+     * @param {object} conditions - An object of conditions to check against the game state.
+     * @returns {boolean} True if all conditions are met, false otherwise.
+     */
+    function areConditionsMet(conditions) {
+        if (!conditions) return true;
+        for (const key in conditions) {
+            const value = conditions[key];
+            switch (key) {
+                case 'age': if (gameState.age !== value) return false; break;
+                case 'min_age': if (gameState.age < value) return false; break;
+                case 'min_cultivation_realm_id': if (gameState.cultivation.realmId < value) return false; break;
+                case 'min_sect_rank': if (!gameState.sect.id || gameState.sect.rank < value) return false; break;
+                case 'required_sect_id': if (!gameState.sect.id || gameState.sect.id !== value) return false; break;
+                case 'rival_relationship_state':
+                    if (!gameState.relationships[gameState.rivalId] || gameState.relationships[gameState.rivalId].state !== value) return false;
+                    break;
+                case 'rival_in_same_sect':
+                    const rival = gameState.npcs[gameState.rivalId];
+                    if ((gameState.player.sectId === rival.sectId && gameState.player.sectId !== null) !== value) return false;
+                    break;
+                case 'player_stronger_than_rival':
+                    if ((getCharacterPowerLevel(gameState.player) > getCharacterPowerLevel(gameState.npcs[gameState.rivalId])) !== value) return false;
+                    break;
+                case 'probability': if (Math.random() > value) return false; break;
+            }
         }
+        return true;
     }
-    return true;
-}
 
     // --- GAME LOOP & STATE MANAGEMENT ---
 
@@ -924,324 +244,81 @@ function areConditionsMet(conditions) {
         return false; // No event triggered
     }
 
-function startYear() {
-    gameState.actionPoints = 2;
-    updateUI();
-}
+    /**
+     * Advances the game by one year, updating player stats and triggering events.
+     */
+    function advanceYear() {
+        gameState.age++;
+        addLogMessage(`Você envelheceu para ${gameState.age} anos.`, 'milestone');
 
-function exploreLocation(locationId) {
-    if (locationId === 'city') {
-        showCityMenu(); // <-- NOVA LÓGICA
-    } else {
-        if (gameState.actionPoints <= 0) return;
-        gameState.actionPoints--;
+        // Passive stat gains
+        gameState.player.attributes.body++;
+        gameState.player.attributes.mind++;
 
-        let eventPool = [];
-        if (gameState.isCultivator) {
-            // Lógica de eventos para cultivadores (a que já tínhamos)
-            eventPool = allGameData.events.filter(event =>
-                (event.location === locationId || !event.location) &&
-                areConditionsMet(event.conditions)
-            );
-        } else {
-            // Lógica de eventos para mortais (trabalhos e oportunidades)
-            eventPool = allGameData.mortalJobs.filter(event =>
-                event.location === locationId && areConditionsMet(event.conditions)
-            );
-        }
+        // NPC progression
+        progressNpcs();
+        updateRelationshipStates();
 
-        const possibleEvents = eventPool.filter(e => !gameState.triggeredEvents.includes(e.id) || e.type === 'repeatable');
-
-        let eventToTrigger;
-        if (possibleEvents.length > 0) {
-            eventToTrigger = getRandomElement(possibleEvents);
-            if (eventToTrigger.type === 'once') {
-                gameState.triggeredEvents.push(eventToTrigger.id);
+        // Sect benefits
+        if (gameState.sect.id) {
+            const sect = allGameData.sects.find(s => s.id === gameState.sect.id);
+            if (sect && sect.benefit_template.type === 'passive_qi_gain') {
+                let benefitValue = sect.benefit_template.base_value + (sect.benefit_template.value_per_rank * gameState.sect.rank);
+                gameState.cultivation.qi = Math.min(gameState.cultivation.qi + benefitValue, gameState.cultivation.maxQi);
+                addLogMessage(`Sua seita lhe concedeu ${benefitValue} de Qi.`, 'reward');
             }
-        } else {
-             eventToTrigger = { text: `Você passa algum tempo em "${locationId}", mas nada de extraordinário acontece.` };
         }
 
-        showEvent(eventToTrigger);
+        // Check for death by old age
+        if (gameState.age >= gameState.player.lifespan) {
+            endGame("old_age");
+            return;
+        }
+
+        // Trigger a new event for the year
+        const eventTriggered = checkAndTriggerEvents();
+        if (!eventTriggered) {
+            elements.eventContent.innerHTML = "<p>Um ano tranquilo se passa.</p>";
+            elements.choicesContainer.innerHTML = '';
+            elements.eventImage.style.display = 'none';
+        }
+
         updateUI();
         saveGameState();
     }
-}
 
-function endYear() {
-    // --- LÓGICA DE EVENTOS MUNDIAIS ---
-    if (gameState.world_event && gameState.world_event.duration > 0) {
-        gameState.world_event.duration--;
-        if (gameState.world_event.duration === 0) {
-            const endedEvent = getActiveWorldEvent();
-            addLogMessage(`O evento mundial "${endedEvent.name}" chegou ao fim. ${endedEvent.endText}`, 'milestone');
-            gameState.world_event = null;
+    /**
+     * Ends the current game, calculates legacy points, and shows the legacy screen.
+     * @param {string} reason - The reason for the game ending (e.g., 'old_age', 'combat').
+     */
+    function endGame(reason) {
+        addLogMessage("Sua jornada chegou ao fim.", "milestone");
+        const finalGameState = { ...gameState };
+
+        let pointsEarned = 0;
+        pointsEarned += Math.floor(finalGameState.age * 0.5);
+        pointsEarned += (finalGameState.cultivation.realmId || 0) * 100;
+        pointsEarned += (finalGameState.cultivation.level || 0) * 10;
+        pointsEarned += Math.floor((finalGameState.resources.money || 0) / 10);
+        pointsEarned += (finalGameState.resources.talentPoints || 0) * 2;
+        pointsEarned += (finalGameState.player.techniques?.length || 0) * 25;
+
+        // Anti-farming measure for the "End Journey" button.
+        if (reason === 'ended_journey' && finalGameState.age < 18) {
+            addLogMessage("Sua jornada foi muito curta para deixar um legado significativo.", "notification");
+            pointsEarned = 0;
         }
-    } else {
-        // Chance de começar um novo evento mundial (ex: aos 20 anos, 25% de chance)
-        if (gameState.age === 20 && Math.random() < 0.25) {
-            const eventToStart = getRandomElement(allGameData.worldEvents);
-            gameState.world_event = {
-                id: eventToStart.id,
-                duration: eventToStart.duration
-            };
-            addLogMessage(`Um evento mundial começou: "${eventToStart.name}"! ${eventToStart.startText}`, 'milestone');
-        }
+
+        let legacyData = getLegacyData();
+        legacyData.totalPoints += pointsEarned;
+        saveLegacyData(legacyData);
+
+        showLegacyScreen(finalGameState, pointsEarned, legacyData);
+        localStorage.removeItem('immortalJourneySave');
     }
-    // --- FIM DA LÓGICA DE EVENTOS MUNDIAIS ---
-
-    if (gameState.active_mission) {
-        // A recompensa modificada já está guardada em active_mission
-        const mission = allGameData.missions.find(m => m.id === gameState.active_mission.id);
-        if (mission) {
-            applyEffects(gameState.active_mission.reward); // Usa a recompensa guardada
-            addLogMessage(`Missão concluída: "${mission.title}"! Você ganhou ${gameState.active_mission.reward.contribution} de contribuição.`, 'reward');
-        }
-        gameState.active_mission = null;
-    }
-
-    gameState.age++;
-    addLogMessage(`Você envelheceu para ${gameState.age} anos.`, 'milestone');
-
-    // --- LÓGICA DE BENEFÍCIOS DE SEITA APRIMORADA ---
-    if (gameState.sect.id) {
-        const sect = allGameData.sects.find(s => s.id === gameState.sect.id);
-        if (sect) {
-            const template = sect.benefit_template;
-            const rank = gameState.sect.rank;
-            let benefitValue = template.base_value + (template.value_per_rank * rank);
-
-            switch (template.type) {
-                case 'passive_qi_gain':
-                    gameState.cultivation.qi = Math.min(gameState.cultivation.qi + benefitValue, gameState.cultivation.maxQi);
-                    addLogMessage(`Sua seita lhe concedeu ${benefitValue} de Qi.`, 'reward');
-                    break;
-                case 'body_cultivation_boost':
-                    if (gameState.age % 5 === 0) { // A cada 5 anos
-                        gameState.player.attributes.body += benefitValue;
-                        addLogMessage(`Graças aos métodos de sua seita, seu Corpo aumentou em ${benefitValue}.`, 'reward');
-                    }
-                    break;
-                case 'passive_speed_gain':
-                     if (gameState.age % 5 === 0) { // A cada 5 anos
-                        gameState.player.combat.speed += benefitValue;
-                        addLogMessage(`O treinamento da sua seita aprimorou sua Velocidade em ${benefitValue}.`, 'reward');
-                    }
-                    break;
-                case 'passive_mind_gain':
-                    if (gameState.age % 10 === 0) { // A cada 10 anos
-                        gameState.player.attributes.mind += benefitValue;
-                        addLogMessage(`O conhecimento de sua seita expandiu sua Mente em ${benefitValue}.`, 'reward');
-                    }
-                    break;
-            }
-        }
-    }
-    // --- FIM DA LÓGICA DE BENEFÍCIOS DE SEITA ---
-
-    // Progressão de NPCs
-    progressNpcs();
-    processNpcTurns();
-    updateRelationshipStates();
-
-    // Checa morte por velhice
-    if (gameState.age >= gameState.player.lifespan) {
-        endGame("old_age");
-        return;
-    }
-
-    startYear(); // Começa o próximo ano
-    saveGameState();
-}
-
-function endGame(reason) {
-    addLogMessage("Sua jornada chegou ao fim.", "milestone");
-    const finalGameState = { ...gameState };
-
-    let pointsEarned = 0;
-    pointsEarned += Math.floor(finalGameState.age * 0.5);
-    pointsEarned += (finalGameState.cultivation.realmId || 0) * 100;
-    pointsEarned += (finalGameState.cultivation.level || 0) * 10;
-    pointsEarned += Math.floor((finalGameState.resources.money || 0) / 10);
-    pointsEarned += (finalGameState.resources.talentPoints || 0) * 2;
-    pointsEarned += (finalGameState.player.techniques?.length || 0) * 25;
-
-    // Anti-farming measure for the "End Journey" button.
-    if (reason === 'ended_journey' && finalGameState.age < 18) {
-        addLogMessage("Sua jornada foi muito curta para deixar um legado significativo.", "notification");
-        pointsEarned = 0;
-    }
-
-    let legacyData = getLegacyData();
-    legacyData.totalPoints += pointsEarned;
-    saveLegacyData(legacyData);
-
-    // Pass the fresh legacy data to the screen
-    showLegacyScreen(finalGameState, pointsEarned, legacyData);
-    localStorage.removeItem('immortalJourneySave');
-}
-
-// --- NEW AUTOMATIC COMBAT SYSTEM ---
-
-/**
- * Inicia um encontro de combate automático.
- */
-function startCombat(enemyData, options = {}) {
-    elements.eventContent.innerHTML = '';
-    elements.choicesContainer.innerHTML = '';
-    elements.actionsContainer.classList.add('hidden');
-    elements.combatScreen.classList.remove('hidden');
-    elements.eventImage.style.display = 'none';
-
-    combatState = {
-        player: {
-            ...gameState.player.combat,
-            hp: gameState.player.combat.maxHp,
-            qi: gameState.cultivation.qi,
-            techniques: gameState.player.combat.equipped_techniques,
-            cooldowns: {}, // Regista os cooldowns atuais
-            statusEffects: {}
-        },
-        enemy: {
-            ...enemyData.combat,
-            name: enemyData.name,
-            techniques: enemyData.techniques || [],
-            cooldowns: {},
-            statusEffects: {}
-        },
-        onWin: options,
-        turn: 0
-    };
-
-    elements.combatLog.innerHTML = `<p class="log-type-notification">Você encontrou ${combatState.enemy.name}!</p>`;
-    updateCombatUI();
-
-    // Inicia o ciclo de combate automático
-    combatLoopInterval = setInterval(runCombatTurn, 2000); // Um turno a cada 2 segundos
-}
-
-/**
- * Executa um único turno de combate para ambos, jogador e inimigo.
- */
-function runCombatTurn() {
-    combatState.turn++;
-    addCombatLog(`--- Turno ${combatState.turn} ---`, 'system');
-
-    // Turno do Jogador
-    executeCharacterTurn(combatState.player, combatState.enemy, 'player');
-    if (combatState.enemy.hp <= 0) {
-        endCombat(true);
-        return;
-    }
-
-    // Turno do Inimigo
-    executeCharacterTurn(combatState.enemy, combatState.player, 'enemy');
-    if (combatState.player.hp <= 0) {
-        endCombat(false);
-        return;
-    }
-
-    updateCombatUI();
-}
-
-/**
- * Lógica para um único personagem (jogador ou inimigo) realizar o seu turno.
- */
-function executeCharacterTurn(attacker, defender, attackerType) {
-    // Reduz todos os cooldowns em 1
-    for (const techId in attacker.cooldowns) {
-        attacker.cooldowns[techId] = Math.max(0, attacker.cooldowns[techId] - 1);
-    }
-
-    // Encontra a melhor técnica disponível
-    const availableTechniques = attacker.techniques
-        .map(id => allGameData.techniques.find(t => t.id === id))
-        .filter(tech => tech && tech.type === 'active_combat' && (!attacker.cooldowns[tech.id] || attacker.cooldowns[tech.id] === 0) && attacker.qi >= tech.qi_cost)
-        .sort((a, b) => b.priority - a.priority);
-
-    let chosenTech = availableTechniques.length > 0 ? availableTechniques[0] : allGameData.techniques.find(t => t.id === 'basic_sword_form');
-
-    // Executa o ataque
-    if (chosenTech) {
-        attacker.qi -= chosenTech.qi_cost || 0;
-        attacker.cooldowns[chosenTech.id] = chosenTech.cooldown || 1;
-
-        let damage = Math.max(1, Math.floor((attacker.attack * (chosenTech.damage_multiplier || 1)) - defender.defense));
-        defender.hp -= damage;
-
-        const attackerName = attackerType === 'player' ? 'Você' : attacker.name;
-        const damageClass = attackerType === 'player' ? 'damage-enemy' : 'damage';
-        addCombatLog(`${attackerName} usa ${chosenTech.name} e causa <span class="${damageClass}">${damage}</span> de dano!`, attackerType);
-    } else {
-        // Fallback case if basic_sword_form is somehow not found
-        addCombatLog(`${attackerType === 'player' ? 'Você' : attacker.name} hesita, sem saber o que fazer.`, 'system');
-    }
-}
-
-
-/**
- * Atualiza todos os elementos da UI relacionados com o combate.
- */
-function updateCombatUI() {
-    elements.combatPlayerHp.textContent = `${combatState.player.hp} / ${gameState.player.combat.maxHp} (Qi: ${combatState.player.qi})`;
-    elements.combatEnemyName.textContent = combatState.enemy.name;
-    elements.combatEnemyHp.textContent = `${combatState.enemy.hp} / ${combatState.enemy.maxHp}`;
-}
-
-/**
- * Termina o combate e apresenta o resultado.
- */
-function endCombat(playerWon) {
-    clearInterval(combatLoopInterval); // PARA O COMBATE AUTOMÁTICO
-    combatLoopInterval = null;
-
-    if (playerWon) {
-        addCombatLog(`Você derrotou ${combatState.enemy.name}!`, 'reward');
-        if (combatState.onWin.reward) applyEffects(combatState.onWin.reward);
-        if (combatState.onWin.onWinEffect) handleSpecialEffects(combatState.onWin.onWinEffect);
-        gameState.cultivation.qi = combatState.player.qi;
-    } else {
-        addLogMessage('Você foi derrotado...', 'death');
-        endGame('combat');
-        return;
-    }
-
-    const closeButton = document.createElement('button');
-    closeButton.textContent = 'Continuar Jornada';
-    closeButton.addEventListener('click', () => {
-        elements.combatScreen.classList.add('hidden');
-        elements.actionsContainer.classList.remove('hidden'); // Mostra as ações normais
-        updateUI();
-        saveGameState();
-        // Dispara um evento vazio para o jogador ter algo para fazer após o combate
-        showEvent({ text: "Após a batalha, você recupera o fôlego e avalia o que fazer a seguir." });
-    });
-    elements.combatActions.innerHTML = '';
-    elements.combatActions.appendChild(closeButton);
-}
-
-/**
- * Adiciona uma mensagem ao log de combate.
- */
-function addCombatLog(message, type) {
-    const p = document.createElement('p');
-    p.innerHTML = message;
-    p.className = `log-type-${type}`;
-    elements.combatLog.appendChild(p);
-    elements.combatLog.scrollTop = elements.combatLog.scrollHeight;
-}
-
 
     // --- UI RENDERING & MANAGEMENT ---
-    // SUBSTITUA a sua função showEvent pela versão abaixo.
-    // (Esta é apenas uma pequena correção para garantir que a UI principal seja escondida ao mostrar a tela de legado)
     function showEvent(event) {
-        // Esconde a tela de combate se estiver ativa
-        elements.combatScreen.classList.add('hidden');
-        // Esconde o mapa e o botão de fim de turno
-        elements.mapContainer.classList.add('hidden');
-        elements.endTurnBtn.classList.add('hidden');
-
         elements.eventContent.innerHTML = `<p>${processText(event.text)}</p>`;
         elements.choicesContainer.innerHTML = '';
         if (event.image) {
@@ -1250,7 +327,7 @@ function addCombatLog(message, type) {
         } else {
             elements.eventImage.style.display = 'none';
         }
-        if (event.choices && event.choices.length > 0) {
+        if (event.choices) {
             event.choices.forEach(choice => {
                 const button = document.createElement('button');
                 button.textContent = processText(choice.text);
@@ -1261,125 +338,51 @@ function addCombatLog(message, type) {
                         addLogMessage(resultText, 'event');
                     }
                     applyEffects(choice.effects);
-                    elements.choicesContainer.innerHTML = ''; // Clear choices
+                    while (elements.choicesContainer.firstChild) elements.choicesContainer.removeChild(elements.choicesContainer.firstChild);
                     updateUI();
                     saveGameState();
                 }, { once: true });
                 elements.choicesContainer.appendChild(button);
             });
-        } else {
-            // If no choices, show a continue button to return to the map
-            const continueButton = document.createElement('button');
-            continueButton.textContent = 'Continuar...';
-            continueButton.addEventListener('click', () => {
-                 elements.choicesContainer.innerHTML = '';
-                 updateUI();
-            });
-            elements.choicesContainer.appendChild(continueButton);
         }
     }
 
-// --- CITY ACTIONS ---
+    function updateUI() {
+        if (!gameState || !gameState.player) return;
+        const oldBody = parseInt(elements.body.textContent);
+        const oldMind = parseInt(elements.mind.textContent);
+        if (gameState.player.attributes.body > oldBody) flashElement(elements.body, 'highlight-green');
+        if (gameState.player.attributes.body < oldBody) flashElement(elements.body, 'highlight-red');
+        if (gameState.player.attributes.mind > oldMind) flashElement(elements.mind, 'highlight-green');
+        if (gameState.player.attributes.mind < oldMind) flashElement(elements.mind, 'highlight-red');
 
-/**
- * Displays the main menu for the city.
- */
-function showCityMenu() {
-    elements.mapContainer.classList.add('hidden'); // Esconde o mapa
-    elements.eventContent.innerHTML = `<p>Você está nas ruas movimentadas da cidade. O que deseja fazer?</p>`;
-    elements.choicesContainer.innerHTML = '';
+        const oldMoney = parseInt(elements.money.textContent || '0');
+        const oldContribution = parseInt(elements.contribution.textContent || '0');
+        const oldSpiritStones = parseInt(elements.spiritStones.textContent || '0');
+        if (gameState.resources.money > oldMoney) flashElement(elements.money, 'highlight-green');
+        if (gameState.resources.money < oldMoney) flashElement(elements.money, 'highlight-red');
+        if (gameState.resources.contribution > oldContribution) flashElement(elements.contribution, 'highlight-green');
+        if (gameState.resources.contribution < oldContribution) flashElement(elements.contribution, 'highlight-red');
+        if ((gameState.resources.spirit_stones || 0) > oldSpiritStones) flashElement(elements.spiritStones, 'highlight-green');
+        if ((gameState.resources.spirit_stones || 0) < oldSpiritStones) flashElement(elements.spiritStones, 'highlight-red');
 
-    allGameData.cityData.locations.forEach(location => {
-        const button = document.createElement('button');
-        button.innerHTML = `<b>${location.name}</b><br><small>${location.description}</small>`;
-        button.addEventListener('click', () => {
-            if (gameState.actionPoints > 0) {
-                gameState.actionPoints--; // Gasta uma ação para visitar um local na cidade
-                if (location.id === 'shop') {
-                    showCityShop();
-                } else {
-                    // (Lógica para Taverna e Trabalho virá depois)
-                    showEvent({ text: `Você passa algum tempo em "${location.name}", mas ainda não há nada para fazer aqui.` });
-                    updateUI();
-                }
-            }
-        });
-        elements.choicesContainer.appendChild(button);
-    });
+        elements.playerName.textContent = gameState.player.name;
+        elements.age.textContent = gameState.age;
+        elements.lifespan.textContent = gameState.player.lifespan;
+        elements.body.textContent = gameState.player.attributes.body;
+        elements.mind.textContent = gameState.player.attributes.mind;
 
-    const leaveButton = document.createElement('button');
-    leaveButton.textContent = 'Sair da Cidade';
-    leaveButton.className = 'danger-btn';
-    leaveButton.addEventListener('click', () => {
-        showEvent({text: 'Você deixa a cidade para trás e regressa ao mapa.'});
-        updateUI();
-    });
-    elements.choicesContainer.appendChild(leaveButton);
-}
-
-/**
- * Displays the city's general store.
- */
-function showCityShop() {
-    elements.eventContent.innerHTML = `<p>O lojista cumprimenta-o. "Dê uma olhada," ele diz.</p><p>Você tem ${gameState.resources.money} moedas.</p>`;
-    elements.choicesContainer.innerHTML = '';
-
-    allGameData.cityData.shop_items.forEach(shopItem => {
-        const itemDetails = allGameData.items.find(i => i.id === shopItem.id) || shopItem;
-
-        const button = document.createElement('button');
-        button.innerHTML = `<b>${itemDetails.name}</b> - ${shopItem.cost_money} Moedas<br><small>${itemDetails.description}</small>`;
-
-        if (gameState.resources.money < shopItem.cost_money) {
-            button.disabled = true;
-        }
-
-        button.addEventListener('click', () => {
-            if (gameState.resources.money >= shopItem.cost_money) {
-                gameState.resources.money -= shopItem.cost_money;
-                applyEffects(itemDetails.effects);
-                addLogMessage(`Você comprou ${itemDetails.name}.`, 'reward');
-                showCityShop(); // Atualiza a interface da loja
-            }
-        });
-        elements.choicesContainer.appendChild(button);
-    });
-
-    const backButton = document.createElement('button');
-    backButton.textContent = 'Voltar para a Cidade';
-    backButton.className = 'danger-btn';
-    backButton.addEventListener('click', showCityMenu);
-    elements.choicesContainer.appendChild(backButton);
-}
-
-function updateUI() {
-    if (!gameState || !gameState.player) return;
-
-    // --- LÓGICA DE VISIBILIDADE DOS PAINÉIS ---
-    const cultivatorPanels = document.getElementById('cultivator-only-panels');
-    if (gameState.isCultivator) {
-        cultivatorPanels.classList.remove('hidden');
-        elements.talentsBtn.classList.remove('hidden');
-        elements.manageTechniquesBtn.classList.remove('hidden');
-        elements.cultivationPanel.style.display = 'block';
-
-        // Update cultivation stats only if cultivator
         const realm = allGameData.realms?.[gameState.cultivation.realmId] || { name: 'Mortal' };
         elements.realm.textContent = realm.name;
         elements.level.textContent = gameState.cultivation.level;
-        elements.qi.textContent = Math.floor(gameState.cultivation.qi);
+        elements.qi.textContent = gameState.cultivation.qi;
         elements.maxQi.textContent = gameState.cultivation.maxQi;
 
-        // Update spiritual root info
-        const root = gameState.player.spiritualRoot;
-        const gradeInfo = allGameData.spiritualRoots.grades.find(g => g.id === root.grade);
-        elements.cultRootName.textContent = root.type;
-        elements.cultRootGrade.textContent = gradeInfo.name;
+        elements.money.textContent = gameState.resources.money;
+        elements.talentPoints.textContent = gameState.resources.talentPoints;
+        elements.contribution.textContent = gameState.resources.contribution;
+        elements.spiritStones.textContent = gameState.resources.spirit_stones || 0;
 
-        elements.cultivateBtn.textContent = gameState.cultivation.isCultivating ? 'Parar Cultivo' : 'Retomar Cultivo';
-        elements.cultivateBtn.style.display = 'block';
-
-        // Update sect info and exploration buttons
         if (gameState.sect.id) {
             elements.sectInfo.classList.remove('hidden');
             const sect = allGameData.sects.find(s => s.id === gameState.sect.id);
@@ -1388,93 +391,40 @@ function updateUI() {
             elements.sectRank.textContent = rank.name;
             let benefitValue = sect.benefit_template.base_value + (sect.benefit_template.value_per_rank * gameState.sect.rank);
             elements.sectBenefit.textContent = sect.benefit_template.description.replace('{value}', benefitValue);
-            elements.exploreSectBtn.classList.remove('hidden');
         } else {
             elements.sectInfo.classList.add('hidden');
-            elements.exploreSectBtn.classList.add('hidden');
         }
 
-        // Update techniques list
-        elements.techniquesList.innerHTML = '';
-        if (gameState.player.techniques && gameState.player.techniques.length > 0) {
-            gameState.player.techniques.forEach(techId => {
-                const tech = allGameData.techniques.find(t => t.id === techId);
-                if (tech) {
-                    const li = document.createElement('li');
-                    li.innerHTML = `<strong data-tooltip="${tech.description}">${tech.name}</strong>`;
-                    elements.techniquesList.appendChild(li);
-                }
-            });
+        if (gameState.cultivation.qi >= gameState.cultivation.maxQi) {
+            elements.meditateBtn.textContent = "Tentar Breakthrough!";
+            elements.meditateBtn.classList.add('breakthrough-ready');
         } else {
-            elements.techniquesList.innerHTML = '<li>Nenhuma técnica aprendida.</li>';
+            elements.meditateBtn.textContent = "Meditar";
+            elements.meditateBtn.classList.remove('breakthrough-ready');
         }
 
-    } else {
-        if (cultivatorPanels) cultivatorPanels.classList.add('hidden');
-        elements.talentsBtn.classList.add('hidden');
-        elements.manageTechniquesBtn.classList.add('hidden');
-        elements.cultivationPanel.style.display = 'none';
-        elements.cultivateBtn.style.display = 'none';
-    }
-
-    // Update character stats
-    elements.playerName.textContent = gameState.player.name;
-    elements.age.textContent = gameState.age;
-    elements.actions.textContent = gameState.actionPoints;
-    elements.lifespan.textContent = gameState.player.lifespan;
-    elements.body.textContent = gameState.player.attributes.body;
-    elements.mind.textContent = gameState.player.attributes.mind;
-
-    // Update resources
-    elements.money.textContent = gameState.resources.money;
-    elements.talentPoints.textContent = gameState.resources.talentPoints;
-    elements.contribution.textContent = gameState.resources.contribution;
-    elements.spiritStones.textContent = gameState.resources.spirit_stones || 0;
-
-    // Update relationships
-    elements.relationshipsList.innerHTML = '';
-    for (const npcId in gameState.npcs) {
-        const npc = gameState.npcs[npcId];
-        const relationship = gameState.relationships[npcId];
-        const li = document.createElement('li');
-        const rivalTag = npcId === gameState.rivalId ? ' <span class="rival-tag">[RIVAL]</span>' : '';
-        const npcRealm = npc.cultivation ? allGameData.realms?.[npc.cultivation.realmId] || { name: 'Mortal' } : { name: 'Mortal' };
-        const npcLevel = npc.cultivation ? npc.cultivation.level : 1;
-        li.innerHTML = `<strong>${npc.name}${rivalTag}</strong><br><span class="npc-details">Idade: ${npc.age} | ${npcRealm.name} Nv. ${npcLevel} | Relação: ${relationship.score} (${relationship.state})</span>`;
-        elements.relationshipsList.appendChild(li);
-    }
-
-    // Update life log
-    elements.lifeLogList.innerHTML = '';
-    if (gameState.life_log) {
-        const recentLogs = gameState.life_log.slice(-15).reverse();
-        recentLogs.forEach(log => {
+        elements.relationshipsList.innerHTML = '';
+        for (const npcId in gameState.npcs) {
+            const npc = gameState.npcs[npcId];
+            const relationship = gameState.relationships[npcId];
             const li = document.createElement('li');
-            li.innerHTML = `<strong>Ano ${log.age}:</strong> ${log.message}`;
-            li.classList.add(`log-type-${log.type}`);
-            elements.lifeLogList.appendChild(li);
-        });
-    }
+            const rivalTag = npcId === gameState.rivalId ? ' <span class="rival-tag">[RIVAL]</span>' : '';
+            const npcRealm = allGameData.realms?.[npc.cultivation.realmId] || { name: 'Mortal' };
+            li.innerHTML = `<strong>${npc.name}${rivalTag}</strong><br><span class="npc-details">Idade: ${npc.age} | ${npcRealm.name} Nv. ${npc.cultivation.level} | Relação: ${relationship.score} (${relationship.state})</span>`;
+            elements.relationshipsList.appendChild(li);
+        }
 
-    // Update world event status
-    const activeWorldEvent = getActiveWorldEvent();
-    if (activeWorldEvent) {
-        elements.worldEventStatus.classList.remove('hidden');
-        elements.worldEventName.textContent = activeWorldEvent.name;
-        elements.worldEventDuration.textContent = gameState.world_event.duration;
-    } else {
-        elements.worldEventStatus.classList.add('hidden');
+        elements.lifeLogList.innerHTML = '';
+        if (gameState.life_log) {
+            const recentLogs = gameState.life_log.slice(-15).reverse();
+            recentLogs.forEach(log => {
+                const li = document.createElement('li');
+                li.innerHTML = `<strong>Ano ${log.age}:</strong> ${log.message}`;
+                li.classList.add(`log-type-${log.type}`);
+                elements.lifeLogList.appendChild(li);
+            });
+        }
     }
-
-    // Show/hide map vs end turn button
-    if (gameState.actionPoints > 0) {
-        elements.mapContainer.classList.remove('hidden');
-        elements.endTurnBtn.classList.add('hidden');
-    } else {
-        elements.mapContainer.classList.add('hidden');
-        elements.endTurnBtn.classList.remove('hidden');
-    }
-}
 
     function flashElement(element, highlightClass) {
         element.classList.add(highlightClass);
@@ -1483,199 +433,45 @@ function updateUI() {
         }, 500);
     }
 
+    // --- INITIALIZATION ---
+    function startNewGame() {
+        const playerGender = Math.random() < 0.5 ? 'masculino' : 'feminino';
+        const player = generateCharacter('player', playerGender, true);
+        const rivalGender = Math.random() < 0.5 ? 'masculino' : 'feminino';
+        const rival = generateCharacter('rival_1', rivalGender, false);
+        const baseResources = { money: 20, talentPoints: 5, contribution: 0, spirit_stones: 0 };
 
-// Adicione esta nova função para renderizar a tela de legado.
-// Ela será chamada pela showLegacyScreen
-function renderLegacyBonuses(legacyData) {
-    elements.legacyBonusesContainer.innerHTML = ''; // Limpa o conteúdo anterior
-
-    LEGACY_BONUSES.forEach(bonus => {
-        const bonusDiv = document.createElement('div');
-        bonusDiv.className = 'legacy-bonus';
-
-        const bonusInfo = document.createElement('div');
-        bonusInfo.innerHTML = `<strong>${bonus.name}</strong><p>${bonus.description}</p>`;
-
-        const bonusButton = document.createElement('button');
-        const isPurchased = legacyData.purchased && legacyData.purchased[bonus.id];
-
-        if (isPurchased) {
-            bonusButton.textContent = 'Comprado';
-            bonusButton.disabled = true;
-        } else {
-            bonusButton.textContent = `Comprar (${bonus.cost} Pts)`;
-            if (legacyData.totalPoints < bonus.cost) {
-                bonusButton.disabled = true;
-            }
-            bonusButton.addEventListener('click', () => {
-                if (legacyData.totalPoints >= bonus.cost) {
-                    legacyData.totalPoints -= bonus.cost;
-                    if (!legacyData.purchased) {
-                        legacyData.purchased = {};
+        const legacyData = getLegacyData();
+        for (const bonusId in legacyData.purchased) {
+            if (legacyData.purchased[bonusId]) {
+                const bonus = LEGACY_BONUSES.find(b => b.id === bonusId);
+                if (bonus && bonus.effects.resources) {
+                    for (const res in bonus.effects.resources) {
+                        baseResources[res] += bonus.effects.resources[res];
                     }
-                    legacyData.purchased[bonus.id] = true;
-                    saveLegacyData(legacyData);
-                    // Atualiza a UI da loja de legado
-                    elements.legacyPoints.textContent = legacyData.totalPoints;
-                    renderLegacyBonuses(legacyData);
                 }
-            });
-        }
-
-        bonusDiv.appendChild(bonusInfo);
-        bonusDiv.appendChild(bonusButton);
-        elements.legacyBonusesContainer.appendChild(bonusDiv);
-    });
-}
-
-/**
- * Renders and displays the technique management screen.
- */
-function showTechniqueManagement() {
-    elements.techniquesScreen.classList.remove('hidden');
-    const learned = gameState.player.techniques;
-    const equipped = gameState.player.combat.equipped_techniques;
-
-    // Coluna da Esquerda: Técnicas Aprendidas
-    elements.learnedTechniquesList.innerHTML = '';
-    const unequippedTechniques = learned.filter(techId => !equipped.includes(techId));
-
-    unequippedTechniques.forEach(techId => {
-        const tech = allGameData.techniques.find(t => t.id === techId);
-        if (tech.type !== 'active_combat') return; // Mostra apenas técnicas ativas
-
-        const li = document.createElement('li');
-        li.textContent = tech.name;
-        li.dataset.techId = techId;
-        li.addEventListener('click', () => {
-            const emptySlotIndex = equipped.findIndex(slot => slot === null);
-            if (emptySlotIndex !== -1) {
-                gameState.player.combat.equipped_techniques[emptySlotIndex] = techId;
-                showTechniqueManagement(); // Re-renderiza o ecrã
-                saveGameState();
-            } else {
-                addLogMessage("Não há espaços livres para equipar mais técnicas.", "notification");
             }
-        });
-        elements.learnedTechniquesList.appendChild(li);
-    });
-
-    // Coluna da Direita: Técnicas Equipadas
-    elements.equippedTechniquesList.innerHTML = '';
-    equipped.forEach((techId, index) => {
-        const li = document.createElement('li');
-        if (techId) {
-            const tech = allGameData.techniques.find(t => t.id === techId);
-            li.textContent = tech.name;
-            li.dataset.techId = techId;
-            li.classList.add('filled');
-            li.addEventListener('click', () => {
-                gameState.player.combat.equipped_techniques[index] = null;
-                showTechniqueManagement(); // Re-renderiza o ecrã
-                saveGameState();
-            });
-        } else {
-            li.textContent = '[ Espaço Vazio ]';
-            li.classList.add('empty');
         }
-        elements.equippedTechniquesList.appendChild(li);
-    });
-}
 
-// Adicione esta função completa para mostrar a tela de legado.
-function showLegacyScreen(finalGameState, pointsEarned, legacyData) {
-    elements.legacyScreen.classList.remove('hidden');
-    document.getElementById('legacy-points-earned').textContent = pointsEarned;
-    document.getElementById('legacy-points-total').textContent = legacyData.totalPoints;
+        gameState = {
+            player: player,
+            npcs: { 'rival_1': rival },
+            rivalId: 'rival_1',
+            age: 6,
+            resources: baseResources,
+            cultivation: { realmId: 0, level: 1, qi: 0, maxQi: 10 },
+            sect: { id: null, rank: 0 },
+            triggeredEvents: [],
+            active_mission: null,
+            life_log: [],
+            relationships: { 'rival_1': { score: 0, state: 'neutral' } }
+        };
 
-    // Popula as estatísticas finais
-    const finalStatsList = document.getElementById('final-stats-list');
-    finalStatsList.innerHTML = `
-        <li><strong>Idade Final:</strong> ${finalGameState.age}</li>
-        <li><strong>Reino:</strong> ${allGameData.realms?.[finalGameState.cultivation.realmId]?.name || 'Mortal'} (Nv. ${finalGameState.cultivation.level})</li>
-        <li><strong>Corpo:</strong> ${finalGameState.player.attributes.body}</li>
-        <li><strong>Mente:</strong> ${finalGameState.player.attributes.mind}</li>
-        <li><strong>Dinheiro:</strong> ${finalGameState.resources.money}</li>
-    `;
-
-    // Popula a crônica final
-    const finalChronicleList = document.getElementById('final-chronicle-list');
-    finalChronicleList.innerHTML = '';
-    if (finalGameState.life_log) {
-        finalGameState.life_log.forEach(log => {
-            const li = document.createElement('li');
-            li.innerHTML = `<strong>Ano ${log.age}:</strong> ${log.message}`;
-            finalChronicleList.appendChild(li);
-        });
+        addLogMessage("Você nasceu. O mundo aguarda para testemunhar sua lenda.", "milestone");
+        updateUI();
+        saveGameState();
+        checkAndTriggerEvents();
     }
-
-    // Renderiza a loja de bônus
-    renderLegacyBonuses(legacyData);
-}
-
-function startNewGame() {
-    elements.legacyScreen.classList.add('hidden');
-    const playerGender = Math.random() < 0.5 ? 'masculino' : 'feminino';
-    const player = generateCharacter('player', playerGender, true);
-
-    // Cria o Rival
-    const rivalGender = Math.random() < 0.5 ? 'masculino' : 'feminino';
-    const rival = generateCharacter('rival_1', rivalGender, false);
-
-    // Cria o Discípulo Sênior
-    const seniorGender = Math.random() < 0.5 ? 'masculino' : 'feminino';
-    const seniorDisciple = generateCharacter('senior_disciple_1', seniorGender, false);
-
-    // Torna o discípulo sênior mais forte e mais velho
-    seniorDisciple.age = 16;
-    seniorDisciple.cultivation = { realmId: 1, level: 3, qi: 50, maxQi: 250 };
-    seniorDisciple.personality = 'Arrogante';
-    seniorDisciple.attributes = { body: 25, mind: 25, luck: 2 };
-    seniorDisciple.combat.attack = 20;
-    seniorDisciple.combat.defense = 15;
-
-    const chosenClass = getRandomElement(allGameData.socialClasses);
-    player.attributes.body += chosenClass.effects?.attributes?.body || 0;
-    player.attributes.mind += chosenClass.effects?.attributes?.mind || 0;
-
-    player.combat.equipped_techniques = [null, null, null, null];
-
-    gameState = {
-        player: player,
-        isCultivator: false,
-        socialClass: chosenClass.id,
-        npcs: {
-            'rival_1': rival,
-            'senior_disciple_1': seniorDisciple
-        },
-        rivalId: 'rival_1',
-        age: 6,
-        resources: {
-            money: chosenClass.start_money,
-            talentPoints: 0,
-            contribution: 0,
-            spirit_stones: 0
-        },
-        cultivation: null,
-        sect: { id: null, rank: 0 },
-        triggeredEvents: [],
-        active_mission: null,
-        life_log: [],
-        relationships: {
-            'rival_1': { score: 0, state: 'Neutro' },
-            'senior_disciple_1': { score: -20, state: 'Neutro' } // Começa com uma relação ligeiramente negativa
-        },
-        world_event: null,
-        actionPoints: 0,
-    };
-
-    addLogMessage(`Você nasceu como um(a) ${chosenClass.name}. ${chosenClass.description}`, "milestone");
-    // Adiciona uma nota sobre encontrar o discípulo sênior mais tarde
-    addLogMessage("Em sua juventude, você ouve histórias sobre um discípulo talentoso, mas arrogante, nas seitas próximas.", "notification");
-
-    startYear();
-    saveGameState();
-}
 
     function initializeGame() {
         const savedGame = localStorage.getItem('immortalJourneySave');
@@ -1687,18 +483,14 @@ function startNewGame() {
         }
 
         // Attach event listeners for main UI buttons
-        elements.exploreSectBtn.addEventListener('click', () => exploreLocation('sect'));
-        elements.exploreCityBtn.addEventListener('click', () => exploreLocation('city'));
-        elements.exploreWildsBtn.addEventListener('click', () => exploreLocation('wilds'));
-        elements.endTurnBtn.addEventListener('click', endYear);
-
+        elements.nextYearBtn.addEventListener('click', advanceYear);
+        elements.meditateBtn.addEventListener('click', meditate);
         elements.talentsBtn.addEventListener('click', () => {
             showTalents();
             elements.talentsScreen.classList.remove('hidden');
         });
         elements.closeTalentsBtn.addEventListener('click', () => elements.talentsScreen.classList.add('hidden'));
-        elements.cultivateBtn.addEventListener('click', toggleCultivation);
-
+        elements.sectActionsBtn.addEventListener('click', () => handleSpecialEffects('show_sect_actions'));
         elements.startNewJourneyBtn.addEventListener('click', () => {
              elements.legacyScreen.classList.add('hidden');
              startNewGame();
@@ -1709,16 +501,11 @@ function startNewGame() {
                 window.location.reload();
             }
         });
-
-        elements.manageTechniquesBtn.addEventListener('click', showTechniqueManagement);
-        elements.closeTechniquesBtn.addEventListener('click', () => {
-            elements.techniquesScreen.classList.add('hidden');
+        elements.endJourneyBtn.addEventListener('click', () => {
+            if (confirm("Tem certeza de que deseja terminar sua jornada atual? Todo o progresso desta vida será convertido em Pontos de Legado.")) {
+                endGame('ended_journey');
+            }
         });
-
-        // Resume cultivation loop if loading a game with a cultivator
-        if (gameState.isCultivator) {
-            startCultivationLoop();
-        }
 
         updateUI();
     }

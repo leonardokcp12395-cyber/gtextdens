@@ -1,0 +1,62 @@
+{
+  "aldeao": [
+    {
+      "id": "work_fields",
+      "name": "Trabalhar nos Campos",
+      "description": "Trabalho duro sob o sol. Lento, mas garantido.",
+      "effects": {
+        "resources": { "money": 5 }
+      },
+      "resultText": "Você trabalhou arduamente e ganhou 5 moedas."
+    },
+    {
+      "id": "work_lumber",
+      "name": "Cortar Lenha",
+      "description": "Um trabalho pesado que exige força. Paga um pouco melhor.",
+       "effects": {
+        "resources": { "money": 8 }
+      },
+      "resultText": "Você passou o dia a cortar lenha e ganhou 8 moedas."
+    }
+  ],
+  "orfao": [
+    {
+      "id": "work_alleys",
+      "name": "Explorar os Becos",
+      "description": "Quem sabe o que se pode encontrar nas sombras da cidade?",
+      "effects": {
+        "special": "random_alley_find"
+      },
+      "resultText": "Você vasculha os becos..."
+    },
+    {
+      "id": "work_theft",
+      "name": "Tentar Pequenos Furtos",
+      "description": "Arriscado, mas a recompensa pode valer a pena.",
+      "effects": {
+        "special": "attempt_theft"
+      },
+      "resultText": "Com o coração a bater, você procura uma oportunidade..."
+    }
+  ],
+  "servo": [
+    {
+      "id": "work_message",
+      "name": "Entregar uma Mensagem",
+      "description": "Um nobre precisa que uma mensagem seja entregue discretamente.",
+      "effects": {
+        "resources": { "money": 15 }
+      },
+      "resultText": "Você entrega a mensagem sem incidentes e recebe 15 moedas."
+    },
+    {
+      "id": "work_serve_noble",
+      "name": "Servir num Banquete",
+      "description": "Trabalho temporário numa casa nobre. Exige etiqueta.",
+      "effects": {
+        "resources": { "money": 10 }
+      },
+      "resultText": "Você serve os nobres com cuidado e é recompensado com 10 moedas."
+    }
+  ]
+}
