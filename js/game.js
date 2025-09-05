@@ -537,12 +537,8 @@ function tryPromotion() {
     let canPromote = true;
 
     // Verifica os requisitos
-    if (reqs.cultivation_realm_id > gameState.cultivation.realmId) {
-        message += ` - Reino de Cultivo: ${allGameData.realms[reqs.cultivation_realm_id].name} (Falhou)<br>`;
-        canPromote = false;
-    }
-    if (reqs.cultivation_level > gameState.cultivation.level) {
-        message += ` - Nível de Cultivo: ${reqs.cultivation_level} (Falhou)<br>`;
+    if (reqs.cultivation_realm_id > gameState.cultivation.realmId || (reqs.cultivation_realm_id === gameState.cultivation.realmId && reqs.cultivation_level > gameState.cultivation.level)) {
+        message += ` - Reino de Cultivo: ${allGameData.realms[reqs.cultivation_realm_id].name} Nv. ${reqs.cultivation_level} (Falhou)<br>`;
         canPromote = false;
     }
     if (reqs.contribution > gameState.resources.contribution) {
@@ -551,13 +547,63 @@ function tryPromotion() {
     }
 
     if (canPromote) {
-        gameState.sect.rank = nextRankIndex;
-        // Opcional: pode-se deduzir a contribuição usada para a promoção
-        // gameState.resources.contribution -= reqs.contribution;
-        addLogMessage(`Você foi promovido para ${nextRank.name} na sua seita!`, 'milestone');
-        showEvent({ text: `Parabéns! Após verificar o seu progresso, os anciãos concederam-lhe o rank de ${nextRank.name}!` });
+        if (nextRank.trial) {
+            startSectTrial(nextRank.trial);
+        } else {
+            grantPromotion();
+        }
     } else {
         showEvent({ text: "Você ainda não cumpre os requisitos para a promoção.<br>" + message });
+    }
+}
+
+function grantPromotion() {
+    const sect = allGameData.sects.find(s => s.id === gameState.sect.id);
+    const nextRankIndex = gameState.sect.rank + 1;
+    const nextRank = sect.ranks[nextRankIndex];
+
+    gameState.sect.rank = nextRankIndex;
+    addLogMessage(`Você foi promovido para ${nextRank.name} na sua seita!`, 'milestone');
+    showEvent({ text: `Parabéns! Após verificar o seu progresso, os anciãos concederam-lhe o rank de ${nextRank.name}!` });
+    updateUI();
+    saveGameState();
+}
+
+function startSectTrial(trialData) {
+    if (trialData.type === 'combat') {
+        const enemy = allGameData.enemies.find(e => e.id === trialData.enemy_id);
+        if (enemy) {
+            showEvent({
+                text: trialData.start_text,
+                choices: [
+                    {
+                        text: "Aceitar o Desafio",
+                        // This effect is just a placeholder, the real logic is in the overwritten event listener below
+                        effects: null
+                    },
+                    {
+                        text: "Recusar por agora",
+                        resultKey: "promotion_trial_refused"
+                    }
+                ]
+            });
+            // Overwrite the 'Accept' button's listener to start combat with special callbacks
+            const acceptButton = elements.choicesContainer.querySelector('button');
+            acceptButton.addEventListener('click', () => {
+                startCombat(JSON.parse(JSON.stringify(enemy)), {
+                    onWinCallback: () => {
+                        showEvent({ text: trialData.win_text });
+                        grantPromotion();
+                    },
+                    onLoseCallback: () => {
+                        showEvent({ text: trialData.lose_text });
+                    }
+                });
+            }, { once: true });
+        }
+    } else if (trialData.type === 'attribute_check') {
+        // Future implementation for other trial types
+        showEvent({ text: "Este tipo de prova ainda não foi implementado."});
     }
 }
 
@@ -1427,6 +1473,17 @@ function endCombat(result) {
     clearInterval(combatLoopInterval);
     combatLoopInterval = null;
 
+    // Handle callbacks first, as they may have special logic
+    if (result === true && combatState.onWin.onWinCallback) {
+        combatState.onWin.onWinCallback();
+        return; // Callback is responsible for the next steps
+    }
+    if (result === false && combatState.onWin.onLoseCallback) {
+        combatState.onWin.onLoseCallback();
+        return; // Callback is responsible for the next steps
+    }
+
+    // Default combat end logic
     if (result === true) {
         addCombatLog(`Você derrotou ${combatState.enemy.name}!`, 'reward');
         if (combatState.onWin.reward) applyEffects(combatState.onWin.reward);

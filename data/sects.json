@@ -11,7 +11,18 @@
     },
     "ranks": [
       { "id": 0, "name": "Discípulo Externo", "requirements": null },
-      { "id": 1, "name": "Discípulo Interno", "requirements": { "cultivation_realm_id": 1, "cultivation_level": 1, "contribution": 100 } },
+      {
+        "id": 1,
+        "name": "Discípulo Interno",
+        "requirements": { "cultivation_realm_id": 1, "cultivation_level": 1, "contribution": 100 },
+        "trial": {
+          "type": "combat",
+          "enemy_id": "inner_disciple_gatekeeper",
+          "start_text": "Para se tornar um Discípulo Interno, você deve provar seu valor contra o guardião do pátio interno!",
+          "win_text": "Você lutou bravamente e provou seu valor! Você foi promovido a Discípulo Interno.",
+          "lose_text": "Você foi derrotado. O guardião diz: 'Volte quando for mais forte.'"
+        }
+      },
       { "id": 2, "name": "Discípulo de Elite", "requirements": { "cultivation_realm_id": 1, "cultivation_level": 5, "contribution": 500 } },
       { "id": 3, "name": "Ancião", "requirements": { "cultivation_realm_id": 2, "cultivation_level": 1, "contribution": 2000 } }
     ],

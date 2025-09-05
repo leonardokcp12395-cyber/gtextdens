@@ -78,5 +78,17 @@
       "defense": 15,
       "speed": 8
     }
+  },
+  {
+    "id": "inner_disciple_gatekeeper",
+    "name": "Guardião do Pátio Interno",
+    "techniques": ["stunning_palm"],
+    "combat": {
+      "maxHp": 60,
+      "hp": 60,
+      "attack": 10,
+      "defense": 5,
+      "speed": 10
+    }
   }
 ]
