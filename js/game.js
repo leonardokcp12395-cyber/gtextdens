@@ -85,7 +85,76 @@ document.addEventListener('DOMContentLoaded', () => {
         closeTechniquesBtn: document.getElementById('close-techniques-btn'),
         learnedTechniquesList: document.getElementById('learned-techniques-list'),
         equippedTechniquesList: document.getElementById('equipped-techniques-list'),
+        equipmentBtn: document.getElementById('equipment-btn'),
+        equipmentScreen: document.getElementById('equipment-screen'),
+        closeEquipmentBtn: document.getElementById('close-equipment-btn'),
+        inventoryList: document.getElementById('inventory-list'),
+        equippedItemsList: document.getElementById('equipped-items-list'),
     };
+
+// --- EQUIPMENT & STATS ---
+
+/**
+ * Calculates the player's total stats including bonuses from equipped items.
+ * @returns {object} An object containing the player's total combat stats.
+ */
+function getPlayerTotalStats() {
+    const totalStats = { ...gameState.player.combat }; // Start with base combat stats
+
+    for (const slot in gameState.player.equipment) {
+        const item = gameState.player.equipment[slot];
+        if (item && item.effects && item.effects.combat) {
+            for (const stat in item.effects.combat) {
+                totalStats[stat] = (totalStats[stat] || 0) + item.effects.combat[stat];
+            }
+        }
+    }
+    return totalStats;
+}
+
+/**
+ * Equips an item from the inventory.
+ * @param {string} itemId - The ID of the item to equip.
+ */
+function equipItem(itemId) {
+    const itemIndex = gameState.player.inventory.findIndex(i => i.id === itemId);
+    if (itemIndex === -1) return;
+
+    const itemToEquip = gameState.player.inventory[itemIndex];
+    const slot = itemToEquip.slot;
+
+    if (!slot) return; // Not an equippable item
+
+    // Unequip any item currently in the slot
+    if (gameState.player.equipment[slot]) {
+        unequipItem(slot);
+    }
+
+    // Equip the new item
+    gameState.player.equipment[slot] = itemToEquip;
+    gameState.player.inventory.splice(itemIndex, 1);
+
+    showEquipmentScreen(); // Re-render the equipment screen
+    updateUI();
+    saveGameState();
+}
+
+/**
+ * Unequips an item from a slot.
+ * @param {string} slot - The equipment slot to unequip.
+ */
+function unequipItem(slot) {
+    const itemToUnequip = gameState.player.equipment[slot];
+    if (!itemToUnequip) return;
+
+    gameState.player.inventory.push(itemToUnequip);
+    gameState.player.equipment[slot] = null;
+
+    showEquipmentScreen(); // Re-render the equipment screen
+    updateUI();
+    saveGameState();
+}
+
 
 // --- CHARACTER CREATION ---
 // ADICIONE ESTA FUNÇÃO AO SEU ARQUIVO game.js
@@ -570,11 +639,16 @@ function showSectStore() {
                 }
 
                 button.addEventListener('click', () => {
-                    if (gameState.resources.contribution >= finalCost) { // Usa finalCost
-                        gameState.resources.contribution -= finalCost; // Usa finalCost
-                        applyEffects(itemDetails.effects);
-                        addLogMessage(`Você comprou ${itemDetails.name}.`, 'reward');
-                        // Atualiza a interface da loja para refletir a nova contribuição
+                    if (gameState.resources.contribution >= finalCost) {
+                        gameState.resources.contribution -= finalCost;
+                        const purchasedItem = allGameData.items.find(i => i.id === storeItem.id);
+                        if (purchasedItem.type === 'equipment') {
+                            gameState.player.inventory.push(purchasedItem);
+                            addLogMessage(`Você comprou e guardou ${purchasedItem.name}.`, 'reward');
+                        } else { // Consumable
+                            applyEffects(purchasedItem.effects);
+                            addLogMessage(`Você comprou e usou ${purchasedItem.name}.`, 'reward');
+                        }
                         showSectStore();
                     }
                 });
@@ -1046,8 +1120,10 @@ function getActiveWorldEvent() {
         }
     }
 
-function areConditionsMet(conditions) {
+function areConditionsMet(event) {
+    const conditions = event.conditions;
     if (!conditions) return true;
+
     const activeWorldEvent = getActiveWorldEvent();
 
     for (const key in conditions) {
@@ -1070,9 +1146,11 @@ function areConditionsMet(conditions) {
                 break;
             case 'probability':
                 let finalProbability = value;
-                // Aplica o modificador de spawn rate a eventos de combate
-                if (activeWorldEvent?.effects?.enemySpawnRate && (conditions.id === 'haunted_forest' || conditions.id === 'rival_ambush')) {
+                // Check if this event starts combat to apply spawn rate modifier
+                const startsCombat = event.choices?.some(c => c.effects?.special?.startsWith('start_combat_'));
+                if (activeWorldEvent?.effects?.enemySpawnRate && startsCombat) {
                     finalProbability *= (1 + activeWorldEvent.effects.enemySpawnRate);
+                    addLogMessage(`(A Maré de Bestas aumenta a chance de encontros perigosos!)`, 'system');
                 }
                 if (Math.random() > finalProbability) return false;
                 break;
@@ -1089,7 +1167,7 @@ function areConditionsMet(conditions) {
      */
     function checkAndTriggerEvents() {
         // Prioritize story events
-        const possibleStoryEvents = allGameData.events.filter(event => !gameState.triggeredEvents.includes(event.id) && areConditionsMet(event.conditions));
+        const possibleStoryEvents = allGameData.events.filter(event => !gameState.triggeredEvents.includes(event.id) && areConditionsMet(event));
         if (possibleStoryEvents.length > 0) {
             const eventToTrigger = getRandomElement(possibleStoryEvents);
             if (eventToTrigger.type === 'once') gameState.triggeredEvents.push(eventToTrigger.id);
@@ -1097,7 +1175,7 @@ function areConditionsMet(conditions) {
             return true; // Event found and triggered
         }
         // If no story event, check for random events
-        const possibleRandomEvents = allGameData.randomEvents.filter(event => areConditionsMet(event.conditions) && Math.random() < 0.2);
+        const possibleRandomEvents = allGameData.randomEvents.filter(event => areConditionsMet(event) && Math.random() < 0.2);
         if (possibleRandomEvents.length > 0) {
             showEvent(getRandomElement(possibleRandomEvents));
             return true; // Event found and triggered
@@ -1122,12 +1200,12 @@ function exploreLocation(locationId) {
             // Lógica de eventos para cultivadores (a que já tínhamos)
             eventPool = allGameData.events.filter(event =>
                 (event.location === locationId || !event.location) &&
-                areConditionsMet(event.conditions)
+                areConditionsMet(event)
             );
         } else {
             // Lógica de eventos para mortais (trabalhos e oportunidades)
             eventPool = allGameData.mortalJobs.filter(event =>
-                event.location === locationId && areConditionsMet(event.conditions)
+                event.location === locationId && areConditionsMet(event.conditions) // This one is fine, no combat here
             );
         }
 
@@ -1322,10 +1400,11 @@ function startCombat(enemyData, options = {}) {
     elements.combatScreen.classList.remove('hidden');
     elements.eventImage.style.display = 'none';
 
+    const playerTotalStats = getPlayerTotalStats();
     combatState = {
         player: {
-            ...gameState.player.combat,
-            hp: gameState.player.combat.maxHp,
+            ...playerTotalStats,
+            hp: playerTotalStats.maxHp,
             qi: gameState.cultivation.qi,
             techniques: gameState.player.combat.equipped_techniques.filter(t => t),
             cooldowns: {},
@@ -1460,53 +1539,169 @@ function toggleAutoBattle() {
 }
 
 /**
+ * Processes all active status effects (buffs, DoTs) on a character at the start of their turn.
+ * @param {object} character - The character object from combatState (player or enemy).
+ * @param {string} characterName - The name of the character for logging.
+ */
+function processStatusEffects(character, characterName) {
+    const effectsToRemove = [];
+    const activeEffectIds = Object.keys(character.statusEffects);
+
+    for (const effectId of activeEffectIds) {
+        const effect = character.statusEffects[effectId];
+        if (!effect) continue;
+
+        // Apply ongoing effects like DoT
+        if (effect.type === 'dot') {
+            character.hp = Math.max(0, character.hp - effect.damage);
+            addCombatLog(`${characterName} sofre <span class="log-type-damage">${effect.damage}</span> de dano de ${effect.sourceName}!`, 'damage');
+        }
+
+        // Decrement duration
+        effect.duration--;
+        if (effect.duration <= 0) {
+            effectsToRemove.push(effectId);
+        }
+    }
+
+    // Remove expired effects and revert changes
+    for (const effectId of effectsToRemove) {
+        const effect = character.statusEffects[effectId];
+        if (!effect) continue;
+
+        if (effect.type === 'buff') {
+            character[effect.stat] -= effect.amount;
+            addCombatLog(`O efeito de ${effect.sourceName} em ${characterName} terminou.`, 'system');
+        } else if (effect.type === 'stun') {
+             addCombatLog(`${characterName} não está mais atordoado.`, 'system');
+        } else if (effect.type === 'dot') {
+             addCombatLog(`O efeito de ${effect.sourceName} em ${characterName} terminou.`, 'system');
+        }
+
+        delete character.statusEffects[effectId];
+    }
+}
+
+
+/**
+ * Applies the initial impact of a special effect from a technique.
+ * @param {object} attacker - The character using the technique.
+ * @param {object} defender - The character being targeted.
+ * @param {object} effect - The special_effect object from the technique.
+ * @param {string} techName - The name of the technique for logging.
+ */
+function applySpecialEffect(attacker, defender, effect, techName) {
+    const attackerName = (combatState.player === attacker) ? 'Você' : attacker.name;
+    const defenderName = (combatState.player === defender) ? 'Você' : defender.name;
+    const attackerMaxHp = (combatState.player === attacker) ? gameState.player.combat.maxHp : attacker.maxHp;
+
+    switch (effect.type) {
+        case 'heal':
+            attacker.hp = Math.min(attackerMaxHp, attacker.hp + effect.amount);
+            addCombatLog(`${attackerName} se cura, recuperando <span class="log-type-reward">${effect.amount}</span> de HP!`, 'reward');
+            break;
+        case 'buff':
+            if (!attacker.statusEffects[techName]) { // Prevents stacking
+                attacker.statusEffects[techName] = { ...effect, sourceName: techName };
+                attacker[effect.stat] += effect.amount;
+                addCombatLog(`${attackerName} usa ${techName} e aumenta sua ${effect.stat}!`, 'reward');
+            }
+            break;
+        case 'dot':
+            if (!defender.statusEffects[techName]) { // Prevents stacking
+                defender.statusEffects[techName] = { ...effect, sourceName: techName };
+                addCombatLog(`${defenderName} é afligido por ${techName} e sofrerá dano ao longo do tempo!`, 'damage');
+            }
+            break;
+        case 'stun':
+            if (Math.random() < effect.chance) {
+                if (!defender.statusEffects['stun']) {
+                    defender.statusEffects['stun'] = { type: 'stun', duration: 2, sourceName: techName }; // Duration 2 = 1 full turn skip
+                    addCombatLog(`${defenderName} é atordoado por ${techName}!`, 'damage');
+                }
+            }
+            break;
+    }
+}
+
+
+/**
  * Lógica para um único personagem (jogador ou inimigo) realizar o seu turno.
  * @param {string} [forcedTechId=null] - Se um ID de técnica for fornecido, usa essa técnica. Senão, a IA escolhe a melhor.
  */
 function executeCharacterTurn(attacker, defender, attackerType, forcedTechId = null) {
-    // Reduz todos os cooldowns em 1 no início do turno do personagem
+    const attackerName = attackerType === 'player' ? 'Você' : attacker.name;
+
+    processStatusEffects(attacker, attackerName);
+
+    // Check for death from DoT at the start of the turn
+    if (attacker.hp <= 0) {
+        endCombat(attacker === combatState.player ? false : true);
+        return;
+    }
+
+    // Check if stunned
+    if (attacker.statusEffects['stun']) {
+        addCombatLog(`${attackerName} está atordoado e não pode agir!`, 'system');
+        updateCombatUI(); // Update UI to show HP changes
+        return; // Skip turn
+    }
+
+    // Cooldown reduction
     for (const techId in attacker.cooldowns) {
         attacker.cooldowns[techId] = Math.max(0, attacker.cooldowns[techId] - 1);
     }
 
     let chosenTech;
-
     if (forcedTechId) {
         chosenTech = allGameData.techniques.find(t => t.id === forcedTechId);
     } else {
-        // Lógica da IA: Encontra a melhor técnica disponível
+        // AI logic: find best available technique
         const availableTechniques = (attacker.techniques || [])
             .map(id => allGameData.techniques.find(t => t.id === id))
             .filter(tech => tech && tech.type === 'active_combat' && (!attacker.cooldowns[tech.id] || attacker.cooldowns[tech.id] === 0) && attacker.qi >= (tech.qi_cost || 0))
             .sort((a, b) => (b.priority || 0) - (a.priority || 0));
-
         chosenTech = availableTechniques.length > 0 ? availableTechniques[0] : allGameData.techniques.find(t => t.id === 'basic_sword_form');
     }
 
     if (chosenTech) {
         const qiCost = chosenTech.qi_cost || 0;
         if (attacker.qi < qiCost) {
-            const attackerName = attackerType === 'player' ? 'Você' : attacker.name;
             addCombatLog(`${attackerName} tenta usar ${chosenTech.name}, mas não tem Qi suficiente!`, 'system');
-             // No modo manual, o turno não deve passar. No auto, sim.
-            if(forcedTechId) {
-                // Devolve o turno ao jogador se a ação falhar por falta de Qi
+            if (forcedTechId) { // If manual action fails, give turn back
                 preparePlayerTurn();
             }
             return;
         }
 
         attacker.qi -= qiCost;
-        attacker.cooldowns[chosenTech.id] = chosenTech.cooldown || 1;
+        if (chosenTech.cooldown > 0) {
+            attacker.cooldowns[chosenTech.id] = chosenTech.cooldown;
+        }
 
-        let damage = Math.max(1, Math.floor((attacker.attack * (chosenTech.damage_multiplier || 1)) - defender.defense));
-        defender.hp = Math.max(0, defender.hp - damage);
+        // Apply direct damage
+        let damage = 0;
+        if (chosenTech.damage_multiplier && chosenTech.damage_multiplier > 0) {
+             damage = Math.max(1, Math.floor((attacker.attack * chosenTech.damage_multiplier) - defender.defense));
+             defender.hp = Math.max(0, defender.hp - damage);
+        }
 
-        const attackerName = attackerType === 'player' ? 'Você' : attacker.name;
+        // Log the action
         const damageClass = attackerType === 'player' ? 'damage-enemy' : 'damage';
-        addCombatLog(`${attackerName} usa ${chosenTech.name} e causa <span class="${damageClass}">${damage}</span> de dano!`, 'combat');
+        let logMessage = `${attackerName} usa ${chosenTech.name}`;
+        if (damage > 0) {
+            logMessage += ` e causa <span class="${damageClass}">${damage}</span> de dano!`;
+        } else {
+            logMessage += `!`;
+        }
+        addCombatLog(logMessage, 'combat');
+
+        // Apply special effects
+        if (chosenTech.special_effect) {
+            applySpecialEffect(attacker, defender, chosenTech.special_effect, chosenTech.name);
+        }
+
     } else {
-        const attackerName = attackerType === 'player' ? 'Você' : attacker.name;
         addCombatLog(`${attackerName} hesita, sem saber o que fazer.`, 'system');
     }
 }
@@ -1850,8 +2045,14 @@ function showCityShop() {
         button.addEventListener('click', () => {
             if (gameState.resources.money >= shopItem.cost_money) {
                 gameState.resources.money -= shopItem.cost_money;
-                applyEffects(itemDetails.effects);
-                addLogMessage(`Você comprou ${itemDetails.name}.`, 'reward');
+                const purchasedItem = allGameData.items.find(i => i.id === itemDetails.id);
+                if (purchasedItem.type === 'equipment') {
+                    gameState.player.inventory.push(purchasedItem);
+                    addLogMessage(`Você comprou e guardou ${purchasedItem.name}.`, 'reward');
+                } else { // Consumable
+                    applyEffects(purchasedItem.effects);
+                    addLogMessage(`Você comprou e usou ${purchasedItem.name}.`, 'reward');
+                }
                 showCityShop(); // Atualiza a interface da loja
             }
         });
@@ -1874,6 +2075,7 @@ function updateUI() {
         cultivatorPanels.classList.remove('hidden');
         elements.talentsBtn.classList.remove('hidden');
         elements.manageTechniquesBtn.classList.remove('hidden');
+        elements.equipmentBtn.classList.remove('hidden');
         elements.cultivationPanel.style.display = 'block';
 
         // Update cultivation stats only if cultivator
@@ -1927,6 +2129,7 @@ function updateUI() {
         if (cultivatorPanels) cultivatorPanels.classList.add('hidden');
         elements.talentsBtn.classList.add('hidden');
         elements.manageTechniquesBtn.classList.add('hidden');
+        elements.equipmentBtn.classList.add('hidden');
         elements.cultivationPanel.style.display = 'none';
         elements.cultivateBtn.style.display = 'none';
         elements.seclusionBtn.classList.add('hidden');
@@ -2117,6 +2320,50 @@ function showTechniqueManagement() {
     });
 }
 
+/**
+ * Renders and displays the equipment management screen.
+ */
+function showEquipmentScreen() {
+    elements.equipmentScreen.classList.remove('hidden');
+
+    // Render Inventory of equippable items
+    elements.inventoryList.innerHTML = '';
+    const equippableItems = gameState.player.inventory.filter(item => item.type === 'equipment');
+    if (equippableItems.length === 0) {
+        elements.inventoryList.innerHTML = '<li>Inventário Vazio</li>';
+    } else {
+        equippableItems.forEach(item => {
+            const li = document.createElement('li');
+            li.innerHTML = `${item.name} <small>(${item.slot})</small>`;
+            li.addEventListener('click', () => equipItem(item.id));
+            elements.inventoryList.appendChild(li);
+        });
+    }
+
+    // Render Equipped Items
+    elements.equippedItemsList.innerHTML = '';
+    for (const slot in gameState.player.equipment) {
+        const item = gameState.player.equipment[slot];
+        const li = document.createElement('li');
+        const slotName = slot.charAt(0).toUpperCase() + slot.slice(1);
+
+        if (item) {
+            li.innerHTML = `<strong>${slotName}:</strong> ${item.name}`;
+            const unequipBtn = document.createElement('button');
+            unequipBtn.textContent = 'Remover';
+            unequipBtn.className = 'unequip-btn';
+            unequipBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                unequipItem(slot)
+            });
+            li.appendChild(unequipBtn);
+        } else {
+            li.innerHTML = `<strong>${slotName}:</strong> [Vazio]`;
+        }
+        elements.equippedItemsList.appendChild(li);
+    }
+}
+
 // Adicione esta função completa para mostrar a tela de legado.
 function showLegacyScreen(finalGameState, pointsEarned, legacyData) {
     elements.legacyScreen.classList.remove('hidden');
@@ -2174,6 +2421,15 @@ function startNewGame() {
     player.attributes.mind += chosenClass.effects?.attributes?.mind || 0;
 
     player.combat.equipped_techniques = [null, null, null, null];
+    player.inventory = [];
+    player.equipment = {
+        weapon: null,
+        chest: null,
+        head: null,
+        legs: null,
+        feet: null
+    };
+
 
     gameState = {
         player: player,
@@ -2217,6 +2473,10 @@ function startNewGame() {
         if (savedGame) {
             gameState = JSON.parse(savedGame);
             if (!gameState.life_log) gameState.life_log = [];
+            if (!gameState.player.inventory) gameState.player.inventory = [];
+            if (!gameState.player.equipment) {
+                gameState.player.equipment = { weapon: null, chest: null, head: null, legs: null, feet: null };
+            }
         } else {
             startNewGame();
         }
@@ -2249,6 +2509,11 @@ function startNewGame() {
         elements.manageTechniquesBtn.addEventListener('click', showTechniqueManagement);
         elements.closeTechniquesBtn.addEventListener('click', () => {
             elements.techniquesScreen.classList.add('hidden');
+        });
+
+        elements.equipmentBtn.addEventListener('click', showEquipmentScreen);
+        elements.closeEquipmentBtn.addEventListener('click', () => {
+            elements.equipmentScreen.classList.add('hidden');
         });
 
         // Resume cultivation loop if loading a game with a cultivator

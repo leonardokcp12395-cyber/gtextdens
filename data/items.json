@@ -4,56 +4,88 @@
     "name": "Pílula Pequena de Qi",
     "description": "Recupera uma pequena quantidade de Qi.",
     "type": "consumable",
-    "effects": { "cultivation": { "qi": 50 } }
+    "effects": {
+      "cultivation": {
+        "qi": 50
+      }
+    }
   },
   {
     "id": "medium_qi_pill",
     "name": "Pílula Média de Qi",
     "description": "Recupera uma quantidade moderada de Qi.",
     "type": "consumable",
-    "effects": { "cultivation": { "qi": 250 } }
+    "effects": {
+      "cultivation": {
+        "qi": 250
+      }
+    }
   },
   {
     "id": "body_tempering_elixir",
     "name": "Elixir de Têmpera Corporal",
     "description": "Fortalece os músculos e ossos.",
     "type": "consumable",
-    "effects": { "attributes": { "body": 2 } }
+    "effects": {
+      "attributes": {
+        "body": 2
+      }
+    }
   },
   {
     "id": "steel_bone_pill",
     "name": "Pílula de Osso de Aço",
     "description": "Um elixir potente que fortalece muito o corpo.",
     "type": "consumable",
-    "effects": { "attributes": { "body": 5 } }
+    "effects": {
+      "attributes": {
+        "body": 5
+      }
+    }
   },
   {
     "id": "pill_of_sudden_luck",
     "name": "Pílula da Sorte Súbita",
     "description": "Uma pílula estranha que parece torcer o destino a seu favor.",
     "type": "consumable",
-    "effects": { "attributes": { "luck": 2 } }
+    "effects": {
+      "attributes": {
+        "luck": 2
+      }
+    }
   },
   {
     "id": "mind_focus_incense",
     "name": "Incenso de Foco Mental",
     "description": "Queimar este incenso antes de meditar ajuda a clarear a mente.",
     "type": "consumable",
-    "effects": { "attributes": { "mind": 1 } }
+    "effects": {
+      "attributes": {
+        "mind": 1
+      }
+    }
   },
   {
     "id": "qi_pill",
     "name": "Pílula de Qi",
     "description": "Uma pílula padrão que restaura uma boa quantidade de Qi.",
     "type": "consumable",
-    "effects": { "cultivation": { "qi": 100 } }
+    "effects": {
+      "cultivation": {
+        "qi": 100
+      }
+    }
   },
   {
     "id": "ginseng_vitality",
     "name": "Ginseng da Vitalidade",
     "description": "Uma erva rara que emana uma aura de vida. Fortalece a constituição.",
     "type": "consumable",
-    "effects": { "attributes": { "body": 3 } }
+    "effects": {
+      "attributes": {
+        "body": 3
+      }
+    }
   },
   {
     "id": "phoenix_feather",
@@ -62,7 +94,9 @@
     "type": "consumable",
     "source": "special_merchant",
     "cost_spirit_stones": 10,
-    "effects": { "lifespan": 10 }
+    "effects": {
+      "lifespan": 10
+    }
   },
   {
     "id": "dragon_scale_armor_manual",
@@ -71,7 +105,11 @@
     "type": "consumable",
     "source": "special_merchant",
     "cost_spirit_stones": 8,
-    "effects": { "combat": { "defense": 10 } }
+    "effects": {
+      "combat": {
+        "defense": 10
+      }
+    }
   },
   {
     "id": "void_crystal",
@@ -80,6 +118,34 @@
     "type": "consumable",
     "source": "special_merchant",
     "cost_spirit_stones": 5,
-    "effects": { "cultivation": { "maxQi": 500 } }
+    "effects": {
+      "cultivation": {
+        "maxQi": 500
+      }
+    }
+  },
+  {
+    "id": "iron_sword",
+    "name": "Espada de Ferro",
+    "description": "Uma espada de ferro bem forjada. Aumenta o poder de ataque.",
+    "type": "equipment",
+    "slot": "weapon",
+    "effects": {
+      "combat": {
+        "attack": 5
+      }
+    }
+  },
+  {
+    "id": "leather_armor",
+    "name": "Armadura de Couro",
+    "description": "Uma armadura de couro resistente que oferece boa proteção.",
+    "type": "equipment",
+    "slot": "chest",
+    "effects": {
+      "combat": {
+        "defense": 5
+      }
+    }
   }
 ]

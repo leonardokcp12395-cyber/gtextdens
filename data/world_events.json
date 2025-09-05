@@ -6,9 +6,20 @@
     "effects": {
       "pillPriceModifier": 2.0,
       "missionDifficultyModifier": 1.5,
-      "enemySpawnRate": 0.50
+      "enemySpawnRate": 0.5
     },
     "startText": "As tensões explodem! As seitas justas e demoníacas declaram guerra aberta. O mundo do cultivo mergulha no caos.",
     "endText": "Após uma década sangrenta, um frágil armistício é assinado. A guerra termina, mas as cicatrizes permanecem."
+  },
+  {
+    "id": "beast_tide",
+    "name": "Maré de Bestas Demoníacas",
+    "duration": 5,
+    "effects": {
+      "enemySpawnRate": 0.75,
+      "missionDifficultyModifier": 1.2
+    },
+    "startText": "Um miasma antigo sobe das profundezas da terra, agitando as bestas demoníacas! As selvas tornaram-se extremamente perigosas, mas os núcleos das bestas estão mais potentes, tornando as missões de caça mais recompensadoras.",
+    "endText": "O miasma recua e as bestas demoníacas regressam às suas tocas. A tranquilidade retorna às selvas."
   }
 ]

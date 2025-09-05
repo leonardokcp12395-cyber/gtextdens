@@ -1,53 +1,72 @@
 [
-    {
-        "id": "basic_sword_form",
-        "name": "Forma Básica da Espada",
-        "description": "Uma técnica de espada simples, mas eficaz. O ataque base de todo cultivador.",
-        "type": "active_combat",
-        "priority": 1,
-        "cooldown": 1,
-        "qi_cost": 0,
-        "damage_multiplier": 1.0,
-        "special_effect": null
-    },
-    {
-        "id": "hidden_cloud_meditation",
-        "name": "Meditação da Nuvem Oculta",
-        "description": "Uma técnica de respiração que acalma a mente e aprofunda a conexão com o Qi.",
-        "type": "sect_hidden_cloud_sect",
-        "effects": { "attributes": { "mind": 2 } }
-    },
-    {
-        "id": "iron_fist_stance",
-        "name": "Postura do Punho de Ferro",
-        "description": "Uma postura de combate que enrijece o corpo, aumentando a capacidade de resistir a golpes.",
-        "type": "sect_iron_body_sect",
-        "effects": { "combat": { "defense": 2 } }
-    },
-    {
-        "id": "heavenly_qi_circulation",
-        "name": "Circulação Celestial de Qi",
-        "description": "Uma técnica lendária que otimiza o fluxo de Qi, aumentando permanentemente sua capacidade máxima.",
-        "type": "rare",
-        "effects": { "cultivation": { "maxQi": 500 } }
-    },
-    {
-        "id": "stunning_palm",
-        "name": "Palma Atordoante",
-        "description": "Um golpe preciso que visa os pontos de pressão do inimigo, com chance de paralisá-lo por um turno.",
-        "type": "active_combat",
-        "priority": 5,
-        "cooldown": 3,
-        "qi_cost": 30,
-        "damage_multiplier": 0.7,
-        "special_effect": { "type": "stun", "chance": 0.3 }
-    },
-    {
-        "id": "iron_body_fortification",
-        "name": "Fortificação do Corpo de Ferro",
-        "description": "Você aprende a usar Qi para endurecer sua pele como metal, aumentando sua vida máxima.",
-        "type": "sect_iron_body_sect",
-        "effects": { "combat": { "maxHp": 25 } }
+  {
+    "id": "basic_sword_form",
+    "name": "Forma Básica da Espada",
+    "description": "Uma técnica de espada simples, mas eficaz. O ataque base de todo cultivador.",
+    "type": "active_combat",
+    "priority": 1,
+    "cooldown": 1,
+    "qi_cost": 0,
+    "damage_multiplier": 1,
+    "special_effect": null
+  },
+  {
+    "id": "hidden_cloud_meditation",
+    "name": "Meditação da Nuvem Oculta",
+    "description": "Uma técnica de respiração que acalma a mente e aprofunda a conexão com o Qi.",
+    "type": "sect_hidden_cloud_sect",
+    "effects": {
+      "attributes": {
+        "mind": 2
+      }
+    }
+  },
+  {
+    "id": "iron_fist_stance",
+    "name": "Postura do Punho de Ferro",
+    "description": "Uma postura de combate que enrijece o corpo, aumentando a capacidade de resistir a golpes.",
+    "type": "sect_iron_body_sect",
+    "effects": {
+      "combat": {
+        "defense": 2
+      }
+    }
+  },
+  {
+    "id": "heavenly_qi_circulation",
+    "name": "Circulação Celestial de Qi",
+    "description": "Uma técnica lendária que otimiza o fluxo de Qi, aumentando permanentemente sua capacidade máxima.",
+    "type": "rare",
+    "effects": {
+      "cultivation": {
+        "maxQi": 500
+      }
+    }
+  },
+  {
+    "id": "stunning_palm",
+    "name": "Palma Atordoante",
+    "description": "Um golpe preciso que visa os pontos de pressão do inimigo, com chance de paralisá-lo por um turno.",
+    "type": "active_combat",
+    "priority": 5,
+    "cooldown": 3,
+    "qi_cost": 30,
+    "damage_multiplier": 0.7,
+    "special_effect": {
+      "type": "stun",
+      "chance": 0.3
+    }
+  },
+  {
+    "id": "iron_body_fortification",
+    "name": "Fortificação do Corpo de Ferro",
+    "description": "Você aprende a usar Qi para endurecer sua pele como metal, aumentando sua vida máxima.",
+    "type": "sect_iron_body_sect",
+    "effects": {
+      "combat": {
+        "maxHp": 25
+      }
+    }
   },
   {
     "id": "rending_claw",
@@ -65,21 +84,34 @@
     "name": "Arte da Lâmina Veloz",
     "description": "Aumenta a velocidade e a proeza de ataque.",
     "type": "sect_swift_blade_sect",
-    "effects": { "combat": { "attack": 1, "speed": 2 } }
+    "effects": {
+      "combat": {
+        "attack": 1,
+        "speed": 2
+      }
+    }
   },
   {
     "id": "spiritual_elixir_meditation",
     "name": "Meditação do Elixir Espiritual",
     "description": "Aumenta a Mente e acelera o ganho de Qi.",
     "type": "sect_spirit_elixir_sect",
-    "effects": { "attributes": { "mind": 3 } }
+    "effects": {
+      "attributes": {
+        "mind": 3
+      }
+    }
   },
   {
     "id": "shadow_step",
     "name": "Passo Sombrio",
     "description": "Uma técnica de movimento que aumenta a velocidade em combate.",
     "type": "universal",
-    "effects": { "combat": { "speed": 5 } }
+    "effects": {
+      "combat": {
+        "speed": 5
+      }
+    }
   },
   {
     "id": "qi_blast",
@@ -97,7 +129,11 @@
     "name": "Mente Serena",
     "description": "Uma técnica de foco que aumenta permanentemente sua resiliência mental.",
     "type": "rare",
-    "effects": { "attributes": { "mind": 5 } }
+    "effects": {
+      "attributes": {
+        "mind": 5
+      }
+    }
   },
   {
     "id": "unbreakable_stance",
@@ -108,13 +144,65 @@
     "cooldown": 4,
     "qi_cost": 50,
     "damage_multiplier": 0,
-    "special_effect": { "type": "super_defend", "multiplier": 0.8 }
+    "special_effect": {
+      "type": "super_defend",
+      "multiplier": 0.8
+    }
   },
   {
     "id": "iron_body_sutra",
     "name": "Sutra do Corpo de Ferro",
     "description": "Um manual antigo que detalha métodos para fortalecer o corpo a um nível sobre-humano.",
     "type": "rare",
-    "effects": { "attributes": { "body": 5 } }
+    "effects": {
+      "attributes": {
+        "body": 5
+      }
+    }
+  },
+  {
+    "id": "light_heal",
+    "name": "Cura Leve",
+    "description": "Uma técnica que usa Qi para fechar feridas e restaurar a vitalidade.",
+    "type": "active_combat",
+    "priority": 9,
+    "cooldown": 4,
+    "qi_cost": 40,
+    "damage_multiplier": 0,
+    "special_effect": {
+      "type": "heal",
+      "amount": 75
+    }
+  },
+  {
+    "id": "stone_skin",
+    "name": "Pele de Pedra",
+    "description": "Circula Qi para endurecer a pele, aumentando drasticamente a defesa por alguns turnos.",
+    "type": "active_combat",
+    "priority": 8,
+    "cooldown": 5,
+    "qi_cost": 50,
+    "damage_multiplier": 0,
+    "special_effect": {
+      "type": "buff",
+      "stat": "defense",
+      "amount": 10,
+      "duration": 3
+    }
+  },
+  {
+    "id": "deep_cut",
+    "name": "Corte Profundo",
+    "description": "Um ataque preciso que causa um ferimento que continua a sangrar por vários turnos.",
+    "type": "active_combat",
+    "priority": 6,
+    "cooldown": 3,
+    "qi_cost": 35,
+    "damage_multiplier": 0.8,
+    "special_effect": {
+      "type": "dot",
+      "damage": 15,
+      "duration": 3
+    }
   }
 ]

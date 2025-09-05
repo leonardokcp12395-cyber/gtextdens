@@ -33,7 +33,10 @@
     "techniques": [
       { "id": "hidden_cloud_meditation", "cost_contribution": 150, "min_rank": 1 },
       { "id": "stunning_palm", "cost_contribution": 400, "min_rank": 2 },
-      { "id": "qi_blast", "cost_contribution": 800, "min_rank": 3 }
+      { "id": "qi_blast", "cost_contribution": 800, "min_rank": 3 },
+      { "id": "light_heal", "cost_contribution": 300, "min_rank": 1 },
+      { "id": "stone_skin", "cost_contribution": 450, "min_rank": 2 },
+      { "id": "deep_cut", "cost_contribution": 400, "min_rank": 2 }
     ]
   },
   {

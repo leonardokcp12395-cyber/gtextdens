@@ -28,6 +28,14 @@
       "description": "Comida simples para se manter. Aumenta ligeiramente o Corpo.",
       "cost_money": 10,
       "effects": { "attributes": { "body": 1 } }
+    },
+    {
+      "id": "iron_sword",
+      "cost_money": 200
+    },
+    {
+      "id": "leather_armor",
+      "cost_money": 180
     }
   ]
 }
