@@ -50,6 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
         exploreSectBtn: document.getElementById('explore-sect-btn'),
         exploreCityBtn: document.getElementById('explore-city-btn'),
         exploreWildsBtn: document.getElementById('explore-wilds-btn'),
+        seclusionBtn: document.getElementById('seclusion-btn'),
         endTurnBtn: document.getElementById('end-turn-btn'),
         combatPlayerHp: document.getElementById('combat-player-hp'),
         combatEnemyName: document.getElementById('combat-enemy-name'),
@@ -990,7 +991,56 @@ function exploreLocation(locationId) {
     }
 }
 
+function processSeclusionYear() {
+    // 1. Grant a large amount of Qi
+    const qiGainedInSeclusion = 200; // A significant boost
+    gameState.cultivation.qi = Math.min(gameState.cultivation.qi + qiGainedInSeclusion, gameState.cultivation.maxQi);
+    addLogMessage(`Em meditação profunda, você absorve o Qi do ambiente e ganha ${qiGainedInSeclusion} de Qi.`, 'reward');
+
+    // 2. Chance for a special event
+    const eventChance = 0.2; // 20% chance per year
+    if (Math.random() < eventChance) {
+        const eventType = getRandomElement(['insight', 'demons']);
+
+        if (eventType === 'insight') {
+            const statToBoost = getRandomElement(['body', 'mind']);
+            const boostAmount = 1;
+            applyEffects({ attributes: { [statToBoost]: boostAmount } });
+            addLogMessage(`Você tem um insight sobre o Dao! Seu atributo ${statToBoost} aumentou em ${boostAmount}.`, 'milestone');
+        } else if (eventType === 'demons') {
+            const qiLost = 50;
+            gameState.cultivation.qi = Math.max(0, gameState.cultivation.qi - qiLost);
+            addLogMessage(`Seus demônios interiores o assombram, fazendo seu Qi vacilar! Você perdeu ${qiLost} de Qi.`, 'notification');
+        }
+    }
+
+    // Check for breakthrough
+    if (gameState.cultivation.qi >= gameState.cultivation.maxQi) {
+        meditate(); // The meditate function already handles breakthroughs
+    }
+}
+
 function endYear() {
+    if (gameState.inSeclusion && gameState.seclusionTurnsLeft > 0) {
+        processSeclusionYear();
+        gameState.seclusionTurnsLeft--;
+        gameState.age++;
+        addLogMessage(`Você meditou em reclusão. Restam ${gameState.seclusionTurnsLeft} anos.`, 'event');
+
+        // Check if seclusion ends
+        if (gameState.seclusionTurnsLeft <= 0) {
+            gameState.inSeclusion = false;
+            addLogMessage('Você emerge da sua reclusão!', 'milestone');
+            startYear(); // Start a new proper year immediately
+            showEvent({ text: 'Sua longa meditação chegou ao fim. Você emerge, sentindo o mundo novamente.' });
+        } else {
+             elements.eventContent.innerHTML = `<p>Você está em reclusão. O tempo passa e o seu poder cresce. Restam ${gameState.seclusionTurnsLeft} anos.</p>`;
+             updateUI();
+        }
+        saveGameState();
+        return;
+    }
+
     // --- LÓGICA DE EVENTOS MUNDIAIS ---
     if (gameState.world_event && gameState.world_event.duration > 0) {
         gameState.world_event.duration--;
@@ -1684,6 +1734,7 @@ function updateUI() {
             elements.sectInfo.classList.add('hidden');
             elements.exploreSectBtn.classList.add('hidden');
         }
+        elements.seclusionBtn.classList.remove('hidden');
 
         // Update techniques list
         elements.techniquesList.innerHTML = '';
@@ -1706,6 +1757,7 @@ function updateUI() {
         elements.manageTechniquesBtn.classList.add('hidden');
         elements.cultivationPanel.style.display = 'none';
         elements.cultivateBtn.style.display = 'none';
+        elements.seclusionBtn.classList.add('hidden');
     }
 
     // Update character stats
@@ -1981,6 +2033,7 @@ function startNewGame() {
         elements.exploreSectBtn.addEventListener('click', () => exploreLocation('sect'));
         elements.exploreCityBtn.addEventListener('click', () => exploreLocation('city'));
         elements.exploreWildsBtn.addEventListener('click', () => exploreLocation('wilds'));
+        elements.seclusionBtn.addEventListener('click', showSeclusionChoices);
         elements.endTurnBtn.addEventListener('click', endYear);
 
         elements.talentsBtn.addEventListener('click', () => {
@@ -2016,4 +2069,47 @@ function startNewGame() {
 
     // --- START THE GAME ---
     loadGameData();
+
+    function showSeclusionChoices() {
+        elements.eventContent.innerHTML = `<p>Você contempla a possibilidade de entrar em cultivo de portas fechadas. O mundo exterior será esquecido, mas o seu poder poderá crescer exponencialmente. Quanto tempo você deseja meditar?</p>`;
+        elements.choicesContainer.innerHTML = '';
+
+        const durations = [
+            { years: 1, description: "Um breve retiro para consolidar o seu reino." },
+            { years: 5, description: "Um período de isolamento para buscar um avanço." },
+            { years: 10, description: "Uma longa reclusão para tentar tocar os mistérios do Dao." }
+        ];
+
+        durations.forEach(duration => {
+            const button = document.createElement('button');
+            button.innerHTML = `<b>${duration.years} Ano(s)</b><br><small>${duration.description}</small>`;
+            button.addEventListener('click', () => {
+                startClosedDoorCultivation(duration.years);
+            });
+            elements.choicesContainer.appendChild(button);
+        });
+
+        const cancelButton = document.createElement('button');
+        cancelButton.textContent = 'Cancelar';
+        cancelButton.className = 'danger-btn';
+        cancelButton.addEventListener('click', () => {
+            showEvent({ text: "Você decide que ainda não é a hora de se isolar do mundo." });
+        });
+        elements.choicesContainer.appendChild(cancelButton);
+    }
+
+    function startClosedDoorCultivation(years) {
+    gameState.inSeclusion = true;
+    gameState.seclusionTurnsLeft = years;
+    addLogMessage(`Você se isola do mundo para se concentrar no seu cultivo por ${years} ano(s).`, 'milestone');
+
+    // Hide the action buttons and show the 'End Year' button
+    elements.mapContainer.classList.add('hidden');
+    elements.endTurnBtn.classList.remove('hidden');
+    elements.eventContent.innerHTML = `<p>Você está em reclusão. O tempo passa e o seu poder cresce. Restam ${gameState.seclusionTurnsLeft} anos.</p>`;
+    elements.choicesContainer.innerHTML = '';
+
+    updateUI();
+    saveGameState();
+    }
 });
