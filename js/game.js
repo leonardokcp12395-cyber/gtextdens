@@ -55,6 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
         combatEnemyName: document.getElementById('combat-enemy-name'),
         combatEnemyHp: document.getElementById('combat-enemy-hp'),
         combatLog: document.getElementById('combat-log'),
+        combatControls: document.getElementById('combat-controls'),
         combatActions: document.getElementById('combat-actions'),
         relationshipsList: document.getElementById('relationships-list'),
         sectInfo: document.getElementById('sect-info'),
@@ -1089,7 +1090,6 @@ function endGame(reason) {
 function startCombat(enemyData, options = {}) {
     elements.eventContent.innerHTML = '';
     elements.choicesContainer.innerHTML = '';
-    elements.actionsContainer.classList.add('hidden');
     elements.combatScreen.classList.remove('hidden');
     elements.eventImage.style.display = 'none';
 
@@ -1098,8 +1098,8 @@ function startCombat(enemyData, options = {}) {
             ...gameState.player.combat,
             hp: gameState.player.combat.maxHp,
             qi: gameState.cultivation.qi,
-            techniques: gameState.player.combat.equipped_techniques,
-            cooldowns: {}, // Regista os cooldowns atuais
+            techniques: gameState.player.combat.equipped_techniques.filter(t => t),
+            cooldowns: {},
             statusEffects: {}
         },
         enemy: {
@@ -1110,22 +1110,83 @@ function startCombat(enemyData, options = {}) {
             statusEffects: {}
         },
         onWin: options,
-        turn: 0
+        turn: 0,
+        isPlayerTurn: true, // Player starts
+        isAutoBattling: false,
     };
 
     elements.combatLog.innerHTML = `<p class="log-type-notification">Você encontrou ${combatState.enemy.name}!</p>`;
-    updateCombatUI();
 
-    // Inicia o ciclo de combate automático
-    combatLoopInterval = setInterval(runCombatTurn, 2000); // Um turno a cada 2 segundos
+    // Create auto-battle button
+    elements.combatControls.innerHTML = '';
+    const autoBattleButton = document.createElement('button');
+    autoBattleButton.id = 'auto-battle-btn';
+    autoBattleButton.addEventListener('click', toggleAutoBattle);
+    elements.combatControls.appendChild(autoBattleButton);
+
+    // Initial UI setup, then prepare for the first turn.
+    updateCombatUI();
+    preparePlayerTurn();
 }
 
 /**
- * Executa um único turno de combate para ambos, jogador e inimigo.
+ * Prepara o turno do jogador, renderizando as ações possíveis.
+ */
+function preparePlayerTurn() {
+    combatState.isPlayerTurn = true;
+    addCombatLog(`--- Turno ${combatState.turn + 1}: Sua Vez ---`, 'system');
+    updateCombatUI();
+}
+
+/**
+ * Executa a ação escolhida pelo jogador e avança o combate.
+ * @param {string} techId - O ID da técnica a ser usada.
+ */
+function executePlayerAction(techId) {
+    if (!combatState.isPlayerTurn) return;
+    combatState.isPlayerTurn = false;
+
+    executeCharacterTurn(combatState.player, combatState.enemy, 'player', techId);
+
+    if (combatState.enemy.hp <= 0) {
+        endCombat(true);
+        return;
+    }
+
+    updateCombatUI(); // Desativa os botões de ação
+    setTimeout(executeEnemyTurn, 1500); // Inimigo ataca após um delay
+}
+
+/**
+ * Executa o turno automático do inimigo.
+ */
+function executeEnemyTurn() {
+    addCombatLog(`--- Turno ${combatState.turn + 1}: Vez de ${combatState.enemy.name} ---`, 'system');
+    executeCharacterTurn(combatState.enemy, combatState.player, 'enemy');
+
+    if (combatState.player.hp <= 0) {
+        endCombat(false);
+        return;
+    }
+
+    // A full cycle is complete, increment turn and prepare for next player turn
+    combatState.turn++;
+    preparePlayerTurn();
+}
+
+
+/**
+ * Executa um único turno de combate para ambos, jogador e inimigo (usado para auto-battle).
  */
 function runCombatTurn() {
+    if (!combatState.isAutoBattling) {
+        clearInterval(combatLoopInterval);
+        combatLoopInterval = null;
+        return;
+    }
+
     combatState.turn++;
-    addCombatLog(`--- Turno ${combatState.turn} ---`, 'system');
+    addCombatLog(`--- Turno ${combatState.turn} (Auto) ---`, 'system');
 
     // Turno do Jogador
     executeCharacterTurn(combatState.player, combatState.enemy, 'player');
@@ -1144,37 +1205,80 @@ function runCombatTurn() {
     updateCombatUI();
 }
 
+function toggleAutoBattle() {
+    combatState.isAutoBattling = !combatState.isAutoBattling;
+
+    if (combatState.isAutoBattling) {
+        addCombatLog("Batalha automática ativada!", "system");
+        combatState.isPlayerTurn = false; // No more manual turns
+
+        // Run one turn immediately, then set the interval
+        runCombatTurn();
+        if (combatState.player.hp > 0 && combatState.enemy.hp > 0) {
+            if (!combatLoopInterval) {
+                combatLoopInterval = setInterval(runCombatTurn, 2000);
+            }
+        }
+    } else {
+        addCombatLog("Batalha automática desativada. Assumindo o controle.", "system");
+        clearInterval(combatLoopInterval);
+        combatLoopInterval = null;
+
+        // Set up for the next manual player turn
+        preparePlayerTurn();
+    }
+    updateCombatUI(); // Update button text etc.
+}
+
 /**
  * Lógica para um único personagem (jogador ou inimigo) realizar o seu turno.
+ * @param {string} [forcedTechId=null] - Se um ID de técnica for fornecido, usa essa técnica. Senão, a IA escolhe a melhor.
  */
-function executeCharacterTurn(attacker, defender, attackerType) {
-    // Reduz todos os cooldowns em 1
+function executeCharacterTurn(attacker, defender, attackerType, forcedTechId = null) {
+    // Reduz todos os cooldowns em 1 no início do turno do personagem
     for (const techId in attacker.cooldowns) {
         attacker.cooldowns[techId] = Math.max(0, attacker.cooldowns[techId] - 1);
     }
 
-    // Encontra a melhor técnica disponível
-    const availableTechniques = attacker.techniques
-        .map(id => allGameData.techniques.find(t => t.id === id))
-        .filter(tech => tech && tech.type === 'active_combat' && (!attacker.cooldowns[tech.id] || attacker.cooldowns[tech.id] === 0) && attacker.qi >= tech.qi_cost)
-        .sort((a, b) => b.priority - a.priority);
+    let chosenTech;
 
-    let chosenTech = availableTechniques.length > 0 ? availableTechniques[0] : allGameData.techniques.find(t => t.id === 'basic_sword_form');
+    if (forcedTechId) {
+        chosenTech = allGameData.techniques.find(t => t.id === forcedTechId);
+    } else {
+        // Lógica da IA: Encontra a melhor técnica disponível
+        const availableTechniques = (attacker.techniques || [])
+            .map(id => allGameData.techniques.find(t => t.id === id))
+            .filter(tech => tech && tech.type === 'active_combat' && (!attacker.cooldowns[tech.id] || attacker.cooldowns[tech.id] === 0) && attacker.qi >= (tech.qi_cost || 0))
+            .sort((a, b) => (b.priority || 0) - (a.priority || 0));
 
-    // Executa o ataque
+        chosenTech = availableTechniques.length > 0 ? availableTechniques[0] : allGameData.techniques.find(t => t.id === 'basic_sword_form');
+    }
+
     if (chosenTech) {
-        attacker.qi -= chosenTech.qi_cost || 0;
+        const qiCost = chosenTech.qi_cost || 0;
+        if (attacker.qi < qiCost) {
+            const attackerName = attackerType === 'player' ? 'Você' : attacker.name;
+            addCombatLog(`${attackerName} tenta usar ${chosenTech.name}, mas não tem Qi suficiente!`, 'system');
+             // No modo manual, o turno não deve passar. No auto, sim.
+            if(forcedTechId) {
+                // Devolve o turno ao jogador se a ação falhar por falta de Qi
+                preparePlayerTurn();
+            }
+            return;
+        }
+
+        attacker.qi -= qiCost;
         attacker.cooldowns[chosenTech.id] = chosenTech.cooldown || 1;
 
         let damage = Math.max(1, Math.floor((attacker.attack * (chosenTech.damage_multiplier || 1)) - defender.defense));
-        defender.hp -= damage;
+        defender.hp = Math.max(0, defender.hp - damage);
 
         const attackerName = attackerType === 'player' ? 'Você' : attacker.name;
         const damageClass = attackerType === 'player' ? 'damage-enemy' : 'damage';
-        addCombatLog(`${attackerName} usa ${chosenTech.name} e causa <span class="${damageClass}">${damage}</span> de dano!`, attackerType);
+        addCombatLog(`${attackerName} usa ${chosenTech.name} e causa <span class="${damageClass}">${damage}</span> de dano!`, 'combat');
     } else {
-        // Fallback case if basic_sword_form is somehow not found
-        addCombatLog(`${attackerType === 'player' ? 'Você' : attacker.name} hesita, sem saber o que fazer.`, 'system');
+        const attackerName = attackerType === 'player' ? 'Você' : attacker.name;
+        addCombatLog(`${attackerName} hesita, sem saber o que fazer.`, 'system');
     }
 }
 
@@ -1183,37 +1287,96 @@ function executeCharacterTurn(attacker, defender, attackerType) {
  * Atualiza todos os elementos da UI relacionados com o combate.
  */
 function updateCombatUI() {
-    elements.combatPlayerHp.textContent = `${combatState.player.hp} / ${gameState.player.combat.maxHp} (Qi: ${combatState.player.qi})`;
+    if (!combatState || !combatState.player) return;
+
+    elements.combatPlayerHp.textContent = `${Math.ceil(combatState.player.hp)} / ${gameState.player.combat.maxHp} (Qi: ${Math.floor(combatState.player.qi)})`;
     elements.combatEnemyName.textContent = combatState.enemy.name;
-    elements.combatEnemyHp.textContent = `${combatState.enemy.hp} / ${combatState.enemy.maxHp}`;
+    elements.combatEnemyHp.textContent = `${Math.ceil(combatState.enemy.hp)} / ${combatState.enemy.maxHp}`;
+
+    // Update Auto-Battle Button
+    const autoBattleButton = document.getElementById('auto-battle-btn');
+    if (autoBattleButton) {
+        if (combatState.isAutoBattling) {
+            autoBattleButton.textContent = 'Desligar Batalha Automática';
+            autoBattleButton.classList.add('danger-btn');
+        } else {
+            autoBattleButton.textContent = 'Ligar Batalha Automática';
+            autoBattleButton.classList.remove('danger-btn');
+        }
+    }
+
+    elements.combatActions.innerHTML = ''; // Limpa ações antigas
+
+    if (combatState.isPlayerTurn && !combatState.isAutoBattling) {
+        // Adiciona botões para cada técnica equipada
+        combatState.player.techniques.forEach(techId => {
+            const tech = allGameData.techniques.find(t => t.id === techId);
+            if (!tech || tech.type !== 'active_combat') return;
+
+            const button = document.createElement('button');
+            const qiCost = tech.qi_cost || 0;
+            const cooldown = combatState.player.cooldowns[techId] || 0;
+
+            button.innerHTML = `${tech.name}<br><small>Custo: ${qiCost} Qi | CD: ${cooldown}</small>`;
+            button.className = 'combat-action-btn tech';
+            button.disabled = combatState.player.qi < qiCost || cooldown > 0;
+
+            button.addEventListener('click', () => executePlayerAction(techId));
+            elements.combatActions.appendChild(button);
+        });
+
+        // Adiciona botão de Fuga
+        const fleeButton = document.createElement('button');
+        fleeButton.textContent = 'Tentar Fugir';
+        fleeButton.className = 'danger-btn';
+        fleeButton.addEventListener('click', () => {
+             addCombatLog("Você tenta fugir...", "system");
+             if (Math.random() < 0.5) { // 50% chance de fugir
+                addCombatLog("Você conseguiu escapar!", "reward");
+                endCombat('fled');
+             } else {
+                addCombatLog("A fuga falhou!", "damage");
+                combatState.isPlayerTurn = false;
+                updateCombatUI();
+                setTimeout(executeEnemyTurn, 1500);
+             }
+        });
+        elements.combatActions.appendChild(fleeButton);
+    } else if (combatState.isAutoBattling) {
+         elements.combatActions.innerHTML = '<p>Batalha automática em andamento...</p>';
+    } else {
+        elements.combatActions.innerHTML = '<p>Aguardando ação do oponente...</p>';
+    }
 }
 
 /**
  * Termina o combate e apresenta o resultado.
  */
-function endCombat(playerWon) {
-    clearInterval(combatLoopInterval); // PARA O COMBATE AUTOMÁTICO
+function endCombat(result) {
+    clearInterval(combatLoopInterval);
     combatLoopInterval = null;
 
-    if (playerWon) {
+    if (result === true) {
         addCombatLog(`Você derrotou ${combatState.enemy.name}!`, 'reward');
         if (combatState.onWin.reward) applyEffects(combatState.onWin.reward);
         if (combatState.onWin.onWinEffect) handleSpecialEffects(combatState.onWin.onWinEffect);
         gameState.cultivation.qi = combatState.player.qi;
-    } else {
+    } else if (result === false) {
         addLogMessage('Você foi derrotado...', 'death');
         endGame('combat');
         return;
+    } else if (result === 'fled') {
+        addLogMessage("Você fugiu da batalha, preservando sua vida.", "notification");
+        gameState.cultivation.qi = combatState.player.qi;
     }
 
     const closeButton = document.createElement('button');
     closeButton.textContent = 'Continuar Jornada';
     closeButton.addEventListener('click', () => {
         elements.combatScreen.classList.add('hidden');
-        elements.actionsContainer.classList.remove('hidden'); // Mostra as ações normais
+        elements.mapContainer.classList.remove('hidden'); // Mostra o mapa
         updateUI();
         saveGameState();
-        // Dispara um evento vazio para o jogador ter algo para fazer após o combate
         showEvent({ text: "Após a batalha, você recupera o fôlego e avalia o que fazer a seguir." });
     });
     elements.combatActions.innerHTML = '';
