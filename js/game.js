@@ -862,6 +862,27 @@ function getActiveWorldEvent() {
                 }
                 break;
             case 'face_tribulation': addLogMessage("Os céus rugem enquanto você enfrenta a tribulação!", "milestone"); break;
+
+            // City Work Effects
+            case 'random_alley_find':
+                const randomMoney = Math.floor(Math.random() * 10) + 1; // 1 to 10 moedas
+                addLogMessage(`Você encontrou ${randomMoney} moedas esquecidas num canto!`, 'reward');
+                applyEffects({ resources: { money: randomMoney } });
+                showEvent({ text: `Você vasculha os becos e encontra ${randomMoney} moedas esquecidas!` });
+                break;
+            case 'attempt_theft':
+                if (Math.random() < 0.5) { // 50% success chance
+                    const stolenMoney = Math.floor(Math.random() * 20) + 5; // 5 to 24 moedas
+                    addLogMessage(`Você conseguiu roubar uma bolsa com ${stolenMoney} moedas!`, 'reward');
+                    applyEffects({ resources: { money: stolenMoney } });
+                    showEvent({ text: `Com sucesso, você pega uma bolsa com ${stolenMoney} moedas e desaparece na multidão.` });
+                } else {
+                    addLogMessage('Um guarda apanhou-o! Você levou uma surra e perdeu algum dinheiro na confusão.', 'notification');
+                    applyEffects({ resources: { money: -5 }});
+                     showEvent({ text: 'Você é apanhado por um guarda! Perde 5 moedas na confusão.' });
+                }
+                break;
+
             default: console.warn(`Efeito especial não implementado: ${effectKey}`);
         }
     }
@@ -1456,15 +1477,19 @@ function showCityMenu() {
         const button = document.createElement('button');
         button.innerHTML = `<b>${location.name}</b><br><small>${location.description}</small>`;
         button.addEventListener('click', () => {
-            if (gameState.actionPoints > 0) {
-                gameState.actionPoints--; // Gasta uma ação para visitar um local na cidade
-                if (location.id === 'shop') {
+            switch (location.id) {
+                case 'shop':
                     showCityShop();
-                } else {
-                    // (Lógica para Taverna e Trabalho virá depois)
-                    showEvent({ text: `Você passa algum tempo em "${location.name}", mas ainda não há nada para fazer aqui.` });
+                    break;
+                case 'work':
+                    showWorkOptions();
+                    break;
+                case 'tavern':
+                    showTavernOptions();
+                    break;
+                default:
+                    showEvent({ text: `Você passa algum tempo em "${location.name}", mas nada de extraordinário acontece.` });
                     updateUI();
-                }
             }
         });
         elements.choicesContainer.appendChild(button);
@@ -1478,6 +1503,109 @@ function showCityMenu() {
         updateUI();
     });
     elements.choicesContainer.appendChild(leaveButton);
+}
+
+/**
+ * Displays the city's work options.
+ */
+function showWorkOptions() {
+    elements.eventContent.innerHTML = `<p>Você procura por trabalhos temporários na cidade. As suas origens como <b>${allGameData.socialClasses.find(c => c.id === gameState.socialClass).name}</b> abrem-lhe certas portas.</p><p>Você tem ${gameState.actionPoints} pontos de ação restantes.</p>`;
+    elements.choicesContainer.innerHTML = '';
+
+    const playerSocialClass = gameState.socialClass;
+    const availableJobs = allGameData.work_options[playerSocialClass] || [];
+
+    if (availableJobs.length === 0) {
+        elements.eventContent.innerHTML += `<p>Não parece haver trabalho para alguém como você hoje.</p>`;
+    } else {
+        availableJobs.forEach(job => {
+            if (areConditionsMet(job.conditions)) {
+                const button = document.createElement('button');
+                const reward = job.effects.resources ? `${job.effects.resources.money} moedas` : 'Variável';
+                button.innerHTML = `<b>${job.name}</b> (1 Ação)<br><small>${job.description} | Recompensa: ~${reward}</small>`;
+
+                if (gameState.actionPoints <= 0) {
+                    button.disabled = true;
+                }
+
+                button.addEventListener('click', () => {
+                    if (gameState.actionPoints > 0) {
+                        gameState.actionPoints--;
+                        applyEffects(job.effects);
+                        addLogMessage(job.resultText, 'event');
+                        showEvent({ text: job.resultText });
+                        saveGameState();
+                    }
+                });
+                elements.choicesContainer.appendChild(button);
+            }
+        });
+    }
+
+    const backButton = document.createElement('button');
+    backButton.textContent = 'Voltar para a Cidade';
+    backButton.className = 'danger-btn';
+    backButton.addEventListener('click', showCityMenu);
+    elements.choicesContainer.appendChild(backButton);
+}
+
+/**
+ * Displays the tavern options.
+ */
+function showTavernOptions() {
+    elements.eventContent.innerHTML = `<p>A Taverna do Javali Bêbado está cheia de viajantes e locais. O barman acena-lhe com a cabeça.</p><p>Você tem ${gameState.actionPoints} pontos de ação e ${gameState.resources.money} moedas.</p>`;
+    elements.choicesContainer.innerHTML = '';
+
+    const listenButton = document.createElement('button');
+    listenButton.innerHTML = 'Ouvir Rumores (1 Ação, 5 Moedas)';
+
+    if (gameState.actionPoints <= 0 || gameState.resources.money < 5) {
+        listenButton.disabled = true;
+    }
+
+    listenButton.addEventListener('click', () => {
+        if (gameState.actionPoints > 0 && gameState.resources.money >= 5) {
+            gameState.actionPoints--;
+            gameState.resources.money -= 5;
+            triggerTavernRumor();
+            saveGameState();
+        }
+    });
+    elements.choicesContainer.appendChild(listenButton);
+
+    const backButton = document.createElement('button');
+    backButton.textContent = 'Voltar para a Cidade';
+    backButton.className = 'danger-btn';
+    backButton.addEventListener('click', showCityMenu);
+    elements.choicesContainer.appendChild(backButton);
+}
+
+/**
+ * Triggers a random rumor and its effects.
+ */
+function triggerTavernRumor() {
+    const rumor = getRandomElement(allGameData.tavern_rumors);
+    let resultText = `Você paga ao barman e senta-se a um canto, a ouvir as conversas...<br><br><i>"${rumor.text}"</i>`;
+
+    // Simple, hardcoded effects for demonstration
+    switch (rumor.id) {
+        case 'rumor_rare_herb':
+            resultText += "<br><br>A informação parece valiosa. Você vende o local da erva a um mercador por 25 moedas.";
+            applyEffects({ resources: { money: 25 } });
+            break;
+        case 'rumor_hidden_cave':
+            resultText += "<br><br>Intrigado, você segue as indicações e encontra uma pequena bolsa de moedas escondida. Que sorte! (+15 moedas)";
+            applyEffects({ resources: { money: 15 } });
+            break;
+        case 'rumor_noble_scandal':
+            resultText += "<br><br>Uma fofoca interessante, mas inútil para si... por enquanto.";
+            break;
+        default:
+             resultText += "<br><br>Você guarda a informação, sem saber se será útil no futuro.";
+    }
+
+    addLogMessage(resultText, 'event');
+    showEvent({ text: resultText });
 }
 
 /**
