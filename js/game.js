@@ -348,6 +348,118 @@ function showSpecialMerchantStore() {
     elements.choicesContainer.appendChild(leaveButton);
 }
 
+function showNpcInteractionMenu(npcId) {
+    const npc = gameState.npcs[npcId];
+    const relationship = gameState.relationships[npcId];
+
+    elements.eventContent.innerHTML = `<p>O que você quer fazer com ${npc.name}?</p><p>Relação: ${relationship.score} (${relationship.state})</p><p>Ações restantes: ${gameState.actionPoints}</p>`;
+    elements.choicesContainer.innerHTML = '';
+
+    // Option to Chat
+    const chatButton = document.createElement('button');
+    chatButton.textContent = 'Conversar (1 Ação)';
+    chatButton.disabled = gameState.actionPoints <= 0;
+    chatButton.addEventListener('click', () => handleNpcChat(npcId));
+    elements.choicesContainer.appendChild(chatButton);
+
+    // Option to Spar
+    const sparButton = document.createElement('button');
+    sparButton.textContent = 'Treinar Juntos (1 Ação)';
+    sparButton.disabled = gameState.actionPoints <= 0;
+    sparButton.addEventListener('click', () => handleNpcSpar(npcId));
+    elements.choicesContainer.appendChild(sparButton);
+
+    // Back button
+    const backButton = document.createElement('button');
+    backButton.textContent = 'Voltar';
+    backButton.className = 'danger-btn';
+    backButton.addEventListener('click', () => {
+        showEvent({ text: "Você decide deixar a pessoa em paz por enquanto." });
+    });
+    elements.choicesContainer.appendChild(backButton);
+}
+
+function handleNpcChat(npcId) {
+    if (gameState.actionPoints <= 0) return;
+    gameState.actionPoints--;
+
+    const npc = gameState.npcs[npcId];
+    const relationship = gameState.relationships[npcId];
+    relationship.score += 2;
+    updateRelationshipStates(); // Update state in case it changes
+
+    const message = `Você e ${npc.name} passam um tempo conversando sobre trivialidades. A relação de vocês melhorou um pouco.`;
+    addLogMessage(message, 'event');
+    showEvent({ text: message });
+    updateUI();
+    saveGameState();
+}
+
+function handleNpcSpar(npcId) {
+    if (gameState.actionPoints <= 0) return;
+    gameState.actionPoints--;
+
+    const npc = gameState.npcs[npcId];
+    const relationship = gameState.relationships[npcId];
+
+    if (relationship.state === 'Inimigo') {
+        const message = `${npc.name} interpreta seu convite para treinar como um desafio direto. A hostilidade é palpável no ar!`;
+        addLogMessage(message, 'notification');
+
+        startCombat(JSON.parse(JSON.stringify(npc)), {
+            onWinCallback: () => {
+                showEvent({ text: `Você derrotou ${npc.name} no duelo! Ele parece ainda mais irritado.` });
+                relationship.score -= 10;
+                updateRelationshipStates();
+                updateUI();
+                saveGameState();
+            },
+            onLoseCallback: () => {
+                showEvent({ text: `Você foi derrotado por ${npc.name}. Ele zomba da sua fraqueza.` });
+                relationship.score -= 5;
+                updateRelationshipStates();
+                updateUI();
+                saveGameState();
+            }
+        });
+
+    } else {
+        // Friendly spar - initiate a non-lethal combat
+        addLogMessage(`Você e ${npc.name} concordam em um treino amigável.`, 'event');
+
+        const npcCombatant = JSON.parse(JSON.stringify(npc));
+
+        startCombat(npcCombatant, {
+            onWinCallback: () => {
+                const statToBoost = getRandomElement(['attack', 'defense', 'speed']);
+                const boostAmount = 2;
+                applyEffects({ combat: { [statToBoost]: boostAmount } });
+                relationship.score += 10;
+                updateRelationshipStates();
+
+                const winMessage = `A sessão de treino foi intensa! Você conseguiu superar ${npc.name}. Ambos se sentem mais fortes. (Seu atributo ${statToBoost} aumentou em ${boostAmount} e a relação melhorou!)`;
+                addLogMessage(winMessage, 'reward');
+                showEvent({ text: winMessage });
+                updateUI();
+                saveGameState();
+            },
+            onLoseCallback: () => {
+                const statToBoost = getRandomElement(['attack', 'defense', 'speed']);
+                const boostAmount = 1;
+                applyEffects({ combat: { [statToBoost]: boostAmount } });
+                relationship.score += 5;
+                updateRelationshipStates();
+
+                const loseMessage = `O treino foi duro e ${npc.name} levou a melhor desta vez. Você aprendeu com a experiência. (Seu atributo ${statToBoost} aumentou em ${boostAmount} e a relação melhorou.)`;
+                addLogMessage(loseMessage, 'event');
+                showEvent({ text: loseMessage });
+                updateUI();
+                saveGameState();
+            }
+        });
+    }
+}
+
 // --- SECT ACTIONS ---
 
 /**
@@ -1502,10 +1614,13 @@ function endCombat(result) {
     closeButton.textContent = 'Continuar Jornada';
     closeButton.addEventListener('click', () => {
         elements.combatScreen.classList.add('hidden');
-        elements.mapContainer.classList.remove('hidden'); // Mostra o mapa
+        // Don't show an intermediate event. Just update the UI to show the map/end turn button.
+        // We also need to clear any lingering event text from before combat started.
+        elements.eventContent.innerHTML = '';
+        elements.choicesContainer.innerHTML = '';
+        elements.eventImage.style.display = 'none';
         updateUI();
         saveGameState();
-        showEvent({ text: "Após a batalha, você recupera o fôlego e avalia o que fazer a seguir." });
     });
     elements.combatActions.innerHTML = '';
     elements.combatActions.appendChild(closeButton);
@@ -1836,11 +1951,31 @@ function updateUI() {
     for (const npcId in gameState.npcs) {
         const npc = gameState.npcs[npcId];
         const relationship = gameState.relationships[npcId];
+
         const li = document.createElement('li');
+        li.style.display = 'flex';
+        li.style.justifyContent = 'space-between';
+        li.style.alignItems = 'center';
+        li.style.marginBottom = '10px';
+
+        const infoDiv = document.createElement('div');
         const rivalTag = npcId === gameState.rivalId ? ' <span class="rival-tag">[RIVAL]</span>' : '';
         const npcRealm = npc.cultivation ? allGameData.realms?.[npc.cultivation.realmId] || { name: 'Mortal' } : { name: 'Mortal' };
         const npcLevel = npc.cultivation ? npc.cultivation.level : 1;
-        li.innerHTML = `<strong>${npc.name}${rivalTag}</strong><br><span class="npc-details">Idade: ${npc.age} | ${npcRealm.name} Nv. ${npcLevel} | Relação: ${relationship.score} (${relationship.state})</span>`;
+        infoDiv.innerHTML = `<strong>${npc.name}${rivalTag}</strong><br><span class="npc-details">Idade: ${npc.age} | ${npcRealm.name} Nv. ${npcLevel} | Relação: ${relationship.score} (${relationship.state})</span>`;
+
+        const interactButton = document.createElement('button');
+        interactButton.textContent = 'Interagir';
+        interactButton.style.padding = '5px 10px';
+        interactButton.style.marginLeft = '10px';
+        interactButton.style.width = 'auto';
+        interactButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            showNpcInteractionMenu(npcId);
+        });
+
+        li.appendChild(infoDiv);
+        li.appendChild(interactButton);
         elements.relationshipsList.appendChild(li);
     }
 
