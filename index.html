@@ -11,10 +11,9 @@
 </head>
 <body>
     <div class="game-container">
-        <div class="left-column">
-            <div id="character-panel" class="panel">
-                <h2><span id="player-name"></span></h2>
-                <p><strong>Idade:</strong> <span id="char-age">0</span> / <span id="char-lifespan">80</span></p>
+        <div id="character-panel" class="panel">
+            <h2><span id="player-name"></span></h2>
+            <p><strong>Idade:</strong> <span id="char-age">0</span> / <span id="char-lifespan">80</span></p>
             <p><strong>Ações:</strong> <span id="char-actions">2</span></p>
             <hr>
             <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -51,7 +50,6 @@
                 <ul id="techniques-list"></ul>
             </div>
         </div>
-</div>
 
         <div id="event-panel" class="panel">
             <img id="event-image" class="hidden" src="" alt="Imagem do Evento">
@@ -115,16 +113,6 @@
     </div>
 
     <!-- Overlays -->
-    <div id="alchemy-screen" class="hidden fullscreen-overlay">
-        <div class="panel">
-            <h2>Bancada de Alquimia</h2>
-            <p>Combine ervas para criar pílulas e elixires poderosos.</p>
-            <hr>
-            <div id="alchemy-recipes-container"></div>
-            <button id="close-alchemy-btn">Fechar</button>
-        </div>
-    </div>
-
     <div id="talents-screen" class="hidden fullscreen-overlay">
         <div class="panel">
             <h2>Árvore de Talentos</h2>
@@ -195,7 +183,10 @@
             <hr>
             <div id="equipment-management-container">
                 <div id="inventory-panel">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                     <h3>Inventário</h3>
+                    <button id="sort-inventory-btn" style="width: auto; padding: 5px 15px; margin: 0;">Organizar</button>
+                </div>
                     <ul id="inventory-list"></ul>
                 </div>
                 <div id="equipped-items-panel">

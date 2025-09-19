@@ -242,23 +242,5 @@
       { "text": "Entrar na tumba e enfrentar o guardião.", "effects": { "special": "start_combat_ancient_guardian" }, "resultKey": "tomb_entered" },
       { "text": "Recuar. Este poder está além de mim por enquanto.", "effects": {}, "resultKey": "tomb_avoided" }
     ]
-  },
-  {
-    "id": "learn_alchemy_101",
-    "type": "once",
-    "location": null,
-    "conditions": {
-      "age": 12
-    },
-    "text": "Enquanto vasculhava a biblioteca da aldeia, você encontra um diário antigo e empoeirado. Dentro, você descobre anotações desbotadas e diagramas de ervas. Parece ser o trabalho de um alquimista! Você estuda uma página e consegue decifrar uma receita simples.",
-    "choices": [
-      {
-        "text": "Memorizar a receita",
-        "effects": {
-          "special": "learn_recipe_recipe_small_healing_pill"
-        },
-        "resultKey": "alchemy_discovery_success"
-      }
-    ]
   }
 ]

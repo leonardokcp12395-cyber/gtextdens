@@ -149,28 +149,6 @@
     }
   },
   {
-    "id": "small_healing_pill",
-    "name": "Pílula de Cura Pequena",
-    "description": "Uma pílula que fortalece o corpo, aumentando a sua vitalidade máxima.",
-    "type": "consumable",
-    "effects": {
-      "combat": {
-        "maxHp": 10
-      }
-    }
-  },
-  {
-    "id": "mind_calming_elixir",
-    "name": "Elixir Calmante da Mente",
-    "description": "Aumenta permanentemente o atributo Mente.",
-    "type": "consumable",
-    "effects": {
-      "attributes": {
-        "mind": 1
-      }
-    }
-  },
-  {
     "id": "common_grass",
     "name": "Grama Comum",
     "description": "Uma grama simples, mas com um traço de energia espiritual.",
@@ -180,18 +158,6 @@
     "id": "sun_petal",
     "name": "Pétala Solar",
     "description": "Uma flor que absorve a essência do sol, com propriedades curativas.",
-    "type": "herb"
-  },
-  {
-    "id": "moon_dew_leaf",
-    "name": "Folha de Orvalho Lunar",
-    "description": "Uma folha que coleta o orvalho sob a luz da lua, útil para acalmar a mente.",
-    "type": "herb"
-  },
-  {
-    "id": "spirit_root",
-    "name": "Raiz Espiritual",
-    "description": "Uma raiz que cresce em locais com denso Qi, ótima para pílulas de cultivo.",
     "type": "herb"
   }
 ]

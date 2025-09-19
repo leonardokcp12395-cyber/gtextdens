@@ -14,11 +14,6 @@
       "id": "work",
       "name": "Procurar Trabalho",
       "description": "Um lugar onde pode encontrar trabalhos temporários para ganhar algumas moedas."
-    },
-    {
-      "id": "alchemist_hut",
-      "name": "Cabana do Alquimista",
-      "description": "Uma pequena cabana com cheiro a ervas e poções. Um lugar para praticar a arte da alquimia."
     }
   ],
   "shop_items": [
