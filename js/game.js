@@ -90,6 +90,9 @@ document.addEventListener('DOMContentLoaded', () => {
         closeEquipmentBtn: document.getElementById('close-equipment-btn'),
         inventoryList: document.getElementById('inventory-list'),
         equippedItemsList: document.getElementById('equipped-items-list'),
+        alchemyScreen: document.getElementById('alchemy-screen'),
+        alchemyRecipesContainer: document.getElementById('alchemy-recipes-container'),
+        closeAlchemyBtn: document.getElementById('close-alchemy-btn'),
     };
 
 // --- EQUIPMENT & STATS ---
@@ -899,7 +902,9 @@ async function loadGameData() {
         'data/mortal_jobs.json',
         'data/spiritual_roots.json',
         'data/city_data.json',
-        'data/social_classes.json'
+        'data/social_classes.json',
+        'data/herbs.json',
+        'data/alchemy_recipes.json'
     ];
 
     try {
@@ -913,9 +918,9 @@ async function loadGameData() {
 
         const jsonData = await Promise.all(responses.map(res => res.json()));
 
-        const [events, items, sects, enemies, talents, strings, randomEvents, nomes, personalidades, worldEvents, realms, missions, techniques, mortalJobs, spiritualRoots, cityData, socialClasses] = jsonData;
+        const [events, items, sects, enemies, talents, strings, randomEvents, nomes, personalidades, worldEvents, realms, missions, techniques, mortalJobs, spiritualRoots, cityData, socialClasses, herbs, alchemyRecipes] = jsonData;
 
-        allGameData = { events, items, sects, enemies, talents, randomEvents, nomes, personalidades, worldEvents, realms, missions, techniques, mortalJobs, spiritualRoots, cityData, socialClasses };
+        allGameData = { events, items, sects, enemies, talents, randomEvents, nomes, personalidades, worldEvents, realms, missions, techniques, mortalJobs, spiritualRoots, cityData, socialClasses, herbs, alchemyRecipes };
         allStrings = strings;
 
         initializeGame();
@@ -1011,6 +1016,18 @@ function getActiveWorldEvent() {
         addLogMessage(`Efeito especial ativado: ${effectKey}`, 'notification');
 
         // Lógica para aprender técnicas
+        // Lógica para aprender receitas
+        if (effectKey.startsWith('learn_recipe_')) {
+            const recipeId = effectKey.replace('learn_recipe_', '');
+            if (!gameState.player.known_recipes) gameState.player.known_recipes = [];
+            if (!gameState.player.known_recipes.includes(recipeId)) {
+                gameState.player.known_recipes.push(recipeId);
+                const recipe = allGameData.alchemyRecipes.find(r => r.id === recipeId);
+                addLogMessage(`Você aprendeu a receita para: ${recipe.name}!`, 'milestone');
+            }
+            return;
+        }
+
         if (effectKey.startsWith('learn_technique_')) {
             const techId = effectKey.replace('learn_technique_', '');
             if (!gameState.player.techniques.includes(techId)) {
@@ -1190,41 +1207,49 @@ function startYear() {
 
 function exploreLocation(locationId) {
     if (locationId === 'city') {
-        showCityMenu(); // <-- NOVA LÓGICA
+        showCityMenu();
+    } else if (locationId === 'wilds') {
+        showWildsMenu();
     } else {
-        if (gameState.actionPoints <= 0) return;
-        gameState.actionPoints--;
-
-        let eventPool = [];
-        if (gameState.isCultivator) {
-            // Lógica de eventos para cultivadores (a que já tínhamos)
-            eventPool = allGameData.events.filter(event =>
-                (event.location === locationId || !event.location) &&
-                areConditionsMet(event)
-            );
-        } else {
-            // Lógica de eventos para mortais (trabalhos e oportunidades)
-            eventPool = allGameData.mortalJobs.filter(event =>
-                event.location === locationId && areConditionsMet(event.conditions) // This one is fine, no combat here
-            );
-        }
-
-        const possibleEvents = eventPool.filter(e => !gameState.triggeredEvents.includes(e.id) || e.type === 'repeatable');
-
-        let eventToTrigger;
-        if (possibleEvents.length > 0) {
-            eventToTrigger = getRandomElement(possibleEvents);
-            if (eventToTrigger.type === 'once') {
-                gameState.triggeredEvents.push(eventToTrigger.id);
-            }
-        } else {
-             eventToTrigger = { text: `Você passa algum tempo em "${locationId}", mas nada de extraordinário acontece.` };
-        }
-
-        showEvent(eventToTrigger);
-        updateUI();
-        saveGameState();
+        // Default action for other locations like 'sect'
+        triggerLocationEvent(locationId);
     }
+}
+
+function triggerLocationEvent(locationId) {
+    if (gameState.actionPoints <= 0) {
+        addLogMessage("Você não tem mais pontos de ação.", "notification");
+        return;
+    }
+    gameState.actionPoints--;
+
+    let eventPool = [];
+    if (gameState.isCultivator) {
+        eventPool = allGameData.events.filter(event =>
+            (event.location === locationId || !event.location) &&
+            areConditionsMet(event)
+        );
+    } else {
+        eventPool = allGameData.mortalJobs.filter(event =>
+            event.location === locationId && areConditionsMet(event.conditions)
+        );
+    }
+
+    const possibleEvents = eventPool.filter(e => !gameState.triggeredEvents.includes(e.id) || e.type === 'repeatable');
+
+    let eventToTrigger;
+    if (possibleEvents.length > 0) {
+        eventToTrigger = getRandomElement(possibleEvents);
+        if (eventToTrigger.type === 'once') {
+            gameState.triggeredEvents.push(eventToTrigger.id);
+        }
+    } else {
+         eventToTrigger = { text: `Você passa algum tempo explorando, mas nada de extraordinário acontece.` };
+    }
+
+    showEvent(eventToTrigger);
+    updateUI();
+    saveGameState();
 }
 
 function processSeclusionYear() {
@@ -1576,6 +1601,8 @@ function processStatusEffects(character, characterName) {
              addCombatLog(`${characterName} não está mais atordoado.`, 'system');
         } else if (effect.type === 'dot') {
              addCombatLog(`O efeito de ${effect.sourceName} em ${characterName} terminou.`, 'system');
+        } else if (effect.type === 'super_defend') {
+            addCombatLog(`A postura defensiva de ${characterName} terminou.`, 'system');
         }
 
         delete character.statusEffects[effectId];
@@ -1599,6 +1626,17 @@ function applySpecialEffect(attacker, defender, effect, techName) {
         case 'heal':
             attacker.hp = Math.min(attackerMaxHp, attacker.hp + effect.amount);
             addCombatLog(`${attackerName} se cura, recuperando <span class="log-type-reward">${effect.amount}</span> de HP!`, 'reward');
+            break;
+        case 'super_defend':
+            if (!attacker.statusEffects['super_defend']) { // Prevents stacking
+                attacker.statusEffects['super_defend'] = {
+                    type: 'super_defend',
+                    multiplier: effect.multiplier,
+                    duration: 2, // Dura até o início do próximo turno do utilizador
+                    sourceName: techName
+                };
+                addCombatLog(`${attackerName} entra em uma postura defensiva com ${techName}!`, 'reward');
+            }
             break;
         case 'buff':
             if (!attacker.statusEffects[techName]) { // Prevents stacking
@@ -1683,6 +1721,17 @@ function executeCharacterTurn(attacker, defender, attackerType, forcedTechId = n
         let damage = 0;
         if (chosenTech.damage_multiplier && chosenTech.damage_multiplier > 0) {
              damage = Math.max(1, Math.floor((attacker.attack * chosenTech.damage_multiplier) - defender.defense));
+
+            // Verifica se o defensor tem um efeito de redução de dano
+            if (defender.statusEffects['super_defend']) {
+                const reduction = defender.statusEffects['super_defend'].multiplier;
+                const originalDamage = damage;
+                damage = Math.floor(damage * (1 - reduction));
+                addCombatLog(`${defenderName} está numa postura defensiva, reduzindo o dano de ${originalDamage} para ${damage}!`, 'system');
+                // Remove o efeito após um golpe para que não se aplique a DoTs
+                delete defender.statusEffects['super_defend'];
+            }
+
              defender.hp = Math.max(0, defender.hp - damage);
         }
 
@@ -1882,6 +1931,71 @@ function addCombatLog(message, type) {
 
 // --- CITY ACTIONS ---
 
+function showWildsMenu() {
+    elements.mapContainer.classList.add('hidden');
+    elements.eventContent.innerHTML = `<p>As montanhas selvagens estendem-se à sua frente, cheias de perigos e tesouros. O que deseja fazer?</p><p>Você tem ${gameState.actionPoints} pontos de ação.</p>`;
+    elements.choicesContainer.innerHTML = '';
+
+    const exploreButton = document.createElement('button');
+    exploreButton.innerHTML = `<b>Explorar Aleatoriamente</b><br><small>Procure por eventos e encontros. (1 Ação)</small>`;
+    exploreButton.disabled = gameState.actionPoints <= 0;
+    exploreButton.addEventListener('click', () => {
+        triggerLocationEvent('wilds');
+    });
+    elements.choicesContainer.appendChild(exploreButton);
+
+    const gatherButton = document.createElement('button');
+    gatherButton.innerHTML = `<b>Coletar Ervas</b><br><small>Procure por ingredientes de alquimia. (1 Ação)</small>`;
+    gatherButton.disabled = gameState.actionPoints <= 0;
+    gatherButton.addEventListener('click', () => {
+        gatherHerbs();
+    });
+    elements.choicesContainer.appendChild(gatherButton);
+
+
+    const leaveButton = document.createElement('button');
+    leaveButton.textContent = 'Voltar';
+    leaveButton.className = 'danger-btn';
+    leaveButton.addEventListener('click', () => {
+        showEvent({text: 'Você decide não se aventurar nas montanhas por agora.'});
+        updateUI();
+    });
+    elements.choicesContainer.appendChild(leaveButton);
+}
+
+function gatherHerbs() {
+    if (gameState.actionPoints <= 0) return;
+    gameState.actionPoints--;
+
+    const foundHerbs = [];
+    const numberOfHerbs = Math.floor(Math.random() * 3) + 1; // Find 1 to 3 herbs
+
+    for (let i = 0; i < numberOfHerbs; i++) {
+        const herb = getRandomElement(allGameData.herbs);
+        foundHerbs.push(herb.name);
+        // Add herb to inventory
+        const herbItem = allGameData.items.find(item => item.id === herb.id);
+        if (herbItem) {
+            if (!gameState.player.inventory) gameState.player.inventory = [];
+            gameState.player.inventory.push(JSON.parse(JSON.stringify(herbItem)));
+        }
+    }
+
+    let message;
+    if (foundHerbs.length > 0) {
+        message = `Você vasculha a área e encontra: ${foundHerbs.join(', ')}.`;
+        addLogMessage(message, 'reward');
+    } else {
+        message = 'Você não encontrou nenhuma erva de valor desta vez.';
+        addLogMessage(message, 'event');
+    }
+
+    showEvent({ text: message });
+    updateUI();
+    saveGameState();
+}
+
+
 /**
  * Displays the main menu for the city.
  */
@@ -1903,6 +2017,9 @@ function showCityMenu() {
                     break;
                 case 'tavern':
                     showTavernOptions();
+                    break;
+                case 'alchemist_hut':
+                    showAlchemyScreen();
                     break;
                 default:
                     showEvent({ text: `Você passa algum tempo em "${location.name}", mas nada de extraordinário acontece.` });
@@ -2064,6 +2181,101 @@ function showCityShop() {
     backButton.className = 'danger-btn';
     backButton.addEventListener('click', showCityMenu);
     elements.choicesContainer.appendChild(backButton);
+}
+
+function showAlchemyScreen() {
+    elements.alchemyScreen.classList.remove('hidden');
+    elements.alchemyRecipesContainer.innerHTML = '';
+
+    const knownRecipes = gameState.player.known_recipes || [];
+    if (knownRecipes.length === 0) {
+        elements.alchemyRecipesContainer.innerHTML = '<p>Você ainda não conhece nenhuma receita de alquimia.</p>';
+        return;
+    }
+
+    // Count player's ingredients
+    const ingredientCounts = {};
+    gameState.player.inventory.forEach(item => {
+        if (item.type === 'herb') {
+            ingredientCounts[item.id] = (ingredientCounts[item.id] || 0) + 1;
+        }
+    });
+
+    knownRecipes.forEach(recipeId => {
+        const recipe = allGameData.alchemyRecipes.find(r => r.id === recipeId);
+        if (!recipe) return;
+
+        const recipeDiv = document.createElement('div');
+        recipeDiv.className = 'alchemy-recipe'; // Add a class for styling
+
+        let ingredientsHtml = '<ul>';
+        let canCraft = true;
+        recipe.ingredients.forEach(ing => {
+            const owned = ingredientCounts[ing.id] || 0;
+            const required = ing.quantity;
+            const hasEnough = owned >= required;
+            if (!hasEnough) canCraft = false;
+            const herbDetails = allGameData.items.find(i => i.id === ing.id);
+            ingredientsHtml += `<li class="${hasEnough ? '' : 'missing'}">${herbDetails.name}: ${owned}/${required}</li>`;
+        });
+        ingredientsHtml += '</ul>';
+
+        const resultItem = allGameData.items.find(i => i.id === recipe.result.id);
+
+        recipeDiv.innerHTML = `
+            <h4>${recipe.name}</h4>
+            <p>${recipe.description}</p>
+            <p><strong>Ingredientes:</strong></p>
+            ${ingredientsHtml}
+            <p><strong>Resultado:</strong> ${resultItem.name} x${recipe.result.quantity}</p>
+        `;
+
+        const craftButton = document.createElement('button');
+        craftButton.textContent = 'Fabricar';
+        craftButton.disabled = !canCraft;
+        craftButton.addEventListener('click', () => {
+            craftItem(recipe.id);
+        });
+
+        recipeDiv.appendChild(craftButton);
+        elements.alchemyRecipesContainer.appendChild(recipeDiv);
+    });
+}
+
+function craftItem(recipeId) {
+    const recipe = allGameData.alchemyRecipes.find(r => r.id === recipeId);
+    if (!recipe) return;
+
+    // Double check ingredients before crafting
+    for (const ingredient of recipe.ingredients) {
+        const count = gameState.player.inventory.filter(i => i.id === ingredient.id).length;
+        if (count < ingredient.quantity) {
+            addLogMessage("Faltam ingredientes!", 'notification');
+            return;
+        }
+    }
+
+    // Consume ingredients
+    recipe.ingredients.forEach(ingredient => {
+        for (let i = 0; i < ingredient.quantity; i++) {
+            const itemIndex = gameState.player.inventory.findIndex(item => item.id === ingredient.id);
+            if (itemIndex > -1) {
+                gameState.player.inventory.splice(itemIndex, 1);
+            }
+        }
+    });
+
+    // Add result item
+    const resultItem = allGameData.items.find(i => i.id === recipe.result.id);
+    if (resultItem) {
+        for (let i = 0; i < recipe.result.quantity; i++) {
+            gameState.player.inventory.push(JSON.parse(JSON.stringify(resultItem)));
+        }
+        addLogMessage(`Você fabricou ${resultItem.name}!`, 'reward');
+    }
+
+    showAlchemyScreen(); // Re-render the screen
+    saveGameState();
 }
 
 function updateUI() {
@@ -2429,6 +2641,7 @@ function startNewGame() {
         legs: null,
         feet: null
     };
+    player.known_recipes = []; // Começa sem receitas
 
 
     gameState = {
@@ -2482,7 +2695,7 @@ function startNewGame() {
         }
 
         // Attach event listeners for main UI buttons
-        elements.exploreSectBtn.addEventListener('click', () => exploreLocation('sect'));
+        elements.exploreSectBtn.addEventListener('click', () => triggerLocationEvent('sect'));
         elements.exploreCityBtn.addEventListener('click', () => exploreLocation('city'));
         elements.exploreWildsBtn.addEventListener('click', () => exploreLocation('wilds'));
         elements.seclusionBtn.addEventListener('click', showSeclusionChoices);
@@ -2514,6 +2727,10 @@ function startNewGame() {
         elements.equipmentBtn.addEventListener('click', showEquipmentScreen);
         elements.closeEquipmentBtn.addEventListener('click', () => {
             elements.equipmentScreen.classList.add('hidden');
+        });
+
+        elements.closeAlchemyBtn.addEventListener('click', () => {
+            elements.alchemyScreen.classList.add('hidden');
         });
 
         // Resume cultivation loop if loading a game with a cultivator

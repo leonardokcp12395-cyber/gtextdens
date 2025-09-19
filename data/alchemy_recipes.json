@@ -1,0 +1,35 @@
+[
+  {
+    "id": "recipe_small_healing_pill",
+    "name": "Pílula de Cura Pequena",
+    "description": "Uma pílula simples que fortalece o corpo, aumentando a vitalidade máxima.",
+    "ingredients": [
+      { "id": "sun_petal", "quantity": 2 },
+      { "id": "common_grass", "quantity": 1 }
+    ],
+    "result": { "id": "small_healing_pill", "quantity": 1 },
+    "level": 1
+  },
+  {
+    "id": "recipe_small_qi_pill",
+    "name": "Pílula Pequena de Qi",
+    "description": "Uma receita para criar uma pílula que recupera uma pequena quantidade de Qi.",
+    "ingredients": [
+      { "id": "spirit_root", "quantity": 2 },
+      { "id": "common_grass", "quantity": 1 }
+    ],
+    "result": { "id": "small_qi_pill", "quantity": 1 },
+    "level": 1
+  },
+  {
+    "id": "recipe_mind_calming_elixir",
+    "name": "Elixir Calmante da Mente",
+    "description": "Um elixir que acalma o espírito e fortalece a mente.",
+    "ingredients": [
+      { "id": "moon_dew_leaf", "quantity": 3 },
+      { "id": "common_grass", "quantity": 2 }
+    ],
+    "result": { "id": "mind_calming_elixir", "quantity": 1 },
+    "level": 2
+  }
+]
