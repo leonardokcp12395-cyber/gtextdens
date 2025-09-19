@@ -1578,8 +1578,17 @@ function processStatusEffects(character, characterName) {
 
         // Apply ongoing effects like DoT
         if (effect.type === 'dot') {
-            character.hp = Math.max(0, character.hp - effect.damage);
-            addCombatLog(`${characterName} sofre <span class="log-type-damage">${effect.damage}</span> de dano de ${effect.sourceName}!`, 'damage');
+            let dotDamage = effect.damage;
+            // Check for damage reduction
+            if (character.statusEffects['super_defend']) {
+                const reduction = character.statusEffects['super_defend'].multiplier;
+                const originalDamage = dotDamage;
+                dotDamage = Math.floor(dotDamage * (1 - reduction));
+                addCombatLog(`${characterName} está numa postura defensiva, reduzindo o dano de ${effect.sourceName} de ${originalDamage} para ${dotDamage}!`, 'system');
+                delete character.statusEffects['super_defend']; // Consume the effect
+            }
+            character.hp = Math.max(0, character.hp - dotDamage);
+            addCombatLog(`${characterName} sofre <span class="log-type-damage">${dotDamage}</span> de dano de ${effect.sourceName}!`, 'damage');
         }
 
         // Decrement duration
@@ -2690,6 +2699,7 @@ function startNewGame() {
             if (!gameState.player.equipment) {
                 gameState.player.equipment = { weapon: null, chest: null, head: null, legs: null, feet: null };
             }
+            if (!gameState.player.known_recipes) gameState.player.known_recipes = [];
         } else {
             startNewGame();
         }
